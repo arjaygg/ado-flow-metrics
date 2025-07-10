@@ -3,6 +3,9 @@ import requests
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 import base64
+import logging
+
+logger = logging.getLogger(__name__)
 
 class AzureDevOpsClient:
     def __init__(self, org_url: str, project: str, pat_token: str):
@@ -17,6 +20,7 @@ class AzureDevOpsClient:
     
     def get_work_items(self, days_back: int = 90) -> List[Dict]:
         """Fetch work items from Azure DevOps"""
+        logger.info(f"Fetching work items from the last {days_back} days for project '{self.project}'.")
         try:
             # First, get work item IDs using WIQL
             wiql_query = {
@@ -32,28 +36,33 @@ class AzureDevOpsClient:
             
             wiql_url = f"{self.org_url}/{self.project}/_apis/wit/wiql?api-version=6.0"
             response = requests.post(wiql_url, json=wiql_query, headers=self.headers)
+            response.raise_for_status()  # Raise an exception for bad status codes
             
-            if response.status_code != 200:
-                print(f"Error fetching work items: {response.status_code} - {response.text}")
+            work_item_refs = response.json().get('workItems', [])
+            logger.info(f"Found {len(work_item_refs)} work item references.")
+            
+            if not work_item_refs:
+                logger.warning("No work items found in the specified period.")
                 return []
             
-            work_item_ids = [item['id'] for item in response.json().get('workItems', [])]
+            work_item_ids = [item['id'] for item in work_item_refs]
             
-            if not work_item_ids:
-                print("No work items found")
-                return []
+            # Get detailed work item information in batches to avoid URL length limits
+            work_items = []
+            batch_size = 200  # Azure DevOps API limit
+            for i in range(0, len(work_item_ids), batch_size):
+                batch_ids = work_item_ids[i:i + batch_size]
+                ids_string = ','.join(map(str, batch_ids))
+                details_url = f"{self.org_url}/{self.project}/_apis/wit/workitems?ids={ids_string}&$expand=relations&api-version=6.0"
+                
+                logger.info(f"Fetching details for batch {i//batch_size + 1}/{len(work_item_ids)//batch_size + 1} ({len(batch_ids)} items).")
+                details_response = requests.get(details_url, headers=self.headers)
+                details_response.raise_for_status()
+                
+                batch_work_items = details_response.json().get('value', [])
+                work_items.extend(batch_work_items)
             
-            # Get detailed work item information
-            ids_string = ','.join(map(str, work_item_ids))
-            details_url = f"{self.org_url}/{self.project}/_apis/wit/workitems?ids={ids_string}&$expand=relations&api-version=6.0"
-            
-            details_response = requests.get(details_url, headers=self.headers)
-            
-            if details_response.status_code != 200:
-                print(f"Error fetching work item details: {details_response.status_code}")
-                return []
-            
-            work_items = details_response.json().get('value', [])
+            logger.info(f"Successfully fetched details for {len(work_items)} work items in total.")
             
             # Transform to our format
             transformed_items = []
@@ -82,8 +91,11 @@ class AzureDevOpsClient:
             
             return transformed_items
             
+        except requests.exceptions.HTTPError as http_err:
+            logger.error(f"HTTP error occurred: {http_err} - {response.text}")
+            return []
         except Exception as e:
-            print(f"Error fetching work items: {str(e)}")
+            logger.exception(f"An unexpected error occurred while fetching work items: {e}")
             return []
     
     def _get_state_history(self, work_item_id: int) -> List[Dict]:
