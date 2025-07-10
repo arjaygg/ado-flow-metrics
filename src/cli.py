@@ -193,10 +193,29 @@ def mock(items: int, output: Optional[str]):
 @click.option('--port', default=8050, help='Dashboard port')
 @click.option('--host', default='0.0.0.0', help='Dashboard host')
 @click.option('--debug', is_flag=True, help='Enable debug mode')
-def dashboard(port: int, host: str, debug: bool):
+@click.option('--data-source', default='mock', help='Data source: mock, api, or file path')
+def dashboard(port: int, host: str, debug: bool, data_source: str):
     """Launch interactive web dashboard."""
-    console.print("[yellow]Dashboard not yet implemented[/yellow]")
-    console.print("This will launch a Dash-based web interface for visualizing metrics")
+    try:
+        from .web_server import create_web_server
+        
+        console.print(f"[green]Starting Flow Metrics Dashboard...[/green]")
+        console.print(f"[cyan]Host: {host}[/cyan]")
+        console.print(f"[cyan]Port: {port}[/cyan]")
+        console.print(f"[cyan]Data source: {data_source}[/cyan]")
+        console.print(f"[yellow]Dashboard will be available at: http://{host}:{port}[/yellow]")
+        
+        # Create and run web server
+        server = create_web_server(data_source=data_source)
+        server.run(host=host, port=port, debug=debug)
+        
+    except ImportError as e:
+        console.print(f"[red]Error: Missing dependencies for dashboard[/red]")
+        console.print(f"[yellow]Please install: pip install flask flask-cors[/yellow]")
+        sys.exit(1)
+    except Exception as e:
+        console.print(f"[red]Error starting dashboard: {e}[/red]")
+        sys.exit(1)
 
 
 @cli.group()

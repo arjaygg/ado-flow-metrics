@@ -21,6 +21,10 @@ pydantic-settings>=2.0.0
 click>=8.0.0
 rich>=13.0.0
 
+# Web framework
+flask>=2.0.0
+flask-cors>=4.0.0
+
 # Visualization (optional for dashboard)
 plotly>=5.0.0
 dash>=2.0.0
