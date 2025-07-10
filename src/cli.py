@@ -401,8 +401,35 @@ def history(limit: int, detailed: bool):
 @cli.command()
 @click.option('--port', default=8000, help='Port to serve dashboard on')
 @click.option('--open-browser', is_flag=True, help='Open browser automatically')
-def dashboard(port: int, open_browser: bool):
-    """Launch the Flow Metrics dashboard in your browser."""
+@click.option('--use-mock-data', is_flag=True, help='Use mock data for demo')
+def demo(port: int, open_browser: bool, use_mock_data: bool):
+    """Quick demo: generate data and launch dashboard."""
+    try:
+        console.print("[cyan]🚀 Starting Flow Metrics Demo...[/cyan]")
+        
+        # Generate fresh data
+        if use_mock_data:
+            console.print("[yellow]Generating mock data...[/yellow]")
+            ctx = click.get_current_context()
+            ctx.invoke(calculate, use_mock_data=True)
+        else:
+            console.print("[yellow]Note: Using existing data or mock data if none exists[/yellow]")
+        
+        # Launch dashboard
+        ctx = click.get_current_context()
+        ctx.invoke(serve, port=port, open_browser=open_browser, auto_generate=not use_mock_data)
+        
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
+        sys.exit(1)
+
+
+@cli.command()
+@click.option('--port', default=8000, help='Port to serve dashboard on')
+@click.option('--open-browser', is_flag=True, help='Open browser automatically')
+@click.option('--auto-generate', is_flag=True, help='Auto-generate fresh data before serving')
+def serve(port: int, open_browser: bool, auto_generate: bool):
+    """Launch the Flow Metrics dashboard with HTTP server."""
     import webbrowser
     import http.server
     import socketserver
@@ -410,6 +437,12 @@ def dashboard(port: int, open_browser: bool):
     
     try:
         settings = get_settings()
+        
+        # Auto-generate fresh data if requested
+        if auto_generate:
+            console.print("[cyan]Auto-generating fresh data...[/cyan]")
+            ctx = click.get_current_context()
+            ctx.invoke(calculate, use_mock_data=True)
         
         # Check if dashboard file exists
         dashboard_file = Path(__file__).parent.parent / "dashboard.html"
@@ -441,6 +474,8 @@ def dashboard(port: int, open_browser: bool):
         
         dashboard_url = f"http://localhost:{port}/dashboard.html"
         console.print(f"[green]Dashboard available at: {dashboard_url}[/green]")
+        console.print("[cyan]💡 Select 'CLI Data' in the dashboard to load generated metrics[/cyan]")
+        console.print("[cyan]💡 Enable 'Auto-refresh' to automatically update when data changes[/cyan]")
         
         if open_browser:
             webbrowser.open(dashboard_url)

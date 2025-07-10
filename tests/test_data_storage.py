@@ -20,7 +20,10 @@ class TestFlowMetricsDatabase:
         """Create temporary database configuration."""
         with tempfile.TemporaryDirectory() as temp_dir:
             config = Mock(spec=FlowMetricsSettings)
-            config.data_dir = Path(temp_dir)
+            # Create the data_management mock with the expected structure
+            data_management = Mock()
+            data_management.data_directory = Path(temp_dir)
+            config.data_management = data_management
             yield config
     
     @pytest.fixture

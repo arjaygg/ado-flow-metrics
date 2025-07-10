@@ -59,6 +59,12 @@
                 <button class="btn btn-outline-light btn-sm ms-2" id="loadFileBtn">
                     <i class="fas fa-upload"></i> Load JSON
                 </button>
+                <div class="form-check form-switch ms-3">
+                    <input class="form-check-input" type="checkbox" id="autoRefreshToggle">
+                    <label class="form-check-label text-light" for="autoRefreshToggle">
+                        Auto-refresh (30s)
+                    </label>
+                </div>
             </div>
         </div>
     </nav>
@@ -81,6 +87,9 @@
                         
                         <input type="radio" class="btn-check" name="dataSource" id="indexedDB">
                         <label class="btn btn-outline-primary" for="indexedDB">IndexedDB</label>
+                        
+                        <input type="radio" class="btn-check" name="dataSource" id="cliData">
+                        <label class="btn btn-outline-primary" for="cliData">CLI Data</label>
                     </div>
                 </div>
             </div>
@@ -227,6 +236,9 @@
                 this.dbName = 'FlowMetricsDB';
                 this.dbVersion = 1;
                 this.db = null;
+                this.autoRefreshTimer = null;
+                this.autoRefreshInterval = 30000; // 30 seconds
+                this.lastDataSource = null;
                 this.init();
             }
 
@@ -302,6 +314,11 @@
                 document.querySelectorAll('input[name="dataSource"]').forEach(radio => {
                     radio.addEventListener('change', () => this.loadData());
                 });
+                
+                // Auto-refresh toggle
+                document.getElementById('autoRefreshToggle').addEventListener('change', (e) => {
+                    this.toggleAutoRefresh(e.target.checked);
+                });
             }
 
             async loadData() {
@@ -331,6 +348,7 @@
 
                     if (data) {
                         this.data = data;
+                        this.lastDataSource = selectedSource;
                         this.updateDashboard(data);
                         
                         // Auto-save to IndexedDB for future use
@@ -349,22 +367,39 @@
             // Load data from CLI-generated files
             async loadFromCLI() {
                 try {
-                    // Try to load dashboard_data.json from data directory
-                    const response = await fetch('./data/dashboard_data.json');
-                    if (response.ok) {
-                        const cliData = await response.json();
-                        return cliData.data; // Extract the metrics data
-                    } else {
-                        // Fallback to flow_metrics_report.json
-                        const fallbackResponse = await fetch('./data/flow_metrics_report.json');
-                        if (fallbackResponse.ok) {
-                            return await fallbackResponse.json();
+                    // Try multiple CLI data locations
+                    const dataSources = [
+                        './data/dashboard_data.json',
+                        './data/flow_metrics_report.json',
+                        './data/test_report.json',
+                        './data/test_metrics_report.json'
+                    ];
+                    
+                    for (const source of dataSources) {
+                        try {
+                            const response = await fetch(source);
+                            if (response.ok) {
+                                const data = await response.json();
+                                console.log(`Successfully loaded data from ${source}`);
+                                
+                                // Handle different data formats
+                                if (data.data) {
+                                    return data.data; // Dashboard format
+                                } else if (data.summary || data.lead_time || data.cycle_time) {
+                                    return data; // Direct metrics format
+                                }
+                            }
+                        } catch (err) {
+                            console.log(`Failed to load from ${source}: ${err.message}`);
                         }
                     }
+                    
+                    console.log('No CLI data found in any location');
+                    return null;
                 } catch (error) {
-                    console.log('CLI data not available:', error.message);
+                    console.log('CLI data loading error:', error.message);
+                    return null;
                 }
-                return null;
             }
 
             handleFileLoad(event) {
@@ -614,6 +649,24 @@
 
             showErrorMessage(message) {
                 this.updateDataSourceInfo('Error: ' + message);
+            }
+            
+            toggleAutoRefresh(enabled) {
+                if (enabled) {
+                    this.autoRefreshTimer = setInterval(() => {
+                        if (this.lastDataSource === 'cliData') {
+                            console.log('Auto-refreshing CLI data...');
+                            this.loadData();
+                        }
+                    }, this.autoRefreshInterval);
+                    console.log('Auto-refresh enabled (30s interval)');
+                } else {
+                    if (this.autoRefreshTimer) {
+                        clearInterval(this.autoRefreshTimer);
+                        this.autoRefreshTimer = null;
+                    }
+                    console.log('Auto-refresh disabled');
+                }
             }
         }
 

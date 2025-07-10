@@ -18,7 +18,7 @@ class FlowMetricsDatabase:
     def __init__(self, config: FlowMetricsSettings):
         """Initialize database connection."""
         self.config = config
-        self.db_path = config.data_dir / "flow_metrics.db"
+        self.db_path = config.data_management.data_directory / "flow_metrics.db"
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._initialize_database()
     
