@@ -12,13 +12,15 @@ A Python implementation of flow metrics for software development teams, designed
 - **Flow Efficiency**: Ratio of active time to total lead time
 - **Little's Law Validation**: System stability validation
 
-### Planned Features (In Development)
-- Incremental data synchronization
-- SQLite data persistence
-- Advanced analytics and trends
-- Web dashboard interface
-- Configurable workflow stages
-- Multi-project support
+### Advanced Features
+- ✅ **Incremental data synchronization** with execution tracking
+- ✅ **SQLite data persistence** for historical analysis
+- ✅ **Web dashboard interface** with real-time updates
+- ✅ **Configurable workflow stages** via JSON configuration
+- ✅ **Command-line interface** with comprehensive commands
+- ✅ **Multi-source data support** (Azure DevOps, mock, JSON files)
+- 🔄 **Advanced analytics and trends** (in development)
+- 🔄 **Multi-project support** (planned)
 
 ## Project Structure
 
@@ -109,16 +111,45 @@ calculator = FlowMetricsCalculator()
 metrics = calculator.calculate_all_metrics(mock_items)
 ```
 
-### Command Line Interface (Planned)
+### Command Line Interface
 ```bash
-# Fetch and calculate metrics
-python -m flow_metrics fetch --days-back 30
+# Quick demo with dashboard
+python3 -m src.cli demo --use-mock-data --open-browser
+
+# Fetch and calculate metrics from Azure DevOps
+python3 -m src.cli fetch --days-back 30 --save-last-run
+python3 -m src.cli calculate
 
 # Use mock data for testing
-python -m flow_metrics calculate --use-mock-data
+python3 -m src.cli calculate --use-mock-data
 
-# Incremental sync
-python -m flow_metrics sync --auto-increment
+# Serve dashboard with HTTP server
+python3 -m src.cli serve --port 8000 --open-browser --auto-generate
+
+# Combined fetch and calculate workflow
+python3 -m src.cli sync --auto-increment --save-last-run
+
+# View execution history
+python3 -m src.cli history --limit 10 --detailed
+
+# Manage configuration
+python3 -m src.cli config show
+python3 -m src.cli config init
+
+# Generate mock data
+python3 -m src.cli mock --items 200
+```
+
+### Dashboard Access
+```bash
+# Method 1: CLI server (recommended)
+python3 -m src.cli serve --open-browser
+
+# Method 2: Direct browser access
+python3 open_dashboard.py
+
+# Method 3: Flask web server
+python3 -m src.cli dashboard --port 8050
 ```
 
 ## Configuration

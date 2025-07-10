@@ -4,20 +4,20 @@ import json
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional, List
+from typing import List, Optional
 
 import click
-from rich.console import Console
-from rich.table import Table
-from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich import print as rprint
+from rich.console import Console
+from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.table import Table
 
 from .azure_devops_client import AzureDevOpsClient
 from .calculator import FlowMetricsCalculator
-from .config_manager import get_settings, ConfigManager
+from .config_manager import ConfigManager, get_settings
+from .data_storage import FlowMetricsDatabase
 from .mock_data import generate_mock_azure_devops_data as generate_mock_data
 from .models import FlowMetricsReport
-from .data_storage import FlowMetricsDatabase
 
 console = Console()
 
@@ -503,6 +503,124 @@ def demo(port: int, open_browser: bool, use_mock_data: bool):
         sys.exit(1)
 
 
+@cli.group()
+def data():
+    """Data management commands."""
+    pass
+
+
+@data.command("cleanup")
+@click.option("--days-to-keep", default=365, help="Number of days of data to keep")
+@click.option(
+    "--dry-run", is_flag=True, help="Show what would be deleted without deleting"
+)
+@click.confirmation_option(prompt="Are you sure you want to delete old data?")
+def data_cleanup(days_to_keep: int, dry_run: bool):
+    """Clean up old execution data from database."""
+    try:
+        settings = get_settings()
+        db = FlowMetricsDatabase(settings)
+
+        if dry_run:
+            console.print(
+                f"[yellow]DRY RUN: Would delete executions older than {days_to_keep} days[/yellow]"
+            )
+            # TODO: Add preview functionality to show what would be deleted
+            console.print(
+                "[yellow]Add --no-dry-run to actually delete the data[/yellow]"
+            )
+            return
+
+        deleted_count = db.cleanup_old_data(days_to_keep=days_to_keep)
+        console.print(
+            f"[green]✓ Cleaned up {deleted_count} old execution records[/green]"
+        )
+        console.print(f"[green]✓ Kept data from last {days_to_keep} days[/green]")
+
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
+        sys.exit(1)
+
+
+@data.command("reset")
+@click.option("--keep-config", is_flag=True, help="Keep configuration files")
+@click.confirmation_option(
+    prompt="Are you sure you want to reset all data? This cannot be undone!"
+)
+def data_reset(keep_config: bool):
+    """Reset all data for fresh start."""
+    try:
+        settings = get_settings()
+        data_dir = settings.data_management.data_directory
+
+        console.print("[yellow]Resetting all data...[/yellow]")
+
+        # Remove data directory contents
+        import shutil
+
+        if data_dir.exists():
+            for item in data_dir.iterdir():
+                if item.is_file():
+                    item.unlink()
+                    console.print(f"[cyan]Removed: {item.name}[/cyan]")
+                elif item.is_dir():
+                    shutil.rmtree(item)
+                    console.print(f"[cyan]Removed directory: {item.name}[/cyan]")
+
+        # Remove config if requested
+        if not keep_config:
+            config_file = Path("config/config.json")
+            if config_file.exists():
+                config_file.unlink()
+                console.print("[cyan]Removed: config.json[/cyan]")
+
+        console.print("[green]✓ Data reset complete - ready for fresh start[/green]")
+
+        if keep_config:
+            console.print("[yellow]Configuration preserved[/yellow]")
+        else:
+            console.print(
+                "[yellow]Run 'python3 -m src.cli config init' to setup configuration[/yellow]"
+            )
+
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
+        sys.exit(1)
+
+
+@data.command("fresh")
+@click.option("--days-back", default=30, help="Number of days to fetch")
+@click.option("--use-mock", is_flag=True, help="Use mock data instead of Azure DevOps")
+def data_fresh(days_back: int, use_mock: bool):
+    """Start fresh: reset data and fetch new."""
+    try:
+        console.print("[cyan]🔄 Starting fresh data load...[/cyan]")
+
+        # Reset data (but keep config)
+        ctx = click.get_current_context()
+        ctx.invoke(data_reset, keep_config=True)
+
+        # Generate fresh data
+        if use_mock:
+            console.print("[yellow]Generating fresh mock data...[/yellow]")
+            ctx.invoke(calculate, use_mock_data=True)
+        else:
+            console.print(
+                f"[yellow]Fetching fresh data for last {days_back} days...[/yellow]"
+            )
+            ctx.invoke(fetch, days_back=days_back, save_last_run=True)
+            ctx.invoke(calculate)
+
+        console.print("[green]✓ Fresh data load complete![/green]")
+        console.print(
+            "[cyan]💡 Run 'python3 -m src.cli serve --open-browser' to view dashboard[/cyan]"
+        )
+
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
+        sys.exit(1)
+
+
 @cli.command()
 @click.option("--port", default=8000, help="Port to serve dashboard on")
 @click.option("--open-browser", is_flag=True, help="Open browser automatically")
@@ -511,10 +629,10 @@ def demo(port: int, open_browser: bool, use_mock_data: bool):
 )
 def serve(port: int, open_browser: bool, auto_generate: bool):
     """Launch the Flow Metrics dashboard with HTTP server."""
-    import webbrowser
     import http.server
     import socketserver
     import threading
+    import webbrowser
 
     try:
         settings = get_settings()
