@@ -1,8 +1,9 @@
-import json
-import requests
-from typing import Dict, List
 import base64
+import json
 import logging
+from typing import Dict, List
+
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ class AzureDevOpsClient:
             # First, get work item IDs using WIQL
             wiql_query = {
                 "query": f"""
-                SELECT [System.Id], [System.Title], [System.State], [System.WorkItemType], 
+                SELECT [System.Id], [System.Title], [System.State], [System.WorkItemType],
                        [System.CreatedDate], [System.AssignedTo], [Microsoft.VSTS.Common.Priority]
                 FROM WorkItems
                 WHERE [System.TeamProject] = '{self.project}'
@@ -78,19 +79,27 @@ class AzureDevOpsClient:
                 # Get state history
                 state_transitions = self._get_state_history(item["id"])
 
+                # Build transformed item with better default handling
                 transformed_item = {
                     "id": f"WI-{item['id']}",
-                    "title": fields.get("System.Title", ""),
-                    "type": fields.get("System.WorkItemType", ""),
-                    "priority": fields.get("Microsoft.VSTS.Common.Priority", "Medium"),
-                    "created_date": fields.get("System.CreatedDate", ""),
-                    "created_by": fields.get("System.CreatedBy", {}).get(
-                        "displayName", ""
-                    ),
-                    "assigned_to": fields.get("System.AssignedTo", {}).get(
-                        "displayName", ""
-                    ),
-                    "current_state": fields.get("System.State", ""),
+                    "title": fields.get("System.Title") or "[No Title]",
+                    "type": fields.get("System.WorkItemType") or "Unknown",
+                    "priority": fields.get("Microsoft.VSTS.Common.Priority")
+                    or "Medium",
+                    "created_date": fields.get("System.CreatedDate") or "",
+                    "created_by": (
+                        fields.get("System.CreatedBy", {}).get("displayName")
+                        if isinstance(fields.get("System.CreatedBy"), dict)
+                        else str(fields.get("System.CreatedBy", ""))
+                    )
+                    or "Unknown",
+                    "assigned_to": (
+                        fields.get("System.AssignedTo", {}).get("displayName")
+                        if isinstance(fields.get("System.AssignedTo"), dict)
+                        else str(fields.get("System.AssignedTo", ""))
+                    )
+                    or "Unassigned",
+                    "current_state": fields.get("System.State") or "New",
                     "state_transitions": state_transitions,
                     "story_points": fields.get("Microsoft.VSTS.Scheduling.StoryPoints"),
                     "effort_hours": fields.get(
@@ -102,6 +111,13 @@ class AzureDevOpsClient:
                         else []
                     ),
                 }
+
+                # Skip items with critical missing data
+                if not transformed_item["created_date"]:
+                    logger.warning(
+                        f"Skipping work item {item['id']} - missing creation date"
+                    )
+                    continue
 
                 transformed_items.append(transformed_item)
 

@@ -707,12 +707,38 @@ def _validate_work_items(work_items: List[dict]) -> List[dict]:
         raise ValueError("No work items provided")
 
     valid_items = []
+    validation_stats = {
+        "missing_fields": 0,
+        "empty_fields": 0,
+        "invalid_dates": 0,
+        "total_processed": len(work_items),
+    }
+
     for item in work_items:
-        # Check required fields
+        # Check required fields with detailed validation
         required_fields = ["id", "title", "type", "current_state", "created_date"]
-        if not all(field in item for field in required_fields):
+        missing_fields = []
+        empty_fields = []
+
+        for field in required_fields:
+            if field not in item:
+                missing_fields.append(field)
+            elif not item[field] or (
+                isinstance(item[field], str) and item[field].strip() == ""
+            ):
+                empty_fields.append(field)
+
+        if missing_fields or empty_fields:
+            issue_details = []
+            if missing_fields:
+                issue_details.append(f"missing: {', '.join(missing_fields)}")
+                validation_stats["missing_fields"] += 1
+            if empty_fields:
+                issue_details.append(f"empty: {', '.join(empty_fields)}")
+                validation_stats["empty_fields"] += 1
+
             console.print(
-                f"[yellow]Warning: Skipping item {item.get('id', 'unknown')} - missing required fields[/yellow]"
+                f"[yellow]Warning: Skipping item {item.get('id', 'unknown')} - {'; '.join(issue_details)}[/yellow]"
             )
             continue
 
@@ -721,6 +747,7 @@ def _validate_work_items(work_items: List[dict]) -> List[dict]:
             if isinstance(item["created_date"], str):
                 datetime.fromisoformat(item["created_date"])
         except ValueError:
+            validation_stats["invalid_dates"] += 1
             console.print(
                 f"[yellow]Warning: Skipping item {item['id']} - invalid created_date format[/yellow]"
             )
@@ -730,6 +757,24 @@ def _validate_work_items(work_items: List[dict]) -> List[dict]:
 
     if not valid_items:
         raise ValueError("No valid work items found after validation")
+
+    # Display validation summary if there were any issues
+    total_skipped = (
+        validation_stats["missing_fields"]
+        + validation_stats["empty_fields"]
+        + validation_stats["invalid_dates"]
+    )
+    if total_skipped > 0:
+        console.print(f"[cyan]Validation Summary:[/cyan]")
+        console.print(f"  Total items processed: {validation_stats['total_processed']}")
+        console.print(f"  Valid items: {len(valid_items)}")
+        console.print(f"  Skipped items: {total_skipped}")
+        if validation_stats["missing_fields"] > 0:
+            console.print(f"    - Missing fields: {validation_stats['missing_fields']}")
+        if validation_stats["empty_fields"] > 0:
+            console.print(f"    - Empty fields: {validation_stats['empty_fields']}")
+        if validation_stats["invalid_dates"] > 0:
+            console.print(f"    - Invalid dates: {validation_stats['invalid_dates']}")
 
     return valid_items
 
