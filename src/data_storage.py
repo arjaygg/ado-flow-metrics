@@ -360,8 +360,15 @@ class FlowMetricsDatabase:
             
             return 0
     
-    def export_data(self, output_path: Path, execution_ids: Optional[List[int]] = None):
+    def export_data(self, output_path: Optional[Path] = None, execution_ids: Optional[List[int]] = None):
         """Export data to JSON for backup or analysis."""
+        if output_path is None:
+            # Default to exports directory outside the repo
+            repo_root = Path(__file__).parent.parent.parent
+            exports_dir = repo_root.parent / "exports"
+            exports_dir.mkdir(exist_ok=True)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            output_path = exports_dir / f"flow_metrics_export_{timestamp}.json"
         with self._get_connection() as conn:
             cursor = conn.cursor()
             
@@ -397,3 +404,5 @@ class FlowMetricsDatabase:
             
             with open(output_path, 'w') as f:
                 json.dump(export_data, f, indent=2, default=str)
+            
+            return output_path
