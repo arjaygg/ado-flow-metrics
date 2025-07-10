@@ -88,34 +88,47 @@ class FlowMetricsCalculator:
         """Parse work items and add calculated fields"""
         logger.debug("Starting work item parsing.")
         parsed_items = []
-        for item in self.work_items:
-            parsed_item = {
-                'id': item['id'],
-                'title': item['title'],
-                'type': item['type'],
-                'priority': item['priority'],
-                'created_date': datetime.fromisoformat(item['created_date']),
-                'created_by': item['created_by'],
-                'assigned_to': item['assigned_to'],
-                'current_state': item['current_state'],
-                'story_points': item.get('story_points'),
-                'effort_hours': item.get('effort_hours'),
-                'tags': item.get('tags', [])
-            }
+        total_items = len(self.work_items)
+        
+        for idx, item in enumerate(self.work_items):
+            if idx % 50 == 0:  # Log progress every 50 items
+                logger.info(f"Processing work item {idx + 1}/{total_items}")
             
-            # Add state transition dates
-            transitions = item.get('state_transitions', [])
-            for trans in transitions:
-                # Handle both 'to_state' (new format) and 'state' (legacy format)
-                state = trans.get('to_state') or trans.get('state')
-                # Handle both 'transition_date' (new format) and 'date' (legacy format)
-                date_str = trans.get('transition_date') or trans.get('date')
+                parsed_item = {
+                    'id': item['id'],
+                    'title': item['title'],
+                    'type': item['type'],
+                    'priority': item['priority'],
+                    'created_date': datetime.fromisoformat(item['created_date']),
+                    'created_by': item['created_by'],
+                    'assigned_to': item['assigned_to'],
+                    'current_state': item['current_state'],
+                    'story_points': item.get('story_points'),
+                    'effort_hours': item.get('effort_hours'),
+                    'tags': item.get('tags', [])
+                }
                 
-                if state and date_str:
-                    state_key = f"{state.lower().replace(' ', '_')}_date"
-                    parsed_item[state_key] = datetime.fromisoformat(date_str)
+                # Add state transition dates
+                transitions = item.get('state_transitions', [])
+                for trans in transitions:
+                    try:
+                        # Handle both 'to_state' (new format) and 'state' (legacy format)
+                        state = trans.get('to_state') or trans.get('state')
+                        # Handle both 'transition_date' (new format) and 'date' (legacy format)
+                        date_str = trans.get('transition_date') or trans.get('date')
+                        
+                        if state and date_str:
+                            state_key = f"{state.lower().replace(' ', '_')}_date"
+                            parsed_item[state_key] = datetime.fromisoformat(date_str)
+                    except Exception as e:
+                        logger.warning(f"Failed to parse transition date for item {item['id']}: {e}")
+                        continue
+                
+                parsed_items.append(parsed_item)
             
-            parsed_items.append(parsed_item)
+            except Exception as e:
+                logger.error(f"Failed to parse work item {item.get('id', 'unknown')}: {e}")
+                continue
         
         logger.debug(f"Finished parsing. {len(parsed_items)} items are usable for calculations.")
         return parsed_items
@@ -278,6 +291,7 @@ class FlowMetricsCalculator:
     
     def calculate_team_metrics(self) -> Dict:
         """Calculate metrics by team member"""
+        logger.info("Starting team metrics calculation...")
         team_metrics = {}
         
         # Group items by assignee
@@ -285,7 +299,12 @@ class FlowMetricsCalculator:
         for item in self.parsed_items:
             assignee_items[item['assigned_to']].append(item)
         
-        for member, items in assignee_items.items():
+        logger.info(f"Found {len(assignee_items)} team members with work assignments")
+        
+        for idx, (member, items) in enumerate(assignee_items.items()):
+            if idx % 10 == 0:  # Log progress every 10 members
+                logger.info(f"Processing team member {idx + 1}/{len(assignee_items)}: {member}")
+            
             closed_items = [item for item in items if item['current_state'] in self.done_states]
             active_items = [item for item in items if item['current_state'] in self.active_states]
             
@@ -293,9 +312,18 @@ class FlowMetricsCalculator:
             if closed_items:
                 lead_times = []
                 for item in closed_items:
-                    if 'closed_date' in item:
-                        lead_time = (item['closed_date'] - item['created_date']).days
+                    # Look for any completion date field
+                    completion_date = None
+                    for state in self.done_states:
+                        state_key = f"{state.lower().replace(' ', '_')}_date"
+                        if state_key in item:
+                            completion_date = item[state_key]
+                            break
+                    
+                    if completion_date:
+                        lead_time = (completion_date - item['created_date']).days
                         lead_times.append(lead_time)
+                
                 avg_lead_time = sum(lead_times) / len(lead_times) if lead_times else 0
             else:
                 avg_lead_time = 0
@@ -307,6 +335,8 @@ class FlowMetricsCalculator:
                 "average_lead_time": round(avg_lead_time, 2),
                 "completion_rate": round(len(closed_items) / len(items) * 100, 1) if items else 0
             }
+        
+        logger.info(f"Team metrics calculation completed for {len(team_metrics)} members")
         
         return team_metrics
     
@@ -346,7 +376,9 @@ class FlowMetricsCalculator:
     def generate_flow_metrics_report(self) -> Dict:
         """Generate comprehensive flow metrics report compatible with PowerShell dashboard"""
         logger.info("Generating full flow metrics report.")
+        logger.info(f"Working with {len(self.parsed_items)} parsed items")
         completed_count = len([item for item in self.parsed_items if item['current_state'] in self.done_states])
+        logger.info(f"Found {completed_count} completed items")
         
         # Build report in exact PowerShell format
         report = {
@@ -354,20 +386,38 @@ class FlowMetricsCalculator:
                 "total_work_items": len(self.parsed_items),
                 "completed_items": completed_count,
                 "completion_rate": round(completed_count / len(self.parsed_items) * 100, 1) if self.parsed_items else 0
-            },
-            "lead_time": self.calculate_lead_time(),
-            "cycle_time": self.calculate_cycle_time(),
-            "throughput": self.calculate_throughput(),
-            "work_in_progress": self.calculate_wip(),
-            "flow_efficiency": self.calculate_flow_efficiency(),
-            "littles_law_validation": self.calculate_littles_law_validation(),
-            "team_metrics": self.calculate_team_metrics(),
-            "trend_analysis": {},
-            "bottlenecks": {
-                "state_transitions": {}
-            },
-            "cycle_time_distribution": {}
+            }
         }
+        
+        logger.info("Calculating lead time...")
+        report["lead_time"] = self.calculate_lead_time()
+        
+        logger.info("Calculating cycle time...")
+        report["cycle_time"] = self.calculate_cycle_time()
+        
+        logger.info("Calculating throughput...")
+        report["throughput"] = self.calculate_throughput()
+        
+        logger.info("Calculating work in progress...")
+        report["work_in_progress"] = self.calculate_wip()
+        
+        logger.info("Calculating flow efficiency...")
+        report["flow_efficiency"] = self.calculate_flow_efficiency()
+        
+        logger.info("Calculating Little's Law validation...")
+        report["littles_law_validation"] = self.calculate_littles_law_validation()
+        
+        logger.info("Calculating team metrics...")
+        report["team_metrics"] = self.calculate_team_metrics()
+        
+        # Add remaining static sections
+        report["trend_analysis"] = {}
+        report["bottlenecks"] = {
+            "state_transitions": {}
+        }
+        report["cycle_time_distribution"] = {}
+        
+        logger.info("Flow metrics report generation completed.")
         
         return report
 
