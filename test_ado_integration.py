@@ -21,7 +21,7 @@ from logging_setup import setup_logging
 
 def test_ado_client():
     """Test Azure DevOps client using the central configuration."""
-    print("🔍 Testing Azure DevOps Client...")
+    print(">> Testing Azure DevOps Client...")
     
     # Load configuration from the central manager
     config = config_manager.settings
@@ -31,7 +31,7 @@ def test_ado_client():
     pat_token = os.getenv('AZURE_DEVOPS_PAT')
     
     if not pat_token or pat_token == 'your-token' or not ado_config.org_url or not ado_config.default_project:
-        print("⚠️  Connection details missing. Ensure AZURE_DEVOPS_PAT is set and config is complete.")
+        print("WARNING:  Connection details missing. Ensure AZURE_DEVOPS_PAT is set and config is complete.")
         print("   Falling back to mock data.")
         return None
     
@@ -40,25 +40,25 @@ def test_ado_client():
     
     try:
         client = AzureDevOpsClient(org_url, project, pat_token)
-        print(f"✅ ADO Client configured for {org_url}/{project}")
+        print(f"[OK] ADO Client configured for {org_url}/{project}")
         
         # Test connection with a small fetch
         work_items = client.get_work_items(days_back=7)
         
         if work_items:
-            print(f"✅ Successfully fetched {len(work_items)} work items")
+            print(f"[OK] Successfully fetched {len(work_items)} work items")
             return work_items
         else:
-            print("⚠️  No work items found - check project name and permissions")
+            print("WARNING:  No work items found - check project name and permissions")
             return None
             
     except Exception as e:
-        print(f"❌ ADO Client error: {e}")
+        print(f"[ERROR] ADO Client error: {e}")
         return None
 
 def test_complete_workflow():
     """Test the complete workflow from data to dashboard."""
-    print("\n🚀 Testing Complete Workflow...")
+    print("\n>> Testing Complete Workflow...")
     
     # Step 1: Get data (ADO or mock)
     print("Step 1: Data Acquisition")
@@ -68,7 +68,7 @@ def test_complete_workflow():
         print("   Using mock data instead...")
         work_items = generate_mock_azure_devops_data()
     
-    print(f"   ✅ {len(work_items)} work items loaded")
+    print(f"   [OK] {len(work_items)} work items loaded")
     
     # Step 2: Calculate metrics
     print("Step 2: Calculate Flow Metrics")
@@ -77,19 +77,19 @@ def test_complete_workflow():
     
     try:
         report = calculator.generate_flow_metrics_report()
-        print("   ✅ Flow metrics calculated successfully")
+        print("   [OK] Flow metrics calculated successfully")
         
         # Display key metrics
         summary = report.get('summary', {})
         lead_time = report.get('lead_time', {})
         throughput = report.get('throughput', {})
         
-        print(f"   📊 Completed Items: {summary.get('completed_items', 0)}")
-        print(f"   📊 Average Lead Time: {lead_time.get('average_days', 0):.1f} days")
-        print(f"   📊 Throughput: {throughput.get('items_per_period', 0):.1f} items/30 days")
+        print(f"   [STATS] Completed Items: {summary.get('completed_items', 0)}")
+        print(f"   [STATS] Average Lead Time: {lead_time.get('average_days', 0):.1f} days")
+        print(f"   [STATS] Throughput: {throughput.get('items_per_period', 0):.1f} items/30 days")
         
     except Exception as e:
-        print(f"   ❌ Metrics calculation error: {e}")
+        print(f"   [ERROR] Metrics calculation error: {e}")
         return False
     
     # Step 3: Save for dashboard
@@ -102,10 +102,10 @@ def test_complete_workflow():
     try:
         with open(output_file, 'w') as f:
             json.dump(report, f, indent=2, default=str)
-        print(f"   ✅ Executive data saved to {output_file}")
+        print(f"   [OK] Executive data saved to {output_file}")
         
     except Exception as e:
-        print(f"   ❌ Save error: {e}")
+        print(f"   [ERROR] Save error: {e}")
         return False
     
     # Step 4: Validation
@@ -119,24 +119,24 @@ def test_complete_workflow():
         errors, warnings = validate_data_structure(report)
         
         if errors:
-            print("   ❌ Data structure validation failed:")
+            print("   [ERROR] Data structure validation failed:")
             for error in errors:
                 print(f"      • {error}")
             return False
         
-        print("   ✅ Data structure validation passed")
+        print("   [OK] Data structure validation passed")
         
         # Calculate executive metrics
         exec_metrics = calculate_executive_metrics(report)
         
         if 'error' in exec_metrics:
-            print(f"   ❌ Executive metrics calculation failed: {exec_metrics['error']}")
+            print(f"   [ERROR] Executive metrics calculation failed: {exec_metrics['error']}")
             return False
         
-        print("   ✅ Executive metrics calculated")
-        print(f"   📊 Team Size: {exec_metrics.get('team_size', 0)} members")
-        print(f"   📊 Delivery Speed: {exec_metrics.get('delivery_speed_days', 0):.1f} days")
-        print(f"   📊 Flow Efficiency: {exec_metrics.get('flow_efficiency_percent', 0):.1f}%")
+        print("   [OK] Executive metrics calculated")
+        print(f"   [STATS] Team Size: {exec_metrics.get('team_size', 0)} members")
+        print(f"   [STATS] Delivery Speed: {exec_metrics.get('delivery_speed_days', 0):.1f} days")
+        print(f"   [STATS] Flow Efficiency: {exec_metrics.get('flow_efficiency_percent', 0):.1f}%")
         
         # Show insights
         insights = exec_metrics.get('insights', [])
@@ -146,11 +146,11 @@ def test_complete_workflow():
                 print(f"      • {insight}")
         
     except Exception as e:
-        print(f"   ❌ Validation error: {e}")
+        print(f"   [ERROR] Validation error: {e}")
         return False
     
-    print("\n🎉 Complete workflow test successful!")
-    print("\n🎯 Next Steps:")
+    print("\n[SUCCESS] Complete workflow test successful!")
+    print("\n[NEXT STEPS]:" )
     print("   1. Open ../dashboard/executive-index.html")
     print("   2. Upload ado_integration_test.json")
     print("   3. View executive dashboard with your data")
@@ -168,7 +168,7 @@ def display_integration_summary():
     print("   export AZURE_DEVOPS_ORG='https://dev.azure.com/your-org'")
     print("   export AZURE_DEVOPS_PROJECT='YourProject'")
     
-    print("\n📊 WORKFLOW COMMANDS:")
+    print("\n[STATS] WORKFLOW COMMANDS:")
     print("   # Test this integration")
     print("   python3 test_ado_integration.py")
     print("")
@@ -193,15 +193,15 @@ def display_integration_summary():
 
 if __name__ == "__main__":
     setup_logging()
-    print("🚀 Kicking off Azure DevOps Integration Test...")
+    print(">> Kicking off Azure DevOps Integration Test...")
     print("=" * 50)
 
     success = test_complete_workflow()
 
     print("=" * 50)
     if success:
-        print("\n✅ Integration test completed successfully!")
+        print("\n[OK] Integration test completed successfully!")
     else:
-        print("\n❌ Integration test failed or ran with mock data.")
+        print("\n[ERROR] Integration test failed or ran with mock data.")
     
     display_integration_summary()
