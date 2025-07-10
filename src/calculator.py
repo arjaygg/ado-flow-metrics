@@ -1,8 +1,8 @@
 import json
-from datetime import datetime, timedelta
-from typing import Dict, List, Union
-from collections import defaultdict
 import logging
+from collections import defaultdict
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Union
 
 logger = logging.getLogger(__name__)
 
@@ -56,7 +56,8 @@ class FlowMetricsCalculator:
             )
 
         logger.info(
-            f"Configured with {len(self.active_states)} active states and {len(self.done_states)} done states."
+            f"Configured with {len(self.active_states)} active states and "
+            f"{len(self.done_states)} done states."
         )
         logger.debug(f"Active states: {self.active_states}")
         logger.debug(f"Done states: {self.done_states}")
@@ -124,17 +125,29 @@ class FlowMetricsCalculator:
                 transitions = item.get("state_transitions", [])
                 for trans in transitions:
                     try:
-                        # Handle both 'to_state' (new format) and 'state' (legacy format)
+                        # Handle both 'to_state' (new format) and 'state' (legacy)
                         state = trans.get("to_state") or trans.get("state")
-                        # Handle both 'transition_date' (new format) and 'date' (legacy format)
+                        # Handle both 'transition_date' (new) and 'date' (legacy)
                         date_str = trans.get("transition_date") or trans.get("date")
 
                         if state and date_str:
-                            state_key = f"{state.lower().replace(' ', '_')}_date"
+                            # Clean state name for use as field key
+                            state_clean = (
+                                state.lower()
+                                .replace(" ", "_")
+                                .replace("-", "_")
+                                .replace(".", "_")
+                            )
+                            # Remove multiple underscores and strip
+                            state_clean = "_".join(
+                                [part for part in state_clean.split("_") if part]
+                            )
+                            state_key = f"{state_clean}_date"
                             parsed_item[state_key] = datetime.fromisoformat(date_str)
                     except Exception as e:
                         logger.warning(
-                            f"Failed to parse transition date for item {item['id']}: {e}"
+                            f"Failed to parse transition date for "
+                            f"item {item['id']}: {e}"
                         )
                         continue
 
@@ -151,19 +164,88 @@ class FlowMetricsCalculator:
         )
         return parsed_items
 
+    def _find_completion_date(self, item: Dict) -> Optional[datetime]:
+        """Find the completion date for an item using multiple strategies."""
+        # Strategy 1: Look for exact state name matches
+        for state in self.done_states:
+            state_key = f"{state.lower().replace(' ', '_').replace('-', '_')}_date"
+            if state_key in item:
+                return item[state_key]
+
+        # Strategy 2: Look for common done date field patterns
+        done_patterns = [
+            "done_date",
+            "closed_date",
+            "completed_date",
+            "resolved_date",
+            "released_date",
+            "finished_date",
+            "5___done_date",
+            "qa_approved_date",
+        ]
+        for pattern in done_patterns:
+            if pattern in item:
+                return item[pattern]
+
+        # Strategy 3: Look for any date field that contains done state keywords
+        for field_name, field_value in item.items():
+            if field_name.endswith("_date") and isinstance(field_value, datetime):
+                # Check if this field corresponds to a done state
+                for state in self.done_states:
+                    state_clean = state.lower().replace(" ", "_").replace("-", "_")
+                    if state_clean in field_name.lower():
+                        return field_value
+
+        return None
+
+    def _find_active_date(self, item: Dict) -> Optional[datetime]:
+        """Find the active start date for an item using multiple strategies."""
+        # Strategy 1: Look for exact state name matches
+        for state in self.active_states:
+            state_key = f"{state.lower().replace(' ', '_').replace('-', '_')}_date"
+            if state_key in item:
+                return item[state_key]
+
+        # Strategy 2: Look for common active date field patterns
+        active_patterns = [
+            "active_date",
+            "in_progress_date",
+            "started_date",
+            "development_date",
+            "2_2___in_progress_date",
+            "2_1___ready_for_development_date",
+        ]
+        for pattern in active_patterns:
+            if pattern in item:
+                return item[pattern]
+
+        # Strategy 3: Look for any date field that contains active state keywords
+        for field_name, field_value in item.items():
+            if field_name.endswith("_date") and isinstance(field_value, datetime):
+                # Check if this field corresponds to an active state
+                for state in self.active_states:
+                    state_clean = state.lower().replace(" ", "_").replace("-", "_")
+                    if state_clean in field_name.lower():
+                        return field_value
+
+        # Strategy 4: If no active date found, fall back to created date + 1 day
+        # This provides a reasonable estimate for cycle time calculation
+        if "created_date" in item:
+            return item["created_date"] + timedelta(days=1)
+
+        return None
+
     def calculate_lead_time(self) -> Dict:
         """Calculate lead time (created to closed)"""
         # Find completed items with any done state date field
         closed_items = []
         for item in self.parsed_items:
             if item["current_state"] in self.done_states:
-                # Look for any done state date field
-                for state in self.done_states:
-                    state_key = f"{state.lower().replace(' ', '_')}_date"
-                    if state_key in item:
-                        item["_completion_date"] = item[state_key]
-                        closed_items.append(item)
-                        break
+                # Look for any done state date field using multiple strategies
+                completion_date = self._find_completion_date(item)
+                if completion_date:
+                    item["_completion_date"] = completion_date
+                    closed_items.append(item)
 
         if not closed_items:
             return {"average_days": 0, "median_days": 0, "count": 0}
@@ -191,22 +273,24 @@ class FlowMetricsCalculator:
         # Find completed items with active date and any done state date field
         closed_items = []
         for item in self.parsed_items:
-            if item["current_state"] in self.done_states and "active_date" in item:
-                # Look for any done state date field
-                for state in self.done_states:
-                    state_key = f"{state.lower().replace(' ', '_')}_date"
-                    if state_key in item:
-                        item["_completion_date"] = item[state_key]
-                        closed_items.append(item)
-                        break
+            if item["current_state"] in self.done_states:
+                # Look for active start date using multiple strategies
+                active_date = self._find_active_date(item)
+                # Look for completion date
+                completion_date = self._find_completion_date(item)
+
+                if completion_date and active_date:
+                    item["_completion_date"] = completion_date
+                    item["_active_date"] = active_date
+                    closed_items.append(item)
 
         if not closed_items:
             return {"average_days": 0, "median_days": 0, "count": 0}
 
         cycle_times = []
         for item in closed_items:
-            if "_completion_date" in item:
-                cycle_time = (item["_completion_date"] - item["active_date"]).days
+            if "_completion_date" in item and "_active_date" in item:
+                cycle_time = (item["_completion_date"] - item["_active_date"]).days
                 cycle_times.append(cycle_time)
 
         if not cycle_times:
@@ -284,25 +368,28 @@ class FlowMetricsCalculator:
 
     def calculate_flow_efficiency(self) -> Dict:
         """Calculate flow efficiency (active time / total lead time)"""
-        closed_items = [
-            item
-            for item in self.parsed_items
-            if (
-                item["current_state"] in self.done_states
-                and "active_date" in item
-                and "resolved_date" in item
-            )
-        ]
+        closed_items = []
+        for item in self.parsed_items:
+            if item["current_state"] in self.done_states:
+                active_date = self._find_active_date(item)
+                completion_date = self._find_completion_date(item)
+                if active_date and completion_date:
+                    item["_active_date"] = active_date
+                    item["_completion_date"] = completion_date
+                    closed_items.append(item)
 
         if not closed_items:
             return {"average_efficiency": 0, "count": 0}
 
         efficiencies = []
         for item in closed_items:
-            active_time = (item["resolved_date"] - item["active_date"]).days
-            total_lead_time = (item["closed_date"] - item["created_date"]).days
+            # For flow efficiency, we need to calculate active time vs total time
+            # Active time: time spent in active states
+            # Total time: lead time (created to completed)
+            active_time = (item["_completion_date"] - item["_active_date"]).days
+            total_lead_time = (item["_completion_date"] - item["created_date"]).days
 
-            if total_lead_time > 0:
+            if total_lead_time > 0 and active_time >= 0:
                 efficiency = active_time / total_lead_time
                 efficiencies.append(efficiency)
 
@@ -423,7 +510,7 @@ class FlowMetricsCalculator:
         return {}
 
     def generate_flow_metrics_report(self) -> Dict:
-        """Generate comprehensive flow metrics report compatible with PowerShell dashboard"""
+        """Generate comprehensive flow metrics report compatible with dashboard"""
         logger.info("Generating full flow metrics report.")
         logger.info(f"Working with {len(self.parsed_items)} parsed items")
         completed_count = len(
