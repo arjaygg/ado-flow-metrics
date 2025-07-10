@@ -1,0 +1,29 @@
+# Flow Metrics Calculator Dependencies
+# External packages required for the project
+
+# Core dependencies
+requests>=2.28.0
+python-dateutil>=2.8.2
+
+# Data handling
+pandas>=1.5.0
+numpy>=1.23.0
+
+# Database
+sqlalchemy>=2.0.0
+
+# Configuration
+python-dotenv>=0.19.0
+pydantic>=2.0.0
+
+# CLI
+click>=8.0.0
+rich>=13.0.0
+
+# Visualization (optional for dashboard)
+plotly>=5.0.0
+dash>=2.0.0
+
+# Utilities
+tenacity>=8.0.0  # For retry logic
+tqdm>=4.64.0  # Progress bars

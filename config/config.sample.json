@@ -1,0 +1,53 @@
+{
+    "azure_devops": {
+        "org_url": "https://dev.azure.com/your-organization",
+        "default_project": "Your-Project-Name",
+        "api_version": "7.0"
+    },
+    "flow_metrics": {
+        "throughput_period_days": 30,
+        "default_days_back": 30,
+        "work_item_types": ["User Story", "Bug", "Task", "Feature"],
+        "excluded_states": ["Removed", "Cancelled"],
+        "active_states": ["In Progress", "Active", "Development", "Testing"],
+        "done_states": ["Done", "Closed", "Completed", "Released"]
+    },
+    "data_management": {
+        "data_directory": "./data",
+        "cache_enabled": true,
+        "cache_ttl_hours": 24,
+        "batch_size": 200,
+        "max_retries": 3,
+        "retry_delay_seconds": 5
+    },
+    "stage_metadata": [
+        { "stage_name": "New", "stage_group": "Requirement", "is_active": false, "is_done": false },
+        { "stage_name": "To Do", "stage_group": "Requirement", "is_active": false, "is_done": false },
+        { "stage_name": "In Requirements", "stage_group": "Requirement", "is_active": true, "is_done": false },
+        { "stage_name": "Ready for Development", "stage_group": "Development", "is_active": false, "is_done": false },
+        { "stage_name": "In Progress", "stage_group": "Development", "is_active": true, "is_done": false },
+        { "stage_name": "Code Review", "stage_group": "Development", "is_active": true, "is_done": false },
+        { "stage_name": "Dev Blocked", "stage_group": "Development", "is_active": false, "is_done": false },
+        { "stage_name": "Ready for Test", "stage_group": "QA", "is_active": false, "is_done": false },
+        { "stage_name": "QA in Progress", "stage_group": "QA", "is_active": true, "is_done": false },
+        { "stage_name": "QA Blocked", "stage_group": "QA", "is_active": false, "is_done": false },
+        { "stage_name": "QA Approved", "stage_group": "QA", "is_active": false, "is_done": true },
+        { "stage_name": "Ready for Release", "stage_group": "Release", "is_active": false, "is_done": true },
+        { "stage_name": "Done", "stage_group": "Done", "is_active": false, "is_done": true },
+        { "stage_name": "Closed", "stage_group": "Done", "is_active": false, "is_done": true }
+    ],
+    "dashboard": {
+        "port": 8050,
+        "host": "0.0.0.0",
+        "debug": false,
+        "auto_reload": true,
+        "theme": "light"
+    },
+    "logging": {
+        "level": "INFO",
+        "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        "file": "flow_metrics.log",
+        "max_size_mb": 10,
+        "backup_count": 5
+    }
+}
