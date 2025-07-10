@@ -456,6 +456,22 @@ python3 -m src.cli calculate
 python3 -m src.cli serve --open-browser
 ```
 
+### Fresh Start Workflow
+
+```bash
+# Option 1: Quick fresh start with mock data
+python3 -m src.cli data fresh --use-mock
+
+# Option 2: Fresh start with real data
+export AZURE_DEVOPS_PAT="your-token"
+python3 -m src.cli data fresh --days-back 30
+
+# Option 3: Complete reset and manual setup
+python3 -m src.cli data reset --keep-config
+python3 -m src.cli fetch --days-back 30
+python3 -m src.cli calculate
+```
+
 ### Production Workflow
 
 ```bash

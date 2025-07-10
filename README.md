@@ -138,6 +138,11 @@ python3 -m src.cli config init
 
 # Generate mock data
 python3 -m src.cli mock --items 200
+
+# Data management
+python3 -m src.cli data fresh --use-mock    # Fresh start with mock data
+python3 -m src.cli data cleanup --days-to-keep 90  # Clean old data
+python3 -m src.cli data reset --keep-config  # Reset all data
 ```
 
 ### Dashboard Access
