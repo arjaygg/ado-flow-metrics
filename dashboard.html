@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flow Metrics Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #4e73df;
+            --success-color: #1cc88a;
+            --info-color: #36b9cc;
+            --warning-color: #f6c23e;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fc;
+        }
+        
+        .metric-card {
+            border-left: 4px solid var(--primary-color);
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        }
+        
+        .metric-card.success { border-left-color: var(--success-color); }
+        .metric-card.info { border-left-color: var(--info-color); }
+        .metric-card.warning { border-left-color: var(--warning-color); }
+        
+        .chart-container {
+            background: white;
+            border-radius: 0.35rem;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .data-source-selector {
+            background: white;
+            border-radius: 0.35rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-chart-line"></i> Flow Metrics Dashboard
+            </a>
+            <div class="navbar-nav ms-auto">
+                <button class="btn btn-outline-light btn-sm" id="refreshBtn">
+                    <i class="fas fa-sync-alt"></i> Refresh
+                </button>
+                <button class="btn btn-outline-light btn-sm ms-2" id="loadFileBtn">
+                    <i class="fas fa-upload"></i> Load JSON
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid mt-4">
+        <!-- Data Source Selection -->
+        <div class="data-source-selector">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h6 class="mb-0">Data Source</h6>
+                    <small class="text-muted" id="dataSourceInfo">No data loaded</small>
+                </div>
+                <div class="col-md-6">
+                    <div class="btn-group w-100" role="group">
+                        <input type="radio" class="btn-check" name="dataSource" id="mockData" checked>
+                        <label class="btn btn-outline-primary" for="mockData">Mock Data</label>
+                        
+                        <input type="radio" class="btn-check" name="dataSource" id="jsonFile">
+                        <label class="btn btn-outline-primary" for="jsonFile">JSON File</label>
+                        
+                        <input type="radio" class="btn-check" name="dataSource" id="indexedDB">
+                        <label class="btn btn-outline-primary" for="indexedDB">IndexedDB</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Metrics Cards -->
+        <div class="row mb-4">
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card metric-card h-100">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs fw-bold text-primary text-uppercase mb-1">Lead Time</div>
+                                <div class="h5 mb-0 fw-bold text-gray-800" id="leadTimeAvg">Loading...</div>
+                                <div class="small text-muted" id="leadTimeMedian">Median: --</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-clock fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card metric-card success h-100">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs fw-bold text-success text-uppercase mb-1">Cycle Time</div>
+                                <div class="h5 mb-0 fw-bold text-gray-800" id="cycleTimeAvg">Loading...</div>
+                                <div class="small text-muted" id="cycleTimeMedian">Median: --</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-cog fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card metric-card info h-100">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs fw-bold text-info text-uppercase mb-1">Throughput</div>
+                                <div class="h5 mb-0 fw-bold text-gray-800" id="throughputValue">Loading...</div>
+                                <div class="small text-muted">items/30 days</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-rocket fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-3 col-md-6 mb-4">
+                <div class="card metric-card warning h-100">
+                    <div class="card-body">
+                        <div class="row no-gutters align-items-center">
+                            <div class="col mr-2">
+                                <div class="text-xs fw-bold text-warning text-uppercase mb-1">Work in Progress</div>
+                                <div class="h5 mb-0 fw-bold text-gray-800" id="wipValue">Loading...</div>
+                                <div class="small text-muted">active items</div>
+                            </div>
+                            <div class="col-auto">
+                                <i class="fas fa-tasks fa-2x text-gray-300"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="row mb-4">
+            <div class="col-lg-6">
+                <div class="chart-container">
+                    <h6 class="text-primary mb-3">Lead Time vs Cycle Time</h6>
+                    <div id="leadCycleChart" style="height: 300px;"></div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="chart-container">
+                    <h6 class="text-primary mb-3">Work in Progress by State</h6>
+                    <div id="wipChart" style="height: 300px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Team Performance -->
+        <div class="row mb-4">
+            <div class="col-lg-8">
+                <div class="chart-container">
+                    <h6 class="text-primary mb-3">Team Performance</h6>
+                    <div id="teamChart" style="height: 400px;"></div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="chart-container">
+                    <h6 class="text-primary mb-3">Flow Efficiency</h6>
+                    <div id="efficiencyChart" style="height: 300px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Team Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="chart-container">
+                    <h6 class="text-primary mb-3">Team Details</h6>
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Team Member</th>
+                                    <th>Completed</th>
+                                    <th>Active</th>
+                                    <th>Completion Rate</th>
+                                    <th>Avg Lead Time</th>
+                                </tr>
+                            </thead>
+                            <tbody id="teamTableBody">
+                                <tr><td colspan="5" class="text-center text-muted">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden file input -->
+    <input type="file" id="fileInput" accept=".json" style="display: none;">
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Simple Flow Metrics Dashboard
+        class FlowDashboard {
+            constructor() {
+                this.data = null;
+                this.dbName = 'FlowMetricsDB';
+                this.dbVersion = 1;
+                this.db = null;
+                this.init();
+            }
+
+            async init() {
+                await this.initIndexedDB();
+                this.setupEventListeners();
+                this.loadData();
+            }
+
+            // IndexedDB initialization
+            async initIndexedDB() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(this.dbName, this.dbVersion);
+                    
+                    request.onerror = () => reject(request.error);
+                    request.onsuccess = () => {
+                        this.db = request.result;
+                        resolve();
+                    };
+                    
+                    request.onupgradeneeded = (event) => {
+                        const db = event.target.result;
+                        if (!db.objectStoreNames.contains('metrics')) {
+                            const store = db.createObjectStore('metrics', { keyPath: 'id' });
+                            store.createIndex('timestamp', 'timestamp', { unique: false });
+                        }
+                    };
+                });
+            }
+
+            // Save data to IndexedDB
+            async saveToIndexedDB(data) {
+                const transaction = this.db.transaction(['metrics'], 'readwrite');
+                const store = transaction.objectStore('metrics');
+                const record = {
+                    id: 'latest',
+                    timestamp: new Date().toISOString(),
+                    data: data
+                };
+                await store.put(record);
+            }
+
+            // Load data from IndexedDB
+            async loadFromIndexedDB() {
+                const transaction = this.db.transaction(['metrics'], 'readonly');
+                const store = transaction.objectStore('metrics');
+                return new Promise((resolve) => {
+                    const request = store.get('latest');
+                    request.onsuccess = () => {
+                        resolve(request.result ? request.result.data : null);
+                    };
+                    request.onerror = () => resolve(null);
+                });
+            }
+
+            setupEventListeners() {
+                // Refresh button
+                document.getElementById('refreshBtn').addEventListener('click', () => {
+                    this.loadData();
+                });
+
+                // Load file button
+                document.getElementById('loadFileBtn').addEventListener('click', () => {
+                    document.getElementById('fileInput').click();
+                });
+
+                // File input
+                document.getElementById('fileInput').addEventListener('change', (e) => {
+                    this.handleFileLoad(e);
+                });
+
+                // Data source radio buttons
+                document.querySelectorAll('input[name="dataSource"]').forEach(radio => {
+                    radio.addEventListener('change', () => this.loadData());
+                });
+            }
+
+            async loadData() {
+                const selectedSource = document.querySelector('input[name="dataSource"]:checked').id;
+                
+                try {
+                    let data = null;
+                    
+                    switch (selectedSource) {
+                        case 'mockData':
+                            data = this.generateMockData();
+                            this.updateDataSourceInfo('Mock data generated');
+                            break;
+                        case 'jsonFile':
+                            data = this.data; // Use last loaded file
+                            this.updateDataSourceInfo(data ? 'JSON file loaded' : 'No JSON file loaded');
+                            break;
+                        case 'indexedDB':
+                            data = await this.loadFromIndexedDB();
+                            this.updateDataSourceInfo(data ? 'Data loaded from IndexedDB' : 'No data in IndexedDB');
+                            break;
+                    }
+
+                    if (data) {
+                        this.data = data;
+                        this.updateDashboard(data);
+                        
+                        // Auto-save to IndexedDB for future use
+                        if (selectedSource !== 'indexedDB') {
+                            await this.saveToIndexedDB(data);
+                        }
+                    } else {
+                        this.showNoDataMessage();
+                    }
+                } catch (error) {
+                    console.error('Error loading data:', error);
+                    this.showErrorMessage(error.message);
+                }
+            }
+
+            handleFileLoad(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        this.data = data;
+                        document.getElementById('jsonFile').checked = true;
+                        this.updateDataSourceInfo(`File: ${file.name} (${file.size} bytes)`);
+                        this.updateDashboard(data);
+                        
+                        // Save to IndexedDB
+                        this.saveToIndexedDB(data);
+                    } catch (error) {
+                        alert('Error parsing JSON file: ' + error.message);
+                    }
+                };
+                reader.readAsText(file);
+            }
+
+            updateDataSourceInfo(message) {
+                document.getElementById('dataSourceInfo').textContent = message + ' - ' + new Date().toLocaleTimeString();
+            }
+
+            updateDashboard(data) {
+                this.updateMetricsCards(data);
+                this.updateCharts(data);
+                this.updateTeamTable(data);
+            }
+
+            updateMetricsCards(data) {
+                const summary = data.summary || {};
+                const leadTime = data.lead_time || {};
+                const cycleTime = data.cycle_time || {};
+                const throughput = data.throughput || {};
+                const wip = data.work_in_progress || {};
+
+                // Lead time
+                document.getElementById('leadTimeAvg').textContent = `${(leadTime.average_days || 0).toFixed(1)} days`;
+                document.getElementById('leadTimeMedian').textContent = `Median: ${(leadTime.median_days || 0).toFixed(1)} days`;
+
+                // Cycle time
+                document.getElementById('cycleTimeAvg').textContent = `${(cycleTime.average_days || 0).toFixed(1)} days`;
+                document.getElementById('cycleTimeMedian').textContent = `Median: ${(cycleTime.median_days || 0).toFixed(1)} days`;
+
+                // Throughput
+                document.getElementById('throughputValue').textContent = `${(throughput.items_per_period || 0).toFixed(1)}`;
+
+                // WIP
+                document.getElementById('wipValue').textContent = wip.total_wip || 0;
+            }
+
+            updateCharts(data) {
+                this.updateLeadCycleChart(data);
+                this.updateWipChart(data);
+                this.updateTeamChart(data);
+                this.updateEfficiencyChart(data);
+            }
+
+            updateLeadCycleChart(data) {
+                const leadTime = data.lead_time || {};
+                const cycleTime = data.cycle_time || {};
+
+                const chartData = [
+                    {
+                        x: ['Average', 'Median'],
+                        y: [leadTime.average_days || 0, leadTime.median_days || 0],
+                        name: 'Lead Time',
+                        type: 'bar',
+                        marker: { color: '#4e73df' }
+                    },
+                    {
+                        x: ['Average', 'Median'],
+                        y: [cycleTime.average_days || 0, cycleTime.median_days || 0],
+                        name: 'Cycle Time',
+                        type: 'bar',
+                        marker: { color: '#1cc88a' }
+                    }
+                ];
+
+                const layout = {
+                    margin: { l: 50, r: 50, t: 20, b: 50 },
+                    yaxis: { title: 'Days' },
+                    showlegend: true
+                };
+
+                Plotly.newPlot('leadCycleChart', chartData, layout, { responsive: true });
+            }
+
+            updateWipChart(data) {
+                const wip = data.work_in_progress || {};
+                const wipByState = wip.wip_by_state || {};
+
+                if (Object.keys(wipByState).length === 0) {
+                    document.getElementById('wipChart').innerHTML = '<p class="text-center text-muted">No WIP data</p>';
+                    return;
+                }
+
+                const chartData = [{
+                    labels: Object.keys(wipByState),
+                    values: Object.values(wipByState),
+                    type: 'pie',
+                    hole: 0.4,
+                    marker: { colors: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e'] }
+                }];
+
+                const layout = {
+                    margin: { l: 20, r: 20, t: 20, b: 20 },
+                    showlegend: true
+                };
+
+                Plotly.newPlot('wipChart', chartData, layout, { responsive: true });
+            }
+
+            updateTeamChart(data) {
+                const teamMetrics = data.team_metrics || {};
+                
+                if (Object.keys(teamMetrics).length === 0) {
+                    document.getElementById('teamChart').innerHTML = '<p class="text-center text-muted">No team data</p>';
+                    return;
+                }
+
+                const sortedTeam = Object.entries(teamMetrics)
+                    .sort(([,a], [,b]) => (b.completed_items || 0) - (a.completed_items || 0))
+                    .slice(0, 10);
+
+                const chartData = [{
+                    x: sortedTeam.map(([name]) => name),
+                    y: sortedTeam.map(([, metrics]) => metrics.completed_items || 0),
+                    type: 'bar',
+                    marker: { color: '#4e73df' }
+                }];
+
+                const layout = {
+                    margin: { l: 50, r: 50, t: 20, b: 100 },
+                    xaxis: { tickangle: -45 },
+                    yaxis: { title: 'Completed Items' }
+                };
+
+                Plotly.newPlot('teamChart', chartData, layout, { responsive: true });
+            }
+
+            updateEfficiencyChart(data) {
+                const flowEfficiency = data.flow_efficiency || {};
+                const efficiency = (flowEfficiency.average_efficiency || 0) * 100;
+
+                const chartData = [{
+                    domain: { x: [0, 1], y: [0, 1] },
+                    value: efficiency,
+                    title: { text: "%" },
+                    type: "indicator",
+                    mode: "gauge+number",
+                    gauge: {
+                        axis: { range: [null, 100] },
+                        bar: { color: "#4e73df" },
+                        steps: [
+                            { range: [0, 50], color: "lightgray" },
+                            { range: [50, 80], color: "#f6c23e" },
+                            { range: [80, 100], color: "#1cc88a" }
+                        ]
+                    }
+                }];
+
+                const layout = {
+                    margin: { l: 20, r: 20, t: 20, b: 20 }
+                };
+
+                Plotly.newPlot('efficiencyChart', chartData, layout, { responsive: true });
+            }
+
+            updateTeamTable(data) {
+                const teamMetrics = data.team_metrics || {};
+                const tbody = document.getElementById('teamTableBody');
+                
+                if (Object.keys(teamMetrics).length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No team data</td></tr>';
+                    return;
+                }
+
+                const sortedTeam = Object.entries(teamMetrics)
+                    .sort(([,a], [,b]) => (b.completion_rate || 0) - (a.completion_rate || 0))
+                    .slice(0, 10);
+
+                const rows = sortedTeam.map(([name, metrics]) => `
+                    <tr>
+                        <td>${name}</td>
+                        <td>${metrics.completed_items || 0}</td>
+                        <td>${metrics.active_items || 0}</td>
+                        <td>${(metrics.completion_rate || 0).toFixed(1)}%</td>
+                        <td>${(metrics.average_lead_time || 0).toFixed(1)} days</td>
+                    </tr>
+                `).join('');
+
+                tbody.innerHTML = rows;
+            }
+
+            generateMockData() {
+                return {
+                    summary: {
+                        total_work_items: 200,
+                        completed_items: 129,
+                        completion_rate: 64.5
+                    },
+                    lead_time: {
+                        average_days: 11.3,
+                        median_days: 12.0,
+                        count: 129
+                    },
+                    cycle_time: {
+                        average_days: 8.8,
+                        median_days: 9.0,
+                        count: 129
+                    },
+                    throughput: {
+                        items_per_period: 19.4,
+                        period_days: 30
+                    },
+                    work_in_progress: {
+                        total_wip: 50,
+                        wip_by_state: {
+                            "Active": 37,
+                            "Resolved": 13
+                        }
+                    },
+                    flow_efficiency: {
+                        average_efficiency: 0.625
+                    },
+                    team_metrics: {
+                        "Alice Johnson": { completed_items: 15, active_items: 3, completion_rate: 85.2, average_lead_time: 10.5 },
+                        "Bob Smith": { completed_items: 12, active_items: 2, completion_rate: 92.1, average_lead_time: 8.3 },
+                        "Carol Davis": { completed_items: 10, active_items: 4, completion_rate: 72.4, average_lead_time: 13.2 },
+                        "David Wilson": { completed_items: 8, active_items: 1, completion_rate: 88.9, average_lead_time: 9.7 }
+                    }
+                };
+            }
+
+            showNoDataMessage() {
+                document.getElementById('leadTimeAvg').textContent = 'No Data';
+                document.getElementById('cycleTimeAvg').textContent = 'No Data';
+                document.getElementById('throughputValue').textContent = 'No Data';
+                document.getElementById('wipValue').textContent = 'No Data';
+            }
+
+            showErrorMessage(message) {
+                this.updateDataSourceInfo('Error: ' + message);
+            }
+        }
+
+        // Initialize dashboard when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new FlowDashboard();
+        });
+    </script>
+</body>
+</html>
