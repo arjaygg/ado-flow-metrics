@@ -28,6 +28,19 @@ class AzureDevOpsConfig(BaseModel):
     api_version: str = Field("7.0", description="Azure DevOps API version")
     pat_token: Optional[str] = Field(None, description="Personal Access Token (from env var)")
     
+    def __init__(self, **data):
+        # Map environment variables and handle empty strings
+        import os
+        if 'pat_token' not in data or data['pat_token'] is None:
+            data['pat_token'] = os.getenv('AZURE_DEVOPS_PAT')
+        if 'organization' not in data or data['organization'] is None or (isinstance(data.get('organization'), str) and data['organization'].strip() == ''):
+            data['organization'] = os.getenv('AZURE_DEVOPS_ORGANIZATION') or None
+        if 'project' not in data or data['project'] is None:
+            data['project'] = os.getenv('AZURE_DEVOPS_PROJECT')
+        if data.get('project') and data['project'].strip() == '':
+            data['project'] = None
+        super().__init__(**data)
+    
     @field_validator('org_url')
     @classmethod
     def validate_org_url(cls, v):
@@ -126,17 +139,40 @@ class FlowMetricsSettings(BaseSettings):
     @classmethod
     def from_file(cls, config_path: Path) -> "FlowMetricsSettings":
         """Load configuration from a JSON file."""
-        if not config_path.exists():
-            raise FileNotFoundError(f"Configuration file not found: {config_path}")
-        
-        with open(config_path, 'r') as f:
-            config_data = json.load(f)
-        
-        # Handle PAT token from environment
-        if "azure_devops" in config_data:
-            config_data["azure_devops"]["pat_token"] = os.getenv("AZURE_DEVOPS_PAT")
-        
-        return cls(**config_data)
+        try:
+            if not config_path.exists():
+                # Return default settings if file doesn't exist
+                return cls()
+            
+            with open(config_path, 'r') as f:
+                config_data = json.load(f)
+            
+            # Handle PAT token from environment (only if not specified in file)
+            if "azure_devops" in config_data:
+                if "pat_token" not in config_data["azure_devops"] or config_data["azure_devops"]["pat_token"] is None:
+                    config_data["azure_devops"]["pat_token"] = os.getenv("AZURE_DEVOPS_PAT")
+            
+            # Validate stage definitions - ensure empty lists fall back to defaults
+            if "stage_definitions" in config_data:
+                stage_def = config_data["stage_definitions"]
+                defaults = {
+                    "active_states": ["Active", "Committed", "In Progress", "Code Review", "Testing"],
+                    "completion_states": ["Done", "Closed", "Completed", "Released"],
+                    "waiting_states": ["New", "Proposed", "Blocked", "Ready for Review"]
+                }
+                for key, default_value in defaults.items():
+                    if key in stage_def and not stage_def[key]:  # If empty list
+                        stage_def[key] = default_value
+            
+            return cls(**config_data)
+        except (json.JSONDecodeError, FileNotFoundError, PermissionError):
+            # Return default settings if file can't be read or parsed
+            return cls()
+    
+    @classmethod 
+    def from_config_file(cls, config_file: str) -> "FlowMetricsSettings":
+        """Alternative constructor for loading from file path string."""
+        return cls.from_file(Path(config_file))
     
     def get_active_stages(self) -> List[str]:
         """Get list of active stage names."""

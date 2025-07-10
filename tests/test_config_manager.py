@@ -51,7 +51,7 @@ class TestConfigManager:
             config_file = f.name
         
         try:
-            settings = FlowMetricsSettings(_config_file=config_file)
+            settings = FlowMetricsSettings.from_file(Path(config_file))
             
             assert settings.azure_devops.organization == "test-org"
             assert settings.azure_devops.project == "test-project"
@@ -82,7 +82,7 @@ class TestConfigManager:
         
         try:
             # Should handle invalid JSON gracefully
-            settings = Settings(_config_file=invalid_config_file)
+            settings = FlowMetricsSettings.from_file(Path(invalid_config_file))
             # Should fall back to defaults
             assert settings.azure_devops.organization is None
         finally:
@@ -91,7 +91,7 @@ class TestConfigManager:
     def test_missing_config_file(self):
         """Test handling of missing config file."""
         # Should handle missing file gracefully
-        settings = Settings(_config_file="/nonexistent/path/config.json")
+        settings = FlowMetricsSettings.from_file(Path("/nonexistent/path/config.json"))
         
         # Should use defaults
         assert settings.azure_devops.organization is None
@@ -112,7 +112,7 @@ class TestConfigManager:
             config_file = f.name
         
         try:
-            settings = FlowMetricsSettings(_config_file=config_file)
+            settings = FlowMetricsSettings.from_file(Path(config_file))
             
             # Should have partial values
             assert settings.azure_devops.organization == "partial-org"
@@ -127,12 +127,11 @@ class TestConfigManager:
         settings = FlowMetricsSettings()
         
         # Test that paths are Path objects
-        assert isinstance(settings.data_dir, Path)
-        assert isinstance(settings.log_dir, Path)
+        assert isinstance(settings.data_management.data_directory, Path)
         
         # Test default paths
-        assert str(settings.data_dir).endswith("data")
-        assert str(settings.log_dir).endswith("logs")
+        assert str(settings.data_management.data_directory).endswith("data")
+        assert settings.logging.file is not None
     
     def test_azure_devops_config_validation(self):
         """Test Azure DevOps configuration validation."""
@@ -149,7 +148,7 @@ class TestConfigManager:
             config_file = f.name
         
         try:
-            settings = FlowMetricsSettings(_config_file=config_file)
+            settings = FlowMetricsSettings.from_file(Path(config_file))
             
             # Empty organization should be None
             assert settings.azure_devops.organization is None
@@ -176,7 +175,7 @@ class TestConfigManager:
             config_file = f.name
         
         try:
-            settings = FlowMetricsSettings(_config_file=config_file)
+            settings = FlowMetricsSettings.from_file(Path(config_file))
             
             # Empty active_states should fall back to defaults
             assert len(settings.stage_definitions["active_states"]) > 0
