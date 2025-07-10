@@ -4,10 +4,7 @@ Tests for flow metrics calculator.
 
 import pytest
 from datetime import datetime, timezone, timedelta
-from unittest.mock import Mock, patch
 from src.calculator import FlowMetricsCalculator
-from src.models import WorkItem, StateTransition
-from src.config_manager import FlowMetricsSettings
 
 
 class TestFlowMetricsCalculator:

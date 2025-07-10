@@ -1,7 +1,6 @@
 import json
 import requests
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional
+from typing import Dict, List
 import base64
 import logging
 

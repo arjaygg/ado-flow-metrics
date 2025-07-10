@@ -6,7 +6,7 @@ import pytest
 import tempfile
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 from src.data_storage import FlowMetricsDatabase
 from src.models import WorkItem, StateTransition, FlowMetrics
