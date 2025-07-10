@@ -10,15 +10,33 @@ from pathlib import Path
 
 def open_dashboard():
     """Open the Flow Metrics dashboard in the default browser."""
-    dashboard_path = Path(__file__).parent / "dashboard.html"
+    script_dir = Path(__file__).parent
+    dashboard_path = script_dir / "dashboard.html"
+    
+    print(f"🔍 Looking for dashboard at: {dashboard_path}")
+    print(f"📁 Script directory: {script_dir}")
+    print(f"📋 Files in directory: {list(script_dir.glob('*.html'))}")
     
     if not dashboard_path.exists():
         print(f"❌ Dashboard not found at: {dashboard_path}")
         print("Make sure dashboard.html exists in the same directory as this script.")
-        return False
+        
+        # Try alternative locations
+        alt_paths = [
+            script_dir.parent / "dashboard.html",  # Parent directory
+            script_dir.parent / "dashboard" / "index.html",  # Shared dashboard
+        ]
+        
+        for alt_path in alt_paths:
+            if alt_path.exists():
+                print(f"✅ Found dashboard at alternative location: {alt_path}")
+                dashboard_path = alt_path
+                break
+        else:
+            return False
     
-    # Convert to file:// URL for browser
-    dashboard_url = f"file://{dashboard_path.absolute()}"
+    # Convert to file:// URL for browser (Windows-compatible)
+    dashboard_url = dashboard_path.absolute().as_uri()
     
     print(f"🚀 Opening Flow Metrics Dashboard...")
     print(f"📊 URL: {dashboard_url}")
