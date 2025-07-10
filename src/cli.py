@@ -177,6 +177,17 @@ def calculate(input_file: Optional[str], output: Optional[str], output_format: s
             with open(output_path, 'w') as f:
                 json.dump(report, f, indent=2, default=str)
             console.print(f"[green]✓ Report saved to {output_path}[/green]")
+            
+            # Also save dashboard-compatible format for browser integration
+            dashboard_data = {
+                'timestamp': datetime.now().isoformat(),
+                'source': 'cli_calculation',
+                'data': report
+            }
+            dashboard_path = settings.data_management.data_directory / "dashboard_data.json"
+            with open(dashboard_path, 'w') as f:
+                json.dump(dashboard_data, f, indent=2, default=str)
+            console.print(f"[green]✓ Dashboard data updated: {dashboard_path}[/green]")
         else:
             console.print(f"[yellow]{output_format} format not yet implemented[/yellow]")
             
@@ -382,6 +393,66 @@ def history(limit: int, detailed: bool):
             if latest['error_message']:
                 console.print(f"[red]Error: {latest['error_message']}[/red]")
                 
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
+        sys.exit(1)
+
+
+@cli.command()
+@click.option('--port', default=8000, help='Port to serve dashboard on')
+@click.option('--open-browser', is_flag=True, help='Open browser automatically')
+def dashboard(port: int, open_browser: bool):
+    """Launch the Flow Metrics dashboard in your browser."""
+    import webbrowser
+    import http.server
+    import socketserver
+    import threading
+    
+    try:
+        settings = get_settings()
+        
+        # Check if dashboard file exists
+        dashboard_file = Path(__file__).parent.parent / "dashboard.html"
+        if not dashboard_file.exists():
+            console.print(f"[red]Error: Dashboard file not found: {dashboard_file}[/red]")
+            sys.exit(1)
+        
+        # Create a simple HTTP server to serve the dashboard
+        class DashboardHandler(http.server.SimpleHTTPRequestHandler):
+            def __init__(self, *args, **kwargs):
+                super().__init__(*args, directory=str(dashboard_file.parent), **kwargs)
+        
+        # Start server in background thread
+        def start_server():
+            with socketserver.TCPServer(("", port), DashboardHandler) as httpd:
+                console.print(f"[green]✓ Dashboard server started on http://localhost:{port}[/green]")
+                console.print("[yellow]Press Ctrl+C to stop the server[/yellow]")
+                try:
+                    httpd.serve_forever()
+                except KeyboardInterrupt:
+                    console.print("[yellow]Dashboard server stopped[/yellow]")
+        
+        server_thread = threading.Thread(target=start_server, daemon=True)
+        server_thread.start()
+        
+        # Wait a moment for server to start
+        import time
+        time.sleep(1)
+        
+        dashboard_url = f"http://localhost:{port}/dashboard.html"
+        console.print(f"[green]Dashboard available at: {dashboard_url}[/green]")
+        
+        if open_browser:
+            webbrowser.open(dashboard_url)
+            console.print("[green]✓ Opened dashboard in browser[/green]")
+        
+        # Keep the main thread alive
+        try:
+            while server_thread.is_alive():
+                time.sleep(1)
+        except KeyboardInterrupt:
+            console.print("[yellow]Dashboard stopped[/yellow]")
+            
     except Exception as e:
         console.print(f"[red]Error: {e}[/red]")
         sys.exit(1)

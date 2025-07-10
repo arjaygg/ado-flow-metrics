@@ -323,6 +323,10 @@
                             data = await this.loadFromIndexedDB();
                             this.updateDataSourceInfo(data ? 'Data loaded from IndexedDB' : 'No data in IndexedDB');
                             break;
+                        case 'cliData':
+                            data = await this.loadFromCLI();
+                            this.updateDataSourceInfo(data ? 'CLI data loaded' : 'No CLI data available');
+                            break;
                     }
 
                     if (data) {
@@ -340,6 +344,27 @@
                     console.error('Error loading data:', error);
                     this.showErrorMessage(error.message);
                 }
+            }
+
+            // Load data from CLI-generated files
+            async loadFromCLI() {
+                try {
+                    // Try to load dashboard_data.json from data directory
+                    const response = await fetch('./data/dashboard_data.json');
+                    if (response.ok) {
+                        const cliData = await response.json();
+                        return cliData.data; // Extract the metrics data
+                    } else {
+                        // Fallback to flow_metrics_report.json
+                        const fallbackResponse = await fetch('./data/flow_metrics_report.json');
+                        if (fallbackResponse.ok) {
+                            return await fallbackResponse.json();
+                        }
+                    }
+                } catch (error) {
+                    console.log('CLI data not available:', error.message);
+                }
+                return null;
             }
 
             handleFileLoad(event) {

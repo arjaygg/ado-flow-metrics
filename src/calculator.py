@@ -94,6 +94,7 @@ class FlowMetricsCalculator:
             if idx % 50 == 0:  # Log progress every 50 items
                 logger.info(f"Processing work item {idx + 1}/{total_items}")
             
+            try:
                 parsed_item = {
                     'id': item['id'],
                     'title': item['title'],
