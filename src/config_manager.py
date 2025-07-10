@@ -169,6 +169,9 @@ class ConfigManager:
         if config_path is None:
             # Try to find config.json in standard locations
             search_paths = [
+                # Centralized config for PowerShell and Python
+                Path(__file__).parent.parent.parent / "powershell" / "config.json",
+                # Standard Python-specific config paths
                 Path("config/config.json"),
                 Path("../config/config.json"),
                 Path.home() / ".flow_metrics" / "config.json",
