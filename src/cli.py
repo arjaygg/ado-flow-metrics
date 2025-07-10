@@ -4,7 +4,7 @@ import json
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 import click
 from rich.console import Console
@@ -15,8 +15,9 @@ from rich import print as rprint
 from .azure_devops_client import AzureDevOpsClient
 from .calculator import FlowMetricsCalculator
 from .config_manager import get_settings, ConfigManager
-from .mock_data import generate_mock_data
+from .mock_data import generate_mock_azure_devops_data as generate_mock_data
 from .models import FlowMetricsReport
+from .data_storage import FlowMetricsDatabase
 
 console = Console()
 
@@ -37,6 +38,9 @@ def cli():
 def fetch(days_back: int, project: Optional[str], output: Optional[str], 
           incremental: bool, save_last_run: bool):
     """Fetch work items from Azure DevOps."""
+    execution_start_time = datetime.now()
+    execution_id = None
+    
     try:
         settings = get_settings()
         
@@ -47,6 +51,16 @@ def fetch(days_back: int, project: Optional[str], output: Optional[str],
         if not settings.azure_devops.pat_token:
             console.print("[red]Error: AZURE_DEVOPS_PAT environment variable not set[/red]")
             sys.exit(1)
+        
+        # Initialize database for tracking
+        db = FlowMetricsDatabase(settings)
+        
+        # Start execution tracking
+        if save_last_run:
+            execution_id = db.start_execution(
+                settings.azure_devops.org_url,
+                settings.azure_devops.default_project
+            )
         
         client = AzureDevOpsClient(
             settings.azure_devops.org_url,
@@ -62,8 +76,19 @@ def fetch(days_back: int, project: Optional[str], output: Optional[str],
             task = progress.add_task("Fetching work items...", total=None)
             
             if incremental:
-                # TODO: Implement incremental sync
-                console.print("[yellow]Incremental sync not yet implemented[/yellow]")
+                # Get last successful execution timestamp
+                recent_executions = db.get_recent_executions(limit=1)
+                if recent_executions:
+                    last_run = recent_executions[0]['timestamp']
+                    # Calculate days since last run
+                    days_since_last = (datetime.now() - last_run).days
+                    if days_since_last < days_back:
+                        days_back = max(1, days_since_last)
+                        console.print(f"[cyan]Using incremental sync: fetching last {days_back} days[/cyan]")
+                    else:
+                        console.print(f"[yellow]Last run was {days_since_last} days ago, using full sync[/yellow]")
+                else:
+                    console.print("[yellow]No previous runs found, using full sync[/yellow]")
             
             items = client.get_work_items(days_back=days_back)
             progress.update(task, completed=True)
@@ -78,11 +103,25 @@ def fetch(days_back: int, project: Optional[str], output: Optional[str],
         console.print(f"[green]✓ Fetched {len(items)} work items[/green]")
         console.print(f"[green]✓ Saved to {output_path}[/green]")
         
-        if save_last_run:
-            # TODO: Implement last run tracking
-            console.print("[yellow]Last run tracking not yet implemented[/yellow]")
+        # Complete execution tracking
+        if save_last_run and execution_id:
+            execution_duration = (datetime.now() - execution_start_time).total_seconds()
+            completed_items = len([item for item in items if item.get('current_state') in ['Done', 'Closed', 'Completed']])
+            
+            db.complete_execution(
+                execution_id,
+                len(items),
+                completed_items,
+                execution_duration
+            )
+            console.print(f"[green]✓ Execution tracking saved (ID: {execution_id})[/green]")
             
     except Exception as e:
+        # Record failed execution
+        if save_last_run and execution_id:
+            execution_duration = (datetime.now() - execution_start_time).total_seconds()
+            db.complete_execution(execution_id, 0, 0, execution_duration, str(e))
+        
         console.print(f"[red]Error: {e}[/red]")
         sys.exit(1)
 
@@ -115,14 +154,19 @@ def calculate(input_file: Optional[str], output: Optional[str], output_format: s
             with open(input_path, 'r') as f:
                 work_items = json.load(f)
         
+        # Validate work items
+        try:
+            work_items = _validate_work_items(work_items)
+            console.print(f"[green]✓ Validated {len(work_items)} work items[/green]")
+        except ValueError as e:
+            console.print(f"[red]Validation Error: {e}[/red]")
+            sys.exit(1)
+        
         # Calculate metrics
-        calculator = FlowMetricsCalculator()
+        calculator = FlowMetricsCalculator(work_items, settings)
         
         with console.status("Calculating metrics..."):
-            report = calculator.calculate_all_metrics(
-                work_items,
-                analysis_period_days=settings.flow_metrics.default_days_back
-            )
+            report = calculator.generate_flow_metrics_report()
         
         # Display summary
         _display_metrics_summary(report)
@@ -144,20 +188,29 @@ def calculate(input_file: Optional[str], output: Optional[str], output_format: s
 @cli.command()
 @click.option('--auto-increment', is_flag=True, help='Use last execution time')
 @click.option('--save-last-run', is_flag=True, help='Save execution timestamp')
-def sync(auto_increment: bool, save_last_run: bool):
+@click.option('--days-back', default=30, help='Number of days to fetch data for')
+@click.option('--project', help='Azure DevOps project (overrides config)')
+def sync(auto_increment: bool, save_last_run: bool, days_back: int, project: Optional[str]):
     """Synchronize work items and calculate metrics."""
     try:
         # This combines fetch and calculate
         ctx = click.get_current_context()
         
+        # Prepare fetch arguments
+        fetch_kwargs = {
+            'days_back': days_back,
+            'project': project,
+            'output': None,
+            'incremental': auto_increment,
+            'save_last_run': save_last_run
+        }
+        
         # Fetch data
-        fetch_args = ['--save-last-run'] if save_last_run else []
-        if auto_increment:
-            fetch_args.append('--incremental')
-        ctx.invoke(fetch, *fetch_args)
+        ctx.invoke(fetch, **fetch_kwargs)
         
         # Calculate metrics
-        ctx.invoke(calculate)
+        ctx.invoke(calculate, input_file=None, output=None, output_format='json', 
+                  from_date=None, to_date=None, use_mock_data=False)
         
     except Exception as e:
         console.print(f"[red]Error: {e}[/red]")
@@ -173,7 +226,11 @@ def mock(items: int, output: Optional[str]):
         settings = get_settings()
         
         with console.status(f"Generating {items} mock work items..."):
-            mock_items = generate_mock_data(num_items=items)
+            # Note: generate_mock_data() currently generates a fixed number (200)
+            # Future enhancement: modify mock_data.py to accept num_items parameter
+            mock_items = generate_mock_data()
+            if len(mock_items) > items:
+                mock_items = mock_items[:items]
         
         output_path = Path(output) if output else settings.data_management.data_directory / "mock_work_items.json"
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -275,33 +332,124 @@ def config_init():
         sys.exit(1)
 
 
+@cli.command()
+@click.option('--limit', default=10, help='Number of recent executions to show')
+@click.option('--detailed', is_flag=True, help='Show detailed execution information')
+def history(limit: int, detailed: bool):
+    """Show execution history."""
+    try:
+        settings = get_settings()
+        db = FlowMetricsDatabase(settings)
+        
+        executions = db.get_recent_executions(limit=limit)
+        
+        if not executions:
+            console.print("[yellow]No execution history found[/yellow]")
+            return
+        
+        # Create history table
+        table = Table(title=f"Recent Executions (Last {len(executions)})")
+        table.add_column("ID", style="cyan")
+        table.add_column("Timestamp", style="yellow")
+        table.add_column("Project", style="magenta")
+        table.add_column("Status", style="green")
+        table.add_column("Items", style="blue")
+        table.add_column("Duration", style="white")
+        
+        for execution in executions:
+            status_style = "green" if execution['status'] == 'completed' else "red"
+            duration = f"{execution['execution_duration_seconds']:.1f}s" if execution['execution_duration_seconds'] else "N/A"
+            
+            table.add_row(
+                str(execution['id']),
+                execution['timestamp'].strftime("%Y-%m-%d %H:%M:%S"),
+                execution['project'],
+                f"[{status_style}]{execution['status']}[/{status_style}]",
+                f"{execution['work_items_count']} ({execution['completed_items_count']} completed)",
+                duration
+            )
+        
+        console.print(table)
+        
+        if detailed and executions:
+            console.print("\n[bold]Most Recent Execution Details:[/bold]")
+            latest = executions[0]
+            console.print(f"Organization: {latest['organization']}")
+            console.print(f"Project: {latest['project']}")
+            console.print(f"Status: {latest['status']}")
+            console.print(f"Work Items: {latest['work_items_count']}")
+            console.print(f"Completed: {latest['completed_items_count']}")
+            if latest['error_message']:
+                console.print(f"[red]Error: {latest['error_message']}[/red]")
+                
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
+        sys.exit(1)
+
+
+def _validate_work_items(work_items: List[dict]) -> List[dict]:
+    """Validate and clean work items data."""
+    if not work_items:
+        raise ValueError("No work items provided")
+    
+    valid_items = []
+    for item in work_items:
+        # Check required fields
+        required_fields = ['id', 'title', 'type', 'current_state', 'created_date']
+        if not all(field in item for field in required_fields):
+            console.print(f"[yellow]Warning: Skipping item {item.get('id', 'unknown')} - missing required fields[/yellow]")
+            continue
+        
+        # Validate date format
+        try:
+            if isinstance(item['created_date'], str):
+                datetime.fromisoformat(item['created_date'])
+        except ValueError:
+            console.print(f"[yellow]Warning: Skipping item {item['id']} - invalid created_date format[/yellow]")
+            continue
+        
+        valid_items.append(item)
+    
+    if not valid_items:
+        raise ValueError("No valid work items found after validation")
+    
+    return valid_items
+
+
 def _display_metrics_summary(report: dict):
     """Display metrics summary in a nice table."""
-    metrics = report.get('metrics', {})
-    
     # Create summary table
     table = Table(title="Flow Metrics Summary")
     table.add_column("Metric", style="cyan")
     table.add_column("Value", style="magenta")
     
+    # Handle the new report format from FlowMetricsCalculator
+    summary = report.get('summary', {})
+    lead_time = report.get('lead_time', {})
+    cycle_time = report.get('cycle_time', {})
+    throughput = report.get('throughput', {})
+    wip = report.get('work_in_progress', {})
+    flow_efficiency = report.get('flow_efficiency', {})
+    
     # Add rows
-    table.add_row("Total Items", str(metrics.get('total_items', 0)))
-    table.add_row("Completed Items", str(metrics.get('completed_items', 0)))
-    table.add_row("Current WIP", str(metrics.get('wip', {}).get('total', 0)))
+    table.add_row("Total Items", str(summary.get('total_work_items', 0)))
+    table.add_row("Completed Items", str(summary.get('completed_items', 0)))
+    table.add_row("Completion Rate", f"{summary.get('completion_rate', 0):.1f}%")
+    table.add_row("Current WIP", str(wip.get('total_wip', 0)))
     
-    if metrics.get('lead_time'):
-        table.add_row("Avg Lead Time", f"{metrics['lead_time'].get('average', 0):.1f} days")
-        table.add_row("Median Lead Time", f"{metrics['lead_time'].get('median', 0):.1f} days")
+    if lead_time:
+        table.add_row("Avg Lead Time", f"{lead_time.get('average_days', 0):.1f} days")
+        table.add_row("Median Lead Time", f"{lead_time.get('median_days', 0):.1f} days")
     
-    if metrics.get('cycle_time'):
-        table.add_row("Avg Cycle Time", f"{metrics['cycle_time'].get('average', 0):.1f} days")
-        table.add_row("Median Cycle Time", f"{metrics['cycle_time'].get('median', 0):.1f} days")
+    if cycle_time:
+        table.add_row("Avg Cycle Time", f"{cycle_time.get('average_days', 0):.1f} days")
+        table.add_row("Median Cycle Time", f"{cycle_time.get('median_days', 0):.1f} days")
     
-    if metrics.get('throughput'):
-        table.add_row("Throughput", f"{metrics['throughput'].get('per_30_days', 0):.1f} items/30 days")
+    if throughput:
+        table.add_row("Throughput", f"{throughput.get('items_per_period', 0):.1f} items/{throughput.get('period_days', 30)} days")
     
-    if metrics.get('flow_efficiency'):
-        table.add_row("Flow Efficiency", f"{metrics['flow_efficiency']:.1f}%")
+    if flow_efficiency:
+        table.add_row("Flow Efficiency", f"{flow_efficiency.get('average_efficiency', 0):.1%}")
     
     console.print(table)
 

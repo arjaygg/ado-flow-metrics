@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from pydantic_settings import BaseSettings
 
 
@@ -20,12 +20,16 @@ class StageMetadata(BaseModel):
 
 class AzureDevOpsConfig(BaseModel):
     """Azure DevOps connection configuration."""
-    org_url: str = Field(..., description="Azure DevOps organization URL")
-    default_project: str = Field(..., description="Default project name")
+    org_url: str = Field("https://dev.azure.com", description="Azure DevOps organization URL")
+    organization: Optional[str] = Field(None, description="Organization name")
+    project: Optional[str] = Field(None, description="Project name")
+    default_project: str = Field("", description="Default project name")
+    base_url: str = Field("https://dev.azure.com", description="Base URL for Azure DevOps")
     api_version: str = Field("7.0", description="Azure DevOps API version")
     pat_token: Optional[str] = Field(None, description="Personal Access Token (from env var)")
     
-    @validator('org_url')
+    @field_validator('org_url')
+    @classmethod
     def validate_org_url(cls, v):
         if not v.startswith(('https://', 'http://')):
             raise ValueError('Organization URL must start with http:// or https://')
@@ -63,7 +67,8 @@ class DataManagementConfig(BaseModel):
     max_retries: int = Field(3, ge=0, description="Maximum retry attempts")
     retry_delay_seconds: int = Field(5, ge=1, description="Delay between retries")
     
-    @validator('data_directory')
+    @field_validator('data_directory')
+    @classmethod
     def ensure_data_directory(cls, v):
         v.mkdir(parents=True, exist_ok=True)
         return v
@@ -94,18 +99,29 @@ class FlowMetricsSettings(BaseSettings):
     """Main configuration class with environment variable support."""
     
     # Sub-configurations
-    azure_devops: AzureDevOpsConfig
+    azure_devops: Optional[AzureDevOpsConfig] = Field(default_factory=AzureDevOpsConfig)
     flow_metrics: FlowMetricsConfig = FlowMetricsConfig()
     data_management: DataManagementConfig = DataManagementConfig()
     stage_metadata: List[StageMetadata] = []
     dashboard: DashboardConfig = DashboardConfig()
     logging: LoggingConfig = LoggingConfig()
     
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        env_nested_delimiter = "__"
-        case_sensitive = False
+    # Legacy stage definitions for backward compatibility
+    stage_definitions: Dict[str, List[str]] = Field(
+        default_factory=lambda: {
+            "active_states": ["Active", "Committed", "In Progress", "Code Review", "Testing"],
+            "completion_states": ["Done", "Closed", "Completed", "Released"],
+            "waiting_states": ["New", "Proposed", "Blocked", "Ready for Review"]
+        }
+    )
+    
+    model_config = ConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        env_nested_delimiter="__",
+        case_sensitive=False,
+        extra="allow"  # Allow extra fields for backward compatibility
+    )
     
     @classmethod
     def from_file(cls, config_path: Path) -> "FlowMetricsSettings":

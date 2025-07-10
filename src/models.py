@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import List, Optional, Dict, Any
 from enum import Enum
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class WorkItemType(str, Enum):
@@ -72,9 +72,10 @@ class WorkItem(BaseModel):
         description="Custom fields"
     )
     
-    @validator('closed_date')
-    def validate_closed_date(cls, v, values):
-        if v and 'created_date' in values and v < values['created_date']:
+    @field_validator('closed_date')
+    @classmethod
+    def validate_closed_date(cls, v, info):
+        if v and info.data.get('created_date') and v < info.data['created_date']:
             raise ValueError('Closed date cannot be before created date')
         return v
     
