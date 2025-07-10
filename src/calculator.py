@@ -1,31 +1,88 @@
 import json
 from datetime import datetime, timedelta
-from typing import Dict, List
+from typing import Dict, List, Union
 from collections import defaultdict
 import logging
 
 logger = logging.getLogger(__name__)
 
 class FlowMetricsCalculator:
-    def __init__(self, work_items_data: List[Dict], config: Dict):
+    def __init__(self, work_items_data: List[Dict], config: Union[Dict, object] = None):
         logger.info(f"Initializing calculator with {len(work_items_data)} work items.")
         self.work_items = work_items_data
-        self.config = config
+        self.config = self._normalize_config(config)
 
-        # Process stage metadata from config
-        stage_config = self.config.get('stage_metadata', [])
-        self.active_states = {s['stage_name'] for s in stage_config if s.get('is_active')}
-        self.done_states = {s['stage_name'] for s in stage_config if s.get('is_done')}
-
+        # Extract state configuration in order of preference:
+        # 1. flow_metrics.active_states and flow_metrics.done_states (simple approach)
+        # 2. stage_metadata (complex approach)  
+        # 3. hardcoded defaults
+        
+        self.active_states = set()
+        self.done_states = set()
+        
+        # Try simple flow_metrics configuration first
+        flow_metrics_config = self.config.get('flow_metrics', {})
+        if isinstance(flow_metrics_config, dict):
+            if 'active_states' in flow_metrics_config:
+                self.active_states = set(flow_metrics_config['active_states'])
+            if 'done_states' in flow_metrics_config:
+                self.done_states = set(flow_metrics_config['done_states'])
+        
+        # If not found, try stage_metadata approach
         if not self.active_states or not self.done_states:
-            logger.warning("Stage metadata not fully configured. Using default 'active' and 'done' states.")
-            # Fallback to reasonable defaults if config is missing/incomplete
-            self.active_states = self.active_states or {'In Progress', 'Active'}
-            self.done_states = self.done_states or {'Done', 'Closed'}
-        else:
-            logger.info(f"Configured with {len(self.active_states)} active states and {len(self.done_states)} done states.")
+            stage_config = self.config.get('stage_metadata', [])
+            if stage_config:
+                if not self.active_states:
+                    self.active_states = {s.get('stage_name') for s in stage_config if s.get('is_active')}
+                if not self.done_states:
+                    self.done_states = {s.get('stage_name') for s in stage_config if s.get('is_done')}
+
+        # Final fallback to reasonable defaults
+        if not self.active_states:
+            self.active_states = {'In Progress', 'Active', 'Development', 'Testing'}
+            logger.warning("No active states configured. Using defaults: %s", self.active_states)
+        
+        if not self.done_states:
+            self.done_states = {'Done', 'Closed', 'Completed', 'Released'}
+            logger.warning("No done states configured. Using defaults: %s", self.done_states)
+        
+        logger.info(f"Configured with {len(self.active_states)} active states and {len(self.done_states)} done states.")
+        logger.debug(f"Active states: {self.active_states}")
+        logger.debug(f"Done states: {self.done_states}")
 
         self.parsed_items = self._parse_work_items()
+    
+    def _normalize_config(self, config: Union[Dict, object]) -> Dict:
+        """Convert config to dictionary format, handling Pydantic models."""
+        if config is None:
+            return {}
+        
+        # If it's already a dictionary, return as-is
+        if isinstance(config, dict):
+            return config
+        
+        # If it's a Pydantic model, use model_dump()
+        if hasattr(config, 'model_dump'):
+            try:
+                return config.model_dump()
+            except Exception as e:
+                logger.warning(f"Failed to convert Pydantic model to dict: {e}")
+                return {}
+        
+        # If it has a dict() method (older Pydantic versions)
+        if hasattr(config, 'dict'):
+            try:
+                return config.dict()
+            except Exception as e:
+                logger.warning(f"Failed to convert config to dict: {e}")
+                return {}
+        
+        # Try to convert to dict using vars()
+        try:
+            return vars(config)
+        except Exception as e:
+            logger.warning(f"Could not convert config object to dict: {e}")
+            return {}
     
     def _parse_work_items(self) -> List[Dict]:
         """Parse work items and add calculated fields"""
@@ -49,8 +106,14 @@ class FlowMetricsCalculator:
             # Add state transition dates
             transitions = item.get('state_transitions', [])
             for trans in transitions:
-                state_key = f"{trans['state'].lower()}_date"
-                parsed_item[state_key] = datetime.fromisoformat(trans['date'])
+                # Handle both 'to_state' (new format) and 'state' (legacy format)
+                state = trans.get('to_state') or trans.get('state')
+                # Handle both 'transition_date' (new format) and 'date' (legacy format)
+                date_str = trans.get('transition_date') or trans.get('date')
+                
+                if state and date_str:
+                    state_key = f"{state.lower().replace(' ', '_')}_date"
+                    parsed_item[state_key] = datetime.fromisoformat(date_str)
             
             parsed_items.append(parsed_item)
         
@@ -59,15 +122,25 @@ class FlowMetricsCalculator:
     
     def calculate_lead_time(self) -> Dict:
         """Calculate lead time (created to closed)"""
-        closed_items = [item for item in self.parsed_items if item['current_state'] in self.done_states]
+        # Find completed items with any done state date field
+        closed_items = []
+        for item in self.parsed_items:
+            if item['current_state'] in self.done_states:
+                # Look for any done state date field
+                for state in self.done_states:
+                    state_key = f"{state.lower().replace(' ', '_')}_date"
+                    if state_key in item:
+                        item['_completion_date'] = item[state_key]
+                        closed_items.append(item)
+                        break
         
         if not closed_items:
             return {"average_days": 0, "median_days": 0, "count": 0}
         
         lead_times = []
         for item in closed_items:
-            if 'closed_date' in item:
-                lead_time = (item['closed_date'] - item['created_date']).days
+            if '_completion_date' in item:
+                lead_time = (item['_completion_date'] - item['created_date']).days
                 lead_times.append(lead_time)
         
         if not lead_times:
@@ -84,16 +157,25 @@ class FlowMetricsCalculator:
     
     def calculate_cycle_time(self) -> Dict:
         """Calculate cycle time (active to closed)"""
-        closed_items = [item for item in self.parsed_items 
-                       if item['current_state'] in self.done_states and 'active_date' in item]
+        # Find completed items with active date and any done state date field
+        closed_items = []
+        for item in self.parsed_items:
+            if item['current_state'] in self.done_states and 'active_date' in item:
+                # Look for any done state date field
+                for state in self.done_states:
+                    state_key = f"{state.lower().replace(' ', '_')}_date"
+                    if state_key in item:
+                        item['_completion_date'] = item[state_key]
+                        closed_items.append(item)
+                        break
         
         if not closed_items:
             return {"average_days": 0, "median_days": 0, "count": 0}
         
         cycle_times = []
         for item in closed_items:
-            if 'closed_date' in item:
-                cycle_time = (item['closed_date'] - item['active_date']).days
+            if '_completion_date' in item:
+                cycle_time = (item['_completion_date'] - item['active_date']).days
                 cycle_times.append(cycle_time)
         
         if not cycle_times:
@@ -110,14 +192,26 @@ class FlowMetricsCalculator:
     
     def calculate_throughput(self, period_days: int = 30) -> Dict:
         """Calculate throughput (items completed per period)"""
-        closed_items = [item for item in self.parsed_items 
-                       if item['current_state'] in self.done_states and 'closed_date' in item]
+        # Find completed items with any done state date field
+        closed_items = []
+        for item in self.parsed_items:
+            if item['current_state'] in self.done_states:
+                # Look for any done state date field
+                done_date_field = None
+                for state in self.done_states:
+                    state_key = f"{state.lower().replace(' ', '_')}_date"
+                    if state_key in item:
+                        done_date_field = state_key
+                        break
+                if done_date_field:
+                    item['_completion_date'] = item[done_date_field]
+                    closed_items.append(item)
         
         if not closed_items:
             return {"items_per_period": 0, "period_days": period_days}
         
         # Get date range
-        closed_dates = [item['closed_date'] for item in closed_items]
+        closed_dates = [item['_completion_date'] for item in closed_items]
         start_date = min(closed_dates)
         end_date = max(closed_dates)
         total_days = (end_date - start_date).days
@@ -138,8 +232,7 @@ class FlowMetricsCalculator:
     
     def calculate_wip(self) -> Dict:
         """Calculate current Work in Progress"""
-        active_states = ['Active', 'Resolved']
-        wip_items = [item for item in self.parsed_items if item['current_state'] in active_states]
+        wip_items = [item for item in self.parsed_items if item['current_state'] in self.active_states]
         
         wip_by_state = defaultdict(int)
         wip_by_assignee = defaultdict(int)
@@ -157,10 +250,9 @@ class FlowMetricsCalculator:
     def calculate_flow_efficiency(self) -> Dict:
         """Calculate flow efficiency (active time / total lead time)"""
         closed_items = [item for item in self.parsed_items 
-                       if (item['current_state'] == 'Closed' and 
+                       if (item['current_state'] in self.done_states and 
                            'active_date' in item and 
-                           'resolved_date' in item and 
-                           'closed_date' in item)]
+                           'resolved_date' in item)]
         
         if not closed_items:
             return {"average_efficiency": 0, "count": 0}
@@ -194,8 +286,8 @@ class FlowMetricsCalculator:
             assignee_items[item['assigned_to']].append(item)
         
         for member, items in assignee_items.items():
-            closed_items = [item for item in items if item['current_state'] == 'Closed']
-            active_items = [item for item in items if item['current_state'] == 'Active']
+            closed_items = [item for item in items if item['current_state'] in self.done_states]
+            active_items = [item for item in items if item['current_state'] in self.active_states]
             
             # Calculate average lead time for closed items
             if closed_items:
@@ -224,8 +316,8 @@ class FlowMetricsCalculator:
         throughput_metrics = self.calculate_throughput()
         cycle_time_metrics = self.calculate_cycle_time()
         
-        if wip_metrics['total_wip'] > 0 and throughput_metrics['total_completed'] > 0:
-            throughput_rate = throughput_metrics['total_completed'] / throughput_metrics['analysis_period_days']
+        if wip_metrics['total_wip'] > 0 and throughput_metrics['items_per_period'] > 0:
+            throughput_rate = throughput_metrics['items_per_period'] / throughput_metrics['period_days']
             calculated_cycle_time = wip_metrics['total_wip'] / throughput_rate if throughput_rate > 0 else 0
             
             variance_percentage = 0
@@ -241,7 +333,7 @@ class FlowMetricsCalculator:
                 interpretation = "Lower than measured - possible batch processing or delays"
             
             return {
-                "calculated_cycle_time": round(calculated_cycle_time, 2),
+                "theoretical_cycle_time": round(calculated_cycle_time, 2),
                 "measured_cycle_time": cycle_time_metrics['average_days'],
                 "variance_percentage": round(variance_percentage, 1),
                 "throughput_rate_per_day": round(throughput_rate, 2),
@@ -254,7 +346,7 @@ class FlowMetricsCalculator:
     def generate_flow_metrics_report(self) -> Dict:
         """Generate comprehensive flow metrics report compatible with PowerShell dashboard"""
         logger.info("Generating full flow metrics report.")
-        completed_count = len([item for item in self.parsed_items if item['current_state'] == 'Closed'])
+        completed_count = len([item for item in self.parsed_items if item['current_state'] in self.done_states])
         
         # Build report in exact PowerShell format
         report = {
