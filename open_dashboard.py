@@ -13,7 +13,7 @@ from pathlib import Path
 def open_dashboard(dashboard_type="standard"):
     """Open the Flow Metrics dashboard in the default browser."""
     script_dir = Path(__file__).parent
-    
+
     # Determine which dashboard to open
     if dashboard_type.lower() in ["executive", "exec", "e"]:
         dashboard_file = "executive-dashboard.html"
@@ -21,22 +21,26 @@ def open_dashboard(dashboard_type="standard"):
     else:
         dashboard_file = "dashboard.html"
         dashboard_name = "Standard Dashboard"
-    
+
     dashboard_path = script_dir / dashboard_file
-    
+
     print(f"🔍 Looking for {dashboard_name} at: {dashboard_path}")
     print(f"📁 Script directory: {script_dir}")
     print(f"📋 Available dashboards: {list(script_dir.glob('*dashboard*.html'))}")
-    
+
     if not dashboard_path.exists():
         print(f"❌ {dashboard_name} not found at: {dashboard_path}")
-        
+
         # Try alternative locations
         alt_paths = [
             script_dir.parent / dashboard_file,  # Parent directory
-            script_dir.parent / "dashboard" / "index.html" if dashboard_type == "standard" else script_dir.parent / "dashboard" / "executive-index.html",
+            (
+                script_dir.parent / "dashboard" / "index.html"
+                if dashboard_type == "standard"
+                else script_dir.parent / "dashboard" / "executive-index.html"
+            ),
         ]
-        
+
         for alt_path in alt_paths:
             if alt_path.exists():
                 print(f"✅ Found {dashboard_name} at alternative location: {alt_path}")
@@ -44,21 +48,21 @@ def open_dashboard(dashboard_type="standard"):
                 break
         else:
             print(f"💡 Available dashboard options:")
-            available = list(script_dir.glob('*dashboard*.html'))
+            available = list(script_dir.glob("*dashboard*.html"))
             for dash in available:
                 print(f"   • {dash.name}")
             return False
-    
+
     # Convert to file:// URL for browser (Windows-compatible)
     dashboard_url = dashboard_path.absolute().as_uri()
-    
+
     print(f"🚀 Opening {dashboard_name}...")
     print(f"📊 URL: {dashboard_url}")
-    
+
     try:
         webbrowser.open(dashboard_url)
         print(f"✅ {dashboard_name} opened in your default browser")
-        
+
         if dashboard_type.lower() in ["executive", "exec", "e"]:
             print("\n📊 Executive Dashboard Features:")
             print("  • High-level KPIs and executive summary")
@@ -71,7 +75,7 @@ def open_dashboard(dashboard_type="standard"):
             print("  • Mock data (default) - generates sample flow metrics")
             print("  • JSON file upload - load your own metrics data")
             print("  • IndexedDB - persists data between sessions")
-        
+
         print("\n💡 To load real data:")
         print("  1. Run the flow metrics calculator to generate JSON")
         print("  2. Use 'Load JSON' button in the dashboard")
@@ -86,7 +90,7 @@ def open_dashboard(dashboard_type="standard"):
 def main():
     """Main function to handle command line arguments."""
     dashboard_type = "standard"
-    
+
     if len(sys.argv) > 1:
         arg = sys.argv[1].lower()
         if arg in ["executive", "exec", "e", "--executive", "-e"]:
@@ -109,7 +113,7 @@ def main():
             print(f"Unknown dashboard type: {arg}")
             print("Use 'python open_dashboard.py help' for usage information")
             return
-    
+
     open_dashboard(dashboard_type)
 
 

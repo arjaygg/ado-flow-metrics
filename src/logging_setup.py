@@ -4,6 +4,7 @@ from pathlib import Path
 
 from config_manager import get_settings
 
+
 def setup_logging():
     """
     Configures the application's logging based on settings from the config file.
@@ -22,31 +23,31 @@ def setup_logging():
 
         # Base configuration
         config_dict = {
-            'version': 1,
-            'disable_existing_loggers': False,
-            'formatters': {
-                'default': {
-                    'format': log_config.format,
+            "version": 1,
+            "disable_existing_loggers": False,
+            "formatters": {
+                "default": {
+                    "format": log_config.format,
                 },
             },
-            'handlers': {
-                'console': {
-                    'class': 'logging.StreamHandler',
-                    'formatter': 'default',
-                    'level': log_config.level.upper(),
+            "handlers": {
+                "console": {
+                    "class": "logging.StreamHandler",
+                    "formatter": "default",
+                    "level": log_config.level.upper(),
                 },
-                'file': {
-                    'class': 'logging.handlers.RotatingFileHandler',
-                    'formatter': 'default',
-                    'filename': log_file_path,
-                    'maxBytes': log_config.max_size_mb * 1024 * 1024,
-                    'backupCount': log_config.backup_count,
-                    'level': log_config.level.upper(),
+                "file": {
+                    "class": "logging.handlers.RotatingFileHandler",
+                    "formatter": "default",
+                    "filename": log_file_path,
+                    "maxBytes": log_config.max_size_mb * 1024 * 1024,
+                    "backupCount": log_config.backup_count,
+                    "level": log_config.level.upper(),
                 },
             },
-            'root': {
-                'handlers': ['console', 'file'],
-                'level': log_config.level.upper(),
+            "root": {
+                "handlers": ["console", "file"],
+                "level": log_config.level.upper(),
             },
         }
 
