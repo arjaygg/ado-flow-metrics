@@ -2,14 +2,34 @@ import json
 from datetime import datetime, timedelta
 from typing import Dict, List
 from collections import defaultdict
+import logging
+
+logger = logging.getLogger(__name__)
 
 class FlowMetricsCalculator:
-    def __init__(self, work_items_data: List[Dict]):
+    def __init__(self, work_items_data: List[Dict], config: Dict):
+        logger.info(f"Initializing calculator with {len(work_items_data)} work items.")
         self.work_items = work_items_data
+        self.config = config
+
+        # Process stage metadata from config
+        stage_config = self.config.get('stage_metadata', [])
+        self.active_states = {s['stage_name'] for s in stage_config if s.get('is_active')}
+        self.done_states = {s['stage_name'] for s in stage_config if s.get('is_done')}
+
+        if not self.active_states or not self.done_states:
+            logger.warning("Stage metadata not fully configured. Using default 'active' and 'done' states.")
+            # Fallback to reasonable defaults if config is missing/incomplete
+            self.active_states = self.active_states or {'In Progress', 'Active'}
+            self.done_states = self.done_states or {'Done', 'Closed'}
+        else:
+            logger.info(f"Configured with {len(self.active_states)} active states and {len(self.done_states)} done states.")
+
         self.parsed_items = self._parse_work_items()
     
     def _parse_work_items(self) -> List[Dict]:
         """Parse work items and add calculated fields"""
+        logger.debug("Starting work item parsing.")
         parsed_items = []
         for item in self.work_items:
             parsed_item = {
@@ -34,11 +54,12 @@ class FlowMetricsCalculator:
             
             parsed_items.append(parsed_item)
         
+        logger.debug(f"Finished parsing. {len(parsed_items)} items are usable for calculations.")
         return parsed_items
     
     def calculate_lead_time(self) -> Dict:
         """Calculate lead time (created to closed)"""
-        closed_items = [item for item in self.parsed_items if item['current_state'] == 'Closed']
+        closed_items = [item for item in self.parsed_items if item['current_state'] in self.done_states]
         
         if not closed_items:
             return {"average_days": 0, "median_days": 0, "count": 0}
@@ -64,7 +85,7 @@ class FlowMetricsCalculator:
     def calculate_cycle_time(self) -> Dict:
         """Calculate cycle time (active to closed)"""
         closed_items = [item for item in self.parsed_items 
-                       if item['current_state'] == 'Closed' and 'active_date' in item]
+                       if item['current_state'] in self.done_states and 'active_date' in item]
         
         if not closed_items:
             return {"average_days": 0, "median_days": 0, "count": 0}
@@ -90,7 +111,7 @@ class FlowMetricsCalculator:
     def calculate_throughput(self, period_days: int = 30) -> Dict:
         """Calculate throughput (items completed per period)"""
         closed_items = [item for item in self.parsed_items 
-                       if item['current_state'] == 'Closed' and 'closed_date' in item]
+                       if item['current_state'] in self.done_states and 'closed_date' in item]
         
         if not closed_items:
             return {"items_per_period": 0, "period_days": period_days}
@@ -227,10 +248,12 @@ class FlowMetricsCalculator:
                 "interpretation": interpretation
             }
         
+        logger.info("No Little's Law validation calculated.")
         return {}
 
     def generate_flow_metrics_report(self) -> Dict:
         """Generate comprehensive flow metrics report compatible with PowerShell dashboard"""
+        logger.info("Generating full flow metrics report.")
         completed_count = len([item for item in self.parsed_items if item['current_state'] == 'Closed'])
         
         # Build report in exact PowerShell format
