@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flow Metrics Executive Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --info-color: #3498db;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #ecf0f1;
+            color: #2c3e50;
+        }
+        
+        .executive-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #34495e 100%);
+            color: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+        }
+        
+        .kpi-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-left: 5px solid var(--primary-color);
+            transition: transform 0.2s ease;
+        }
+        
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(0,0,0,0.15);
+        }
+        
+        .kpi-card.success { border-left-color: var(--success-color); }
+        .kpi-card.warning { border-left-color: var(--warning-color); }
+        .kpi-card.danger { border-left-color: var(--danger-color); }
+        .kpi-card.info { border-left-color: var(--info-color); }
+        
+        .kpi-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 0;
+        }
+        
+        .kpi-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #7f8c8d;
+        }
+        
+        .kpi-trend {
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+        }
+        
+        .trend-up { color: var(--success-color); }
+        .trend-down { color: var(--danger-color); }
+        .trend-stable { color: var(--info-color); }
+        
+        .chart-section {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .chart-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #ecf0f1;
+        }
+        
+        .data-source-panel {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .executive-summary {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .benchmark-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .benchmark-excellent { background-color: var(--success-color); }
+        .benchmark-good { background-color: var(--info-color); }
+        .benchmark-needs-improvement { background-color: var(--warning-color); }
+        .benchmark-critical { background-color: var(--danger-color); }
+    </style>
+</head>
+<body>
+    <!-- Executive Header -->
+    <div class="executive-header">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-2">
+                        <i class="fas fa-chart-line me-3"></i>Flow Metrics Executive Dashboard
+                    </h1>
+                    <p class="mb-0 opacity-75">Team Performance & Delivery Insights</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button class="btn btn-outline-light me-2" id="refreshBtn">
+                        <i class="fas fa-sync-alt me-2"></i>Refresh Data
+                    </button>
+                    <button class="btn btn-light" id="loadDataBtn">
+                        <i class="fas fa-upload me-2"></i>Load Report
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid">
+        <!-- Data Source Panel -->
+        <div class="data-source-panel">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h6 class="mb-1"><i class="fas fa-database me-2"></i>Data Source</h6>
+                    <small class="text-muted" id="dataSourceInfo">Select data source to begin</small>
+                </div>
+                <div class="col-md-6">
+                    <div class="btn-group w-100" role="group">
+                        <input type="radio" class="btn-check" name="dataSource" id="mockData" checked>
+                        <label class="btn btn-outline-primary" for="mockData">Demo Data</label>
+                        
+                        <input type="radio" class="btn-check" name="dataSource" id="jsonFile">
+                        <label class="btn btn-outline-primary" for="jsonFile">Upload Report</label>
+                        
+                        <input type="radio" class="btn-check" name="dataSource" id="indexedDB">
+                        <label class="btn btn-outline-primary" for="indexedDB">Saved Data</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Executive Summary -->
+        <div class="executive-summary">
+            <h4 class="mb-3"><i class="fas fa-chart-pie me-2"></i>Executive Summary</h4>
+            <div class="row">
+                <div class="col-md-8">
+                    <p class="mb-2" id="summaryText">Loading executive summary...</p>
+                    <div class="mt-3">
+                        <h6>Key Insights:</h6>
+                        <ul id="keyInsights" class="mb-0">
+                            <li>Loading insights...</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <h6>Performance Benchmarks</h6>
+                    <div class="mt-2">
+                        <div><span class="benchmark-indicator benchmark-excellent"></span>Excellent (Top 25%)</div>
+                        <div><span class="benchmark-indicator benchmark-good"></span>Good (Average)</div>
+                        <div><span class="benchmark-indicator benchmark-needs-improvement"></span>Needs Improvement</div>
+                        <div><span class="benchmark-indicator benchmark-critical"></span>Critical</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Performance Indicators -->
+        <div class="row mb-4">
+            <div class="col-lg-3 col-md-6">
+                <div class="kpi-card">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="kpi-label">Delivery Speed</div>
+                            <div class="kpi-value text-primary" id="deliverySpeed">--</div>
+                            <div class="kpi-trend" id="deliveryTrend">
+                                <i class="fas fa-minus"></i> No trend data
+                            </div>
+                        </div>
+                        <div class="text-primary opacity-25">
+                            <i class="fas fa-tachometer-alt fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <div class="kpi-card success">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="kpi-label">Flow Efficiency</div>
+                            <div class="kpi-value text-success" id="flowEfficiency">--%</div>
+                            <div class="kpi-trend" id="efficiencyTrend">
+                                <i class="fas fa-minus"></i> No trend data
+                            </div>
+                        </div>
+                        <div class="text-success opacity-25">
+                            <i class="fas fa-stream fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <div class="kpi-card warning">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="kpi-label">Work in Progress</div>
+                            <div class="kpi-value text-warning" id="wipItems">--</div>
+                            <div class="kpi-trend" id="wipTrend">
+                                <i class="fas fa-minus"></i> No trend data
+                            </div>
+                        </div>
+                        <div class="text-warning opacity-25">
+                            <i class="fas fa-tasks fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <div class="kpi-card info">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <div class="kpi-label">Team Velocity</div>
+                            <div class="kpi-value text-info" id="teamVelocity">--</div>
+                            <div class="kpi-trend" id="velocityTrend">
+                                <i class="fas fa-minus"></i> No trend data
+                            </div>
+                        </div>
+                        <div class="text-info opacity-25">
+                            <i class="fas fa-rocket fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row 1: Delivery Performance -->
+        <div class="row mb-4">
+            <div class="col-lg-8">
+                <div class="chart-section">
+                    <h5 class="chart-title">
+                        <i class="fas fa-chart-area me-2"></i>Delivery Performance Trends
+                    </h5>
+                    <div id="deliveryTrendsChart" style="height: 350px;"></div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="chart-section">
+                    <h5 class="chart-title">
+                        <i class="fas fa-gauge me-2"></i>Flow Efficiency Score
+                    </h5>
+                    <div id="efficiencyGauge" style="height: 300px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row 2: Capacity & Flow -->
+        <div class="row mb-4">
+            <div class="col-lg-6">
+                <div class="chart-section">
+                    <h5 class="chart-title">
+                        <i class="fas fa-project-diagram me-2"></i>Work Distribution
+                    </h5>
+                    <div id="workDistributionChart" style="height: 300px;"></div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="chart-section">
+                    <h5 class="chart-title">
+                        <i class="fas fa-chart-bar me-2"></i>Throughput Analysis
+                    </h5>
+                    <div id="throughputChart" style="height: 300px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Team Capacity Overview -->
+        <div class="row">
+            <div class="col-12">
+                <div class="chart-section">
+                    <h5 class="chart-title">
+                        <i class="fas fa-users me-2"></i>Team Capacity & Performance Overview
+                    </h5>
+                    <div class="row" id="teamOverview">
+                        <div class="col-md-3">
+                            <div class="text-center p-3">
+                                <h4 class="text-primary mb-1" id="totalTeamSize">--</h4>
+                                <small class="text-muted">Team Members</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3">
+                                <h4 class="text-success mb-1" id="avgCompletionRate">--%</h4>
+                                <small class="text-muted">Avg Completion Rate</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3">
+                                <h4 class="text-info mb-1" id="avgLeadTime">-- days</h4>
+                                <small class="text-muted">Avg Lead Time</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center p-3">
+                                <h4 class="text-warning mb-1" id="teamUtilization">--%</h4>
+                                <small class="text-muted">Team Utilization</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden file input -->
+    <input type="file" id="fileInput" accept=".json" style="display: none;">
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Executive Flow Metrics Dashboard
+        class ExecutiveDashboard {
+            constructor() {
+                this.data = null;
+                this.dbName = 'FlowMetricsExecutiveDB';
+                this.dbVersion = 1;
+                this.db = null;
+                this.init();
+            }
+
+            async init() {
+                await this.initIndexedDB();
+                this.setupEventListeners();
+                this.loadData();
+            }
+
+            async initIndexedDB() {
+                return new Promise((resolve, reject) => {
+                    const request = indexedDB.open(this.dbName, this.dbVersion);
+                    request.onerror = () => reject(request.error);
+                    request.onsuccess = () => {
+                        this.db = request.result;
+                        resolve();
+                    };
+                    request.onupgradeneeded = (event) => {
+                        const db = event.target.result;
+                        if (!db.objectStoreNames.contains('executive_metrics')) {
+                            const store = db.createObjectStore('executive_metrics', { keyPath: 'id' });
+                            store.createIndex('timestamp', 'timestamp', { unique: false });
+                        }
+                    };
+                });
+            }
+
+            setupEventListeners() {
+                document.getElementById('refreshBtn').addEventListener('click', () => this.loadData());
+                document.getElementById('loadDataBtn').addEventListener('click', () => {
+                    document.getElementById('fileInput').click();
+                });
+                document.getElementById('fileInput').addEventListener('change', (e) => this.handleFileLoad(e));
+                document.querySelectorAll('input[name="dataSource"]').forEach(radio => {
+                    radio.addEventListener('change', () => this.loadData());
+                });
+            }
+
+            async loadData() {
+                const selectedSource = document.querySelector('input[name="dataSource"]:checked').id;
+                
+                try {
+                    let data = null;
+                    
+                    switch (selectedSource) {
+                        case 'mockData':
+                            data = this.generateExecutiveMockData();
+                            this.updateDataSourceInfo('Executive demo data loaded');
+                            break;
+                        case 'jsonFile':
+                            data = this.data;
+                            this.updateDataSourceInfo(data ? 'Report file loaded' : 'No report file loaded');
+                            break;
+                        case 'indexedDB':
+                            data = await this.loadFromIndexedDB();
+                            this.updateDataSourceInfo(data ? 'Data loaded from browser storage' : 'No saved data found');
+                            break;
+                    }
+
+                    if (data) {
+                        this.data = data;
+                        this.updateExecutiveDashboard(data);
+                        
+                        if (selectedSource !== 'indexedDB') {
+                            await this.saveToIndexedDB(data);
+                        }
+                    } else {
+                        this.showNoDataMessage();
+                    }
+                } catch (error) {
+                    console.error('Error loading data:', error);
+                    this.showErrorMessage(error.message);
+                }
+            }
+
+            handleFileLoad(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        this.data = data;
+                        document.getElementById('jsonFile').checked = true;
+                        this.updateDataSourceInfo(`Report: ${file.name} (${(file.size/1024).toFixed(1)}KB)`);
+                        this.updateExecutiveDashboard(data);
+                        this.saveToIndexedDB(data);
+                    } catch (error) {
+                        alert('Error parsing report file: ' + error.message);
+                    }
+                };
+                reader.readAsText(file);
+            }
+
+            async saveToIndexedDB(data) {
+                const transaction = this.db.transaction(['executive_metrics'], 'readwrite');
+                const store = transaction.objectStore('executive_metrics');
+                await store.put({
+                    id: 'latest',
+                    timestamp: new Date().toISOString(),
+                    data: data
+                });
+            }
+
+            async loadFromIndexedDB() {
+                const transaction = this.db.transaction(['executive_metrics'], 'readonly');
+                const store = transaction.objectStore('executive_metrics');
+                return new Promise((resolve) => {
+                    const request = store.get('latest');
+                    request.onsuccess = () => resolve(request.result ? request.result.data : null);
+                    request.onerror = () => resolve(null);
+                });
+            }
+
+            updateDataSourceInfo(message) {
+                document.getElementById('dataSourceInfo').textContent = message + ' • ' + new Date().toLocaleTimeString();
+            }
+
+            updateExecutiveDashboard(data) {
+                this.updateExecutiveSummary(data);
+                this.updateKPIs(data);
+                this.updateCharts(data);
+                this.updateTeamOverview(data);
+            }
+
+            updateExecutiveSummary(data) {
+                const summary = data.summary || {};
+                const leadTime = data.lead_time || {};
+                const efficiency = data.flow_efficiency || {};
+                const wip = data.work_in_progress || {};
+
+                // Executive summary text
+                const summaryText = `Team delivered ${summary.completed_items || 0} items out of ${summary.total_work_items || 0} total items (${(summary.completion_rate || 0).toFixed(1)}% completion rate). Average delivery time is ${(leadTime.average_days || 0).toFixed(1)} days with ${((efficiency.average_efficiency || 0) * 100).toFixed(1)}% flow efficiency.`;
+                
+                document.getElementById('summaryText').textContent = summaryText;
+
+                // Key insights
+                const insights = this.generateExecutiveInsights(data);
+                const insightsList = document.getElementById('keyInsights');
+                insightsList.innerHTML = insights.map(insight => `<li>${insight}</li>`).join('');
+            }
+
+            generateExecutiveInsights(data) {
+                const insights = [];
+                const leadTime = data.lead_time || {};
+                const efficiency = data.flow_efficiency || {};
+                const throughput = data.throughput || {};
+                const wip = data.work_in_progress || {};
+
+                // Lead time insights
+                if (leadTime.average_days < 10) {
+                    insights.push('🟢 Excellent delivery speed - under 10 days average lead time');
+                } else if (leadTime.average_days > 20) {
+                    insights.push('🔴 Delivery speed needs attention - over 20 days average lead time');
+                } else {
+                    insights.push('🟡 Moderate delivery speed - room for improvement');
+                }
+
+                // Flow efficiency insights
+                const efficiencyPercent = (efficiency.average_efficiency || 0) * 100;
+                if (efficiencyPercent > 70) {
+                    insights.push('🟢 High flow efficiency - minimal waste in process');
+                } else if (efficiencyPercent < 40) {
+                    insights.push('🔴 Low flow efficiency - significant process bottlenecks detected');
+                } else {
+                    insights.push('🟡 Moderate flow efficiency - optimization opportunities exist');
+                }
+
+                // WIP insights
+                if (wip.total_wip > 100) {
+                    insights.push('🔴 High work in progress - may impact delivery speed');
+                } else if (wip.total_wip < 30) {
+                    insights.push('🟢 Well-managed work in progress levels');
+                } else {
+                    insights.push('🟡 Moderate WIP levels - monitor for trends');
+                }
+
+                // Throughput insights
+                if (throughput.items_per_period > 25) {
+                    insights.push('🟢 Strong team velocity - high throughput achieved');
+                } else if (throughput.items_per_period < 10) {
+                    insights.push('🔴 Low team velocity - capacity constraints detected');
+                }
+
+                return insights;
+            }
+
+            updateKPIs(data) {
+                const leadTime = data.lead_time || {};
+                const efficiency = data.flow_efficiency || {};
+                const throughput = data.throughput || {};
+                const wip = data.work_in_progress || {};
+
+                // Delivery Speed (Lead Time)
+                document.getElementById('deliverySpeed').textContent = `${(leadTime.average_days || 0).toFixed(1)} days`;
+                
+                // Flow Efficiency
+                document.getElementById('flowEfficiency').textContent = `${((efficiency.average_efficiency || 0) * 100).toFixed(1)}%`;
+                
+                // WIP
+                document.getElementById('wipItems').textContent = wip.total_wip || 0;
+                
+                // Team Velocity (Throughput)
+                document.getElementById('teamVelocity').textContent = `${(throughput.items_per_period || 0).toFixed(1)}/mo`;
+
+                // Add trend indicators (simplified for demo)
+                this.updateTrendIndicator('deliveryTrend', 'stable');
+                this.updateTrendIndicator('efficiencyTrend', 'up');
+                this.updateTrendIndicator('wipTrend', 'down');
+                this.updateTrendIndicator('velocityTrend', 'up');
+            }
+
+            updateTrendIndicator(elementId, trend) {
+                const element = document.getElementById(elementId);
+                const trends = {
+                    'up': { icon: 'fa-arrow-up', class: 'trend-up', text: 'Improving' },
+                    'down': { icon: 'fa-arrow-down', class: 'trend-down', text: 'Declining' },
+                    'stable': { icon: 'fa-minus', class: 'trend-stable', text: 'Stable' }
+                };
+                
+                const trendData = trends[trend];
+                element.innerHTML = `<i class="fas ${trendData.icon}"></i> ${trendData.text}`;
+                element.className = `kpi-trend ${trendData.class}`;
+            }
+
+            updateCharts(data) {
+                this.updateDeliveryTrendsChart(data);
+                this.updateEfficiencyGauge(data);
+                this.updateWorkDistributionChart(data);
+                this.updateThroughputChart(data);
+            }
+
+            updateDeliveryTrendsChart(data) {
+                // Simulate trend data
+                const days = 30;
+                const leadTimeData = [];
+                const cycleTimeData = [];
+                
+                for (let i = days; i >= 0; i--) {
+                    const date = new Date();
+                    date.setDate(date.getDate() - i);
+                    
+                    leadTimeData.push({
+                        x: date.toISOString().split('T')[0],
+                        y: Math.random() * 5 + 8 // 8-13 days
+                    });
+                    
+                    cycleTimeData.push({
+                        x: date.toISOString().split('T')[0],
+                        y: Math.random() * 4 + 6 // 6-10 days
+                    });
+                }
+
+                const chartData = [
+                    {
+                        x: leadTimeData.map(d => d.x),
+                        y: leadTimeData.map(d => d.y),
+                        name: 'Lead Time',
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        line: { color: '#3498db', width: 3 },
+                        marker: { size: 6 }
+                    },
+                    {
+                        x: cycleTimeData.map(d => d.x),
+                        y: cycleTimeData.map(d => d.y),
+                        name: 'Cycle Time',
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        line: { color: '#27ae60', width: 3 },
+                        marker: { size: 6 }
+                    }
+                ];
+
+                const layout = {
+                    margin: { l: 60, r: 40, t: 20, b: 60 },
+                    xaxis: { title: 'Date' },
+                    yaxis: { title: 'Days' },
+                    showlegend: true,
+                    legend: { x: 0, y: 1 }
+                };
+
+                Plotly.newPlot('deliveryTrendsChart', chartData, layout, { responsive: true });
+            }
+
+            updateEfficiencyGauge(data) {
+                const efficiency = data.flow_efficiency || {};
+                const value = (efficiency.average_efficiency || 0) * 100;
+
+                const chartData = [{
+                    domain: { x: [0, 1], y: [0, 1] },
+                    value: value,
+                    title: { text: "Flow Efficiency %" },
+                    type: "indicator",
+                    mode: "gauge+number",
+                    gauge: {
+                        axis: { range: [null, 100] },
+                        bar: { color: value > 70 ? "#27ae60" : value > 40 ? "#f39c12" : "#e74c3c" },
+                        steps: [
+                            { range: [0, 40], color: "#ecf0f1" },
+                            { range: [40, 70], color: "#f8f9fa" },
+                            { range: [70, 100], color: "#e8f5e8" }
+                        ],
+                        threshold: {
+                            line: { color: "#2c3e50", width: 4 },
+                            thickness: 0.75,
+                            value: 70
+                        }
+                    }
+                }];
+
+                const layout = {
+                    margin: { l: 20, r: 20, t: 20, b: 20 }
+                };
+
+                Plotly.newPlot('efficiencyGauge', chartData, layout, { responsive: true });
+            }
+
+            updateWorkDistributionChart(data) {
+                const wip = data.work_in_progress || {};
+                const wipByState = wip.wip_by_state || {};
+
+                if (Object.keys(wipByState).length === 0) {
+                    document.getElementById('workDistributionChart').innerHTML = '<p class="text-center text-muted mt-5">No work distribution data available</p>';
+                    return;
+                }
+
+                const chartData = [{
+                    labels: Object.keys(wipByState),
+                    values: Object.values(wipByState),
+                    type: 'pie',
+                    hole: 0.5,
+                    marker: {
+                        colors: ['#3498db', '#27ae60', '#f39c12', '#e74c3c', '#9b59b6']
+                    },
+                    textinfo: 'label+percent',
+                    textposition: 'outside'
+                }];
+
+                const layout = {
+                    margin: { l: 20, r: 20, t: 20, b: 20 },
+                    showlegend: true,
+                    legend: { orientation: 'h', y: -0.1 }
+                };
+
+                Plotly.newPlot('workDistributionChart', chartData, layout, { responsive: true });
+            }
+
+            updateThroughputChart(data) {
+                const summary = data.summary || {};
+                const throughput = data.throughput || {};
+
+                // Simulate monthly throughput data
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+                const throughputData = months.map(() => Math.random() * 10 + 15); // 15-25 items
+
+                const chartData = [{
+                    x: months,
+                    y: throughputData,
+                    type: 'bar',
+                    marker: {
+                        color: '#3498db',
+                        opacity: 0.8
+                    },
+                    text: throughputData.map(val => val.toFixed(0)),
+                    textposition: 'auto'
+                }];
+
+                const layout = {
+                    margin: { l: 60, r: 40, t: 20, b: 60 },
+                    xaxis: { title: 'Month' },
+                    yaxis: { title: 'Items Delivered' }
+                };
+
+                Plotly.newPlot('throughputChart', chartData, layout, { responsive: true });
+            }
+
+            updateTeamOverview(data) {
+                const teamMetrics = data.team_metrics || {};
+                const summary = data.summary || {};
+                const leadTime = data.lead_time || {};
+
+                const teamSize = Object.keys(teamMetrics).length;
+                let totalCompletionRate = 0;
+                let activeMembers = 0;
+
+                Object.values(teamMetrics).forEach(member => {
+                    if (member.completion_rate) {
+                        totalCompletionRate += member.completion_rate;
+                        activeMembers++;
+                    }
+                });
+
+                const avgCompletionRate = activeMembers > 0 ? totalCompletionRate / activeMembers : 0;
+                const teamUtilization = Math.min(100, (summary.completed_items || 0) / (summary.total_work_items || 1) * 100);
+
+                document.getElementById('totalTeamSize').textContent = teamSize || '--';
+                document.getElementById('avgCompletionRate').textContent = avgCompletionRate ? `${avgCompletionRate.toFixed(1)}%` : '--%';
+                document.getElementById('avgLeadTime').textContent = leadTime.average_days ? `${leadTime.average_days.toFixed(1)} days` : '-- days';
+                document.getElementById('teamUtilization').textContent = `${teamUtilization.toFixed(1)}%`;
+            }
+
+            generateExecutiveMockData() {
+                // Enhanced mock data for executive dashboard
+                return {
+                    summary: {
+                        total_work_items: 250,
+                        completed_items: 187,
+                        completion_rate: 74.8
+                    },
+                    lead_time: {
+                        average_days: 12.4,
+                        median_days: 10.0,
+                        count: 187
+                    },
+                    cycle_time: {
+                        average_days: 8.7,
+                        median_days: 7.5,
+                        count: 187
+                    },
+                    throughput: {
+                        items_per_period: 23.4,
+                        period_days: 30
+                    },
+                    work_in_progress: {
+                        total_wip: 63,
+                        wip_by_state: {
+                            "Analysis": 8,
+                            "Development": 24,
+                            "Testing": 18,
+                            "Review": 13
+                        }
+                    },
+                    flow_efficiency: {
+                        average_efficiency: 0.73
+                    },
+                    team_metrics: {
+                        "Engineering Team Alpha": { completed_items: 45, active_items: 8, completion_rate: 89.2, average_lead_time: 9.8 },
+                        "Engineering Team Beta": { completed_items: 38, active_items: 6, completion_rate: 84.7, average_lead_time: 11.2 },
+                        "QA Team": { completed_items: 52, active_items: 12, completion_rate: 78.5, average_lead_time: 15.3 },
+                        "DevOps Team": { completed_items: 28, active_items: 4, completion_rate: 91.3, average_lead_time: 8.1 },
+                        "Product Team": { completed_items: 24, active_items: 7, completion_rate: 77.4, average_lead_time: 13.6 }
+                    }
+                };
+            }
+
+            showNoDataMessage() {
+                document.getElementById('deliverySpeed').textContent = '--';
+                document.getElementById('flowEfficiency').textContent = '--%';
+                document.getElementById('wipItems').textContent = '--';
+                document.getElementById('teamVelocity').textContent = '--';
+            }
+
+            showErrorMessage(message) {
+                this.updateDataSourceInfo('Error: ' + message);
+            }
+        }
+
+        // Initialize executive dashboard
+        document.addEventListener('DOMContentLoaded', () => {
+            new ExecutiveDashboard();
+        });
+    </script>
+</body>
+</html>
