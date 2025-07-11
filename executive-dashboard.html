@@ -671,18 +671,44 @@
                 const efficiency = data.flow_efficiency || {};
                 const throughput = data.throughput || {};
                 const wip = data.work_in_progress || {};
+                let teamMetrics = data.team_metrics || {};
 
-                // Delivery Speed (Lead Time)
-                document.getElementById('deliverySpeed').textContent = `${(leadTime.average_days || 0).toFixed(1)} days`;
+                // Apply workstream filtering to team metrics for KPI calculations
+                teamMetrics = this.workstreamManager.filterTeamMetrics(teamMetrics, this.selectedWorkstreams);
 
-                // Flow Efficiency
-                document.getElementById('flowEfficiency').textContent = `${((efficiency.average_efficiency || 0) * 100).toFixed(1)}%`;
+                // If workstream filtering is active, recalculate KPIs from filtered data
+                if (!this.selectedWorkstreams.includes('All Teams') && Object.keys(teamMetrics).length > 0) {
+                    // Calculate filtered metrics
+                    let filteredCompleted = 0;
+                    let filteredActive = 0;
+                    let totalLeadTime = 0;
+                    let leadTimeCount = 0;
 
-                // WIP
-                document.getElementById('wipItems').textContent = wip.total_wip || 0;
+                    Object.values(teamMetrics).forEach(member => {
+                        filteredCompleted += member.completed_items || 0;
+                        filteredActive += member.active_items || 0;
+                        if (member.average_lead_time) {
+                            totalLeadTime += member.average_lead_time;
+                            leadTimeCount++;
+                        }
+                    });
 
-                // Team Velocity (Throughput)
-                document.getElementById('teamVelocity').textContent = `${(throughput.items_per_period || 0).toFixed(1)}/mo`;
+                    const filteredAvgLeadTime = leadTimeCount > 0 ? totalLeadTime / leadTimeCount : (leadTime.average_days || 0);
+                    const filteredThroughput = filteredCompleted > 0 ? (filteredCompleted / 30) : (throughput.items_per_period || 0);
+                    const filteredWip = filteredActive;
+
+                    // Update KPIs with filtered data
+                    document.getElementById('deliverySpeed').textContent = `${filteredAvgLeadTime.toFixed(1)} days`;
+                    document.getElementById('flowEfficiency').textContent = `${((efficiency.average_efficiency || 0) * 100).toFixed(1)}%`;
+                    document.getElementById('wipItems').textContent = filteredWip;
+                    document.getElementById('teamVelocity').textContent = `${filteredThroughput.toFixed(1)}/mo`;
+                } else {
+                    // Use original aggregate data for "All Teams"
+                    document.getElementById('deliverySpeed').textContent = `${(leadTime.average_days || 0).toFixed(1)} days`;
+                    document.getElementById('flowEfficiency').textContent = `${((efficiency.average_efficiency || 0) * 100).toFixed(1)}%`;
+                    document.getElementById('wipItems').textContent = wip.total_wip || 0;
+                    document.getElementById('teamVelocity').textContent = `${(throughput.items_per_period || 0).toFixed(1)}/mo`;
+                }
 
                 // Add trend indicators (simplified for demo)
                 this.updateTrendIndicator('deliveryTrend', 'stable');
@@ -766,7 +792,24 @@
 
             updateEfficiencyGauge(data) {
                 const efficiency = data.flow_efficiency || {};
-                const value = (efficiency.average_efficiency || 0) * 100;
+                let value = (efficiency.average_efficiency || 0) * 100;
+
+                // Apply workstream filtering to efficiency calculation
+                if (!this.selectedWorkstreams.includes('All Teams')) {
+                    const filteredTeamMetrics = this.workstreamManager.filterTeamMetrics(data.team_metrics || {}, this.selectedWorkstreams);
+                    
+                    if (Object.keys(filteredTeamMetrics).length > 0) {
+                        // Recalculate efficiency for filtered teams
+                        const efficiencyValues = Object.values(filteredTeamMetrics)
+                            .map(member => member.flow_efficiency || member.efficiency || 0)
+                            .filter(eff => eff > 0);
+                        
+                        if (efficiencyValues.length > 0) {
+                            const avgEfficiency = efficiencyValues.reduce((sum, eff) => sum + eff, 0) / efficiencyValues.length;
+                            value = avgEfficiency * 100;
+                        }
+                    }
+                }
 
                 const chartData = [{
                     domain: { x: [0, 1], y: [0, 1] },
@@ -799,7 +842,24 @@
 
             updateWorkDistributionChart(data) {
                 const wip = data.work_in_progress || {};
-                const wipByState = wip.wip_by_state || {};
+                let wipByState = wip.wip_by_state || {};
+
+                // Apply workstream filtering to WIP data
+                if (!this.selectedWorkstreams.includes('All Teams')) {
+                    const filteredTeamMetrics = this.workstreamManager.filterTeamMetrics(data.team_metrics || {}, this.selectedWorkstreams);
+                    
+                    if (Object.keys(filteredTeamMetrics).length > 0) {
+                        // Recalculate WIP by state for filtered teams
+                        wipByState = {};
+                        Object.values(filteredTeamMetrics).forEach(member => {
+                            if (member.wip_by_state) {
+                                Object.entries(member.wip_by_state).forEach(([state, count]) => {
+                                    wipByState[state] = (wipByState[state] || 0) + count;
+                                });
+                            }
+                        });
+                    }
+                }
 
                 if (Object.keys(wipByState).length === 0) {
                     document.getElementById('workDistributionChart').innerHTML = '<p class="text-center text-muted mt-5">No work distribution data available</p>';
@@ -830,10 +890,27 @@
             updateThroughputChart(data) {
                 const summary = data.summary || {};
                 const throughput = data.throughput || {};
+                let teamMetrics = data.team_metrics || {};
 
-                // Simulate monthly throughput data
+                // Apply workstream filtering to throughput data
+                teamMetrics = this.workstreamManager.filterTeamMetrics(teamMetrics, this.selectedWorkstreams);
+
+                let actualThroughput = throughput.items_per_period || 20;
+                
+                // If workstream filtering is active, calculate filtered throughput
+                if (!this.selectedWorkstreams.includes('All Teams') && Object.keys(teamMetrics).length > 0) {
+                    const filteredCompleted = Object.values(teamMetrics).reduce((sum, member) => sum + (member.completed_items || 0), 0);
+                    actualThroughput = filteredCompleted / (throughput.period_days || 30) * 30; // Monthly rate
+                }
+
+                // Generate throughput trend based on actual or filtered data
                 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-                const throughputData = months.map(() => Math.random() * 10 + 15); // 15-25 items
+                const throughputData = months.map((month, index) => {
+                    // Simulate trend around actual throughput with some variation
+                    const variation = (Math.random() - 0.5) * 0.3; // ±15% variation
+                    const trendFactor = 1 + (index * 0.05); // 5% growth per month
+                    return Math.max(5, actualThroughput * trendFactor * (1 + variation));
+                });
 
                 const chartData = [{
                     x: months,
