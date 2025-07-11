@@ -675,7 +675,13 @@ def data_reset(keep_config: bool):
 @data.command("fresh")
 @click.option("--days-back", default=30, help="Number of days to fetch")
 @click.option("--use-mock", is_flag=True, help="Use mock data instead of Azure DevOps")
-def data_fresh(days_back: int, use_mock: bool):
+@click.option(
+    "--history-limit",
+    default=None,
+    type=int,
+    help="Limit number of state history entries per work item for faster testing",
+)
+def data_fresh(days_back: int, use_mock: bool, history_limit: Optional[int]):
     """Start fresh: reset data and fetch new."""
     try:
         console.print("[cyan]🔄 Starting fresh data load...[/cyan]")
@@ -692,7 +698,7 @@ def data_fresh(days_back: int, use_mock: bool):
             console.print(
                 f"[yellow]Fetching fresh data for last {days_back} days...[/yellow]"
             )
-            ctx.invoke(fetch, days_back=days_back, save_last_run=True)
+            ctx.invoke(fetch, days_back=days_back, save_last_run=True, history_limit=history_limit)
             ctx.invoke(calculate)
 
         console.print("[green]✓ Fresh data load complete![/green]")
