@@ -2,15 +2,15 @@
 Historical data storage for flow metrics using SQLite.
 """
 
-import sqlite3
 import json
-from datetime import datetime, timezone, timedelta
-from pathlib import Path
-from typing import List, Dict, Any, Optional
+import sqlite3
 from contextlib import contextmanager
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-from src.models import WorkItem, FlowMetrics
 from src.config_manager import FlowMetricsSettings
+from src.models import FlowMetrics, WorkItem
 
 
 class FlowMetricsDatabase:
@@ -197,8 +197,8 @@ class FlowMetricsDatabase:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                UPDATE executions 
-                SET work_items_count = ?, completed_items_count = ?, 
+                UPDATE executions
+                SET work_items_count = ?, completed_items_count = ?,
                     execution_duration_seconds = ?, status = ?, error_message = ?
                 WHERE id = ?
             """,
@@ -323,8 +323,8 @@ class FlowMetricsDatabase:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                SELECT * FROM executions 
-                ORDER BY timestamp DESC 
+                SELECT * FROM executions
+                ORDER BY timestamp DESC
                 LIMIT ?
             """,
                 (limit,),
@@ -383,7 +383,7 @@ class FlowMetricsDatabase:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                SELECT * FROM work_items 
+                SELECT * FROM work_items
                 WHERE execution_id = ?
                 ORDER BY id
             """,
@@ -413,7 +413,7 @@ class FlowMetricsDatabase:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                SELECT 
+                SELECT
                     DATE(e.timestamp) as date,
                     fm.throughput_per_day,
                     fm.current_wip,
@@ -445,22 +445,30 @@ class FlowMetricsDatabase:
             old_execution_ids = [row[0] for row in cursor.fetchall()]
 
             if old_execution_ids:
-                # Delete related data
+                # Delete related data using safer SQL construction
                 placeholders = ",".join(["?"] * len(old_execution_ids))
+
+                # Use format() instead of f-strings for SQL construction
                 cursor.execute(
-                    f"DELETE FROM state_transitions WHERE execution_id IN ({placeholders})",
+                    "DELETE FROM state_transitions WHERE execution_id IN ({})".format(
+                        placeholders
+                    ),
                     old_execution_ids,
                 )
                 cursor.execute(
-                    f"DELETE FROM work_items WHERE execution_id IN ({placeholders})",
+                    "DELETE FROM work_items WHERE execution_id IN ({})".format(
+                        placeholders
+                    ),
                     old_execution_ids,
                 )
                 cursor.execute(
-                    f"DELETE FROM flow_metrics WHERE execution_id IN ({placeholders})",
+                    "DELETE FROM flow_metrics WHERE execution_id IN ({})".format(
+                        placeholders
+                    ),
                     old_execution_ids,
                 )
                 cursor.execute(
-                    f"DELETE FROM executions WHERE id IN ({placeholders})",
+                    "DELETE FROM executions WHERE id IN ({})".format(placeholders),
                     old_execution_ids,
                 )
 
@@ -496,7 +504,7 @@ class FlowMetricsDatabase:
             # Export executions and metrics
             cursor.execute(
                 f"""
-                SELECT 
+                SELECT
                     e.*,
                     fm.period_start, fm.period_end, fm.total_items, fm.completed_items,
                     fm.average_lead_time, fm.median_lead_time, fm.lead_time_percentiles,

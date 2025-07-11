@@ -2,11 +2,11 @@
 
 import json
 import os
-from pathlib import Path
-from typing import List, Optional, Dict, Any
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field, field_validator, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -120,7 +120,9 @@ class DashboardConfig(BaseModel):
     """Dashboard configuration."""
 
     port: int = Field(8050, ge=1, le=65535, description="Dashboard port")
-    host: str = Field("0.0.0.0", description="Dashboard host")
+    host: str = Field(
+        "127.0.0.1", description="Dashboard host (localhost only for security)"
+    )
     debug: bool = Field(False, description="Enable debug mode")
     auto_reload: bool = Field(True, description="Auto-reload on code changes")
     theme: str = Field("light", description="Dashboard theme")

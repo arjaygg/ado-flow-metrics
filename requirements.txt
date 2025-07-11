@@ -2,7 +2,7 @@
 # External packages required for the project
 
 # Core dependencies
-requests>=2.28.0
+requests>=2.31.0  # Security fix for CVE-2023-32681
 python-dateutil>=2.8.2
 
 # Data handling
@@ -14,8 +14,8 @@ sqlalchemy>=2.0.0
 
 # Configuration
 python-dotenv>=0.19.0
-pydantic>=2.0.0
-pydantic-settings>=2.0.0
+pydantic>=2.0.0,<3.0.0  # Pin major version to prevent breaking changes
+pydantic-settings>=2.0.0,<3.0.0  # Pin major version
 
 # CLI
 click>=8.0.0

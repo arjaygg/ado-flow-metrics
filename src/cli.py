@@ -405,7 +405,9 @@ def mock(items: int, output: Optional[str]):
 
 @cli.command()
 @click.option("--port", default=8050, help="Dashboard port")
-@click.option("--host", default="0.0.0.0", help="Dashboard host")
+@click.option(
+    "--host", default="127.0.0.1", help="Dashboard host (default: localhost only)"
+)
 @click.option("--debug", is_flag=True, help="Enable debug mode")
 @click.option(
     "--data-source", default="mock", help="Data source: mock, api, or file path"

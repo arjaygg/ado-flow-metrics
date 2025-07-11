@@ -61,6 +61,8 @@ class AzureDevOpsClient:
         history_limit: Optional[int] = None,
     ) -> List[Dict]:
         """Fetch work items from Azure DevOps with enhanced progress tracking"""
+        response = None  # Initialize response variable to prevent UnboundLocalError
+
         if progress_callback:
             progress_callback("phase", "Initializing Azure DevOps connection...")
 
@@ -104,7 +106,12 @@ class AzureDevOpsClient:
 
             if response.status_code == 405:
                 logger.error(f"HTTP 405 Method Not Allowed. URL: {wiql_url}")
-                logger.error(f"Request headers: {self.headers}")
+                # Create safe headers for logging (redact PAT token)
+                safe_headers = {
+                    k: ("Basic [REDACTED]" if k == "Authorization" else v)
+                    for k, v in self.headers.items()
+                }
+                logger.error(f"Request headers: {safe_headers}")
                 logger.error(f"Request body: {wiql_query}")
                 raise requests.exceptions.HTTPError(
                     f"Azure DevOps API returned 405 Method Not Allowed. This usually indicates an incorrect API endpoint or authentication issue."
@@ -251,7 +258,8 @@ class AzureDevOpsClient:
             return transformed_items
 
         except requests.exceptions.HTTPError as http_err:
-            logger.error(f"HTTP error occurred: {http_err} - {response.text}")
+            error_text = response.text if response else "No response available"
+            logger.error(f"HTTP error occurred: {http_err} - {error_text}")
             return []
         except Exception as e:
             logger.exception(

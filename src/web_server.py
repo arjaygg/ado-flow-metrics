@@ -2,17 +2,17 @@
 
 import json
 import os
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, Optional
 
-from flask import Flask, render_template, jsonify, send_from_directory
+from flask import Flask, jsonify, render_template, send_from_directory
 from flask_cors import CORS
 
-from .calculator import FlowMetricsCalculator
-from .mock_data import generate_mock_azure_devops_data
 from .azure_devops_client import AzureDevOpsClient
+from .calculator import FlowMetricsCalculator
 from .config_manager import get_settings
+from .mock_data import generate_mock_azure_devops_data
 
 
 class FlowMetricsWebServer:
@@ -225,7 +225,7 @@ class FlowMetricsWebServer:
 
         return None
 
-    def run(self, host: str = "0.0.0.0", port: int = 8050, debug: bool = False):
+    def run(self, host: str = "127.0.0.1", port: int = 8050, debug: bool = False):
         """Run the web server."""
         print(f"Starting Flow Metrics Dashboard...")
         print(f"Dashboard will be available at: http://{host}:{port}")
