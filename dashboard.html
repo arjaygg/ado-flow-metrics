@@ -497,10 +497,46 @@
 
             updateMetricsCards(data) {
                 const summary = data.summary || {};
-                const leadTime = data.lead_time || {};
-                const cycleTime = data.cycle_time || {};
-                const throughput = data.throughput || {};
-                const wip = data.work_in_progress || {};
+                let leadTime = data.lead_time || {};
+                let cycleTime = data.cycle_time || {};
+                let throughput = data.throughput || {};
+                let wip = data.work_in_progress || {};
+
+                // Apply workstream filtering to metrics if workstream filter is active
+                if (!this.selectedWorkstreams.includes('All Teams')) {
+                    const filteredTeamMetrics = this.workstreamManager.filterTeamMetrics(data.team_metrics || {}, this.selectedWorkstreams);
+
+                    // Recalculate metrics for filtered teams
+                    if (Object.keys(filteredTeamMetrics).length > 0) {
+                        const metrics = Object.values(filteredTeamMetrics);
+
+                        // Recalculate lead time
+                        const leadTimes = metrics.map(m => m.average_lead_time || 0).filter(t => t > 0);
+                        if (leadTimes.length > 0) {
+                            leadTime = {
+                                average_days: leadTimes.reduce((a, b) => a + b, 0) / leadTimes.length,
+                                median_days: leadTimes.sort((a, b) => a - b)[Math.floor(leadTimes.length / 2)]
+                            };
+                        }
+
+                        // Recalculate cycle time
+                        const cycleTimes = metrics.map(m => m.average_cycle_time || 0).filter(t => t > 0);
+                        if (cycleTimes.length > 0) {
+                            cycleTime = {
+                                average_days: cycleTimes.reduce((a, b) => a + b, 0) / cycleTimes.length,
+                                median_days: cycleTimes.sort((a, b) => a - b)[Math.floor(cycleTimes.length / 2)]
+                            };
+                        }
+
+                        // Recalculate throughput
+                        const completedItems = metrics.reduce((sum, m) => sum + (m.completed_items || 0), 0);
+                        throughput = { items_per_period: completedItems };
+
+                        // Recalculate WIP
+                        const activeItems = metrics.reduce((sum, m) => sum + (m.active_items || 0), 0);
+                        wip = { total_wip: activeItems };
+                    }
+                }
 
                 // Lead time
                 document.getElementById('leadTimeAvg').textContent = `${(leadTime.average_days || 0).toFixed(1)} days`;
@@ -525,8 +561,35 @@
             }
 
             updateLeadCycleChart(data) {
-                const leadTime = data.lead_time || {};
-                const cycleTime = data.cycle_time || {};
+                let leadTime = data.lead_time || {};
+                let cycleTime = data.cycle_time || {};
+
+                // Apply workstream filtering to lead/cycle times
+                if (!this.selectedWorkstreams.includes('All Teams')) {
+                    const filteredTeamMetrics = this.workstreamManager.filterTeamMetrics(data.team_metrics || {}, this.selectedWorkstreams);
+
+                    if (Object.keys(filteredTeamMetrics).length > 0) {
+                        const metrics = Object.values(filteredTeamMetrics);
+
+                        // Recalculate lead time for filtered teams
+                        const leadTimes = metrics.map(m => m.average_lead_time || 0).filter(t => t > 0);
+                        if (leadTimes.length > 0) {
+                            leadTime = {
+                                average_days: leadTimes.reduce((a, b) => a + b, 0) / leadTimes.length,
+                                median_days: leadTimes.sort((a, b) => a - b)[Math.floor(leadTimes.length / 2)]
+                            };
+                        }
+
+                        // Recalculate cycle time for filtered teams
+                        const cycleTimes = metrics.map(m => m.average_cycle_time || 0).filter(t => t > 0);
+                        if (cycleTimes.length > 0) {
+                            cycleTime = {
+                                average_days: cycleTimes.reduce((a, b) => a + b, 0) / cycleTimes.length,
+                                median_days: cycleTimes.sort((a, b) => a - b)[Math.floor(cycleTimes.length / 2)]
+                            };
+                        }
+                    }
+                }
 
                 const chartData = [
                     {
@@ -555,8 +618,24 @@
             }
 
             updateWipChart(data) {
-                const wip = data.work_in_progress || {};
-                const wipByState = wip.wip_by_state || {};
+                let wip = data.work_in_progress || {};
+                let wipByState = wip.wip_by_state || {};
+
+                // Apply workstream filtering to WIP data
+                if (!this.selectedWorkstreams.includes('All Teams')) {
+                    const filteredTeamMetrics = this.workstreamManager.filterTeamMetrics(data.team_metrics || {}, this.selectedWorkstreams);
+
+                    if (Object.keys(filteredTeamMetrics).length > 0) {
+                        // Recalculate WIP by state for filtered teams
+                        const activeItems = Object.values(filteredTeamMetrics).reduce((sum, m) => sum + (m.active_items || 0), 0);
+                        const blockedItems = Object.values(filteredTeamMetrics).reduce((sum, m) => sum + (m.blocked_items || 0), 0);
+
+                        wipByState = {
+                            'Active': activeItems,
+                            'Blocked': blockedItems
+                        };
+                    }
+                }
 
                 if (Object.keys(wipByState).length === 0) {
                     document.getElementById('wipChart').innerHTML = '<p class="text-center text-muted">No WIP data</p>';
@@ -611,8 +690,23 @@
             }
 
             updateEfficiencyChart(data) {
-                const flowEfficiency = data.flow_efficiency || {};
-                const efficiency = (flowEfficiency.average_efficiency || 0) * 100;
+                let flowEfficiency = data.flow_efficiency || {};
+                let efficiency = (flowEfficiency.average_efficiency || 0) * 100;
+
+                // Apply workstream filtering to efficiency calculation
+                if (!this.selectedWorkstreams.includes('All Teams')) {
+                    const filteredTeamMetrics = this.workstreamManager.filterTeamMetrics(data.team_metrics || {}, this.selectedWorkstreams);
+
+                    if (Object.keys(filteredTeamMetrics).length > 0) {
+                        // Recalculate efficiency for filtered teams
+                        const metrics = Object.values(filteredTeamMetrics);
+                        const efficiencies = metrics.map(m => m.flow_efficiency || 0).filter(e => e > 0);
+
+                        if (efficiencies.length > 0) {
+                            efficiency = (efficiencies.reduce((a, b) => a + b, 0) / efficiencies.length) * 100;
+                        }
+                    }
+                }
 
                 const chartData = [{
                     domain: { x: [0, 1], y: [0, 1] },
