@@ -118,6 +118,79 @@
         .benchmark-good { background-color: var(--info-color); }
         .benchmark-needs-improvement { background-color: var(--warning-color); }
         .benchmark-critical { background-color: var(--danger-color); }
+
+        /* Work Items Table Styles */
+        .table-responsive {
+            max-height: 600px;
+        }
+        
+        .table th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border-top: none;
+        }
+        
+        .work-item-link {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .work-item-link:hover {
+            color: var(--info-color);
+            text-decoration: underline;
+        }
+        
+        .workstream-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+        
+        .workstream-data { background-color: #e3f2fd; color: #0d47a1; }
+        .workstream-qa { background-color: #f3e5f5; color: #4a148c; }
+        .workstream-outsystems { background-color: #e8f5e8; color: #1b5e20; }
+        .workstream-others { background-color: #fafafa; color: #424242; }
+        
+        .priority-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+        
+        .priority-1 { background-color: #ffebee; color: #c62828; }
+        .priority-2 { background-color: #fff3e0; color: #ef6c00; }
+        .priority-3 { background-color: #f3e5f5; color: #7b1fa2; }
+        .priority-4 { background-color: #e8f5e8; color: #388e3c; }
+        
+        .state-badge {
+            font-size: 0.75rem;
+            padding: 0.25rem 0.5rem;
+        }
+        
+        .state-new { background-color: #f5f5f5; color: #616161; }
+        .state-active { background-color: #e3f2fd; color: #1976d2; }
+        .state-resolved { background-color: #e8f5e8; color: #388e3c; }
+        .state-closed { background-color: #fce4ec; color: #c2185b; }
+        
+        .chart-clickable {
+            cursor: pointer;
+        }
+        
+        .chart-clickable:hover {
+            opacity: 0.8;
+        }
+        
+        .nav-tabs .nav-link {
+            border-radius: 8px 8px 0 0;
+            border: 1px solid transparent;
+            font-weight: 500;
+        }
+        
+        .nav-tabs .nav-link.active {
+            background-color: white;
+            border-color: #dee2e6 #dee2e6 white;
+            color: var(--primary-color);
+        }
     </style>
 </head>
 <body>
@@ -144,7 +217,27 @@
     </div>
 
     <div class="container-fluid">
-        <!-- Data Source Panel -->
+        <!-- Tab Navigation -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <nav>
+                    <div class="nav nav-tabs" id="nav-tab" role="tablist">
+                        <button class="nav-link active" id="nav-overview-tab" data-bs-toggle="tab" data-bs-target="#nav-overview" type="button" role="tab" aria-controls="nav-overview" aria-selected="true">
+                            <i class="fas fa-chart-pie me-2"></i>Executive Overview
+                        </button>
+                        <button class="nav-link" id="nav-workitems-tab" data-bs-toggle="tab" data-bs-target="#nav-workitems" type="button" role="tab" aria-controls="nav-workitems" aria-selected="false">
+                            <i class="fas fa-list-ul me-2"></i>Work Items Details
+                        </button>
+                    </div>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="nav-tabContent">
+            <!-- Overview Tab -->
+            <div class="tab-pane fade show active" id="nav-overview" role="tabpanel" aria-labelledby="nav-overview-tab">
+                <!-- Data Source Panel -->
         <div class="data-source-panel">
             <div class="row align-items-center mb-3">
                 <div class="col-md-6">
@@ -362,6 +455,93 @@
                 </div>
             </div>
         </div>
+            </div>
+            <!-- End Overview Tab -->
+
+            <!-- Work Items Tab -->
+            <div class="tab-pane fade" id="nav-workitems" role="tabpanel" aria-labelledby="nav-workitems-tab">
+                <!-- Work Items Data Source Info -->
+                <div class="data-source-panel">
+                    <div class="row align-items-center mb-3">
+                        <div class="col-md-8">
+                            <h6 class="mb-1"><i class="fas fa-list-ul me-2"></i>Work Items Details</h6>
+                            <small class="text-muted" id="workItemsInfo">Work items matching current filters</small>
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-outline-secondary btn-sm" id="exportWorkItemsBtn">
+                                    <i class="fas fa-download me-2"></i>Export CSV
+                                </button>
+                                <button class="btn btn-outline-primary btn-sm" id="refreshWorkItemsBtn">
+                                    <i class="fas fa-sync-alt me-2"></i>Refresh
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Filter Summary -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <small class="text-muted">Workstream Filter: <span id="workItemsFilterSummary">All Workstreams</span></small>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <small class="text-muted">Total Items: <span id="workItemsCount">--</span></small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Work Items Table -->
+                <div class="chart-section">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="chart-title mb-0">
+                            <i class="fas fa-table me-2"></i>Work Items Table
+                        </h5>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <input type="radio" class="btn-check" name="tableView" id="allItemsView" checked>
+                            <label class="btn btn-outline-primary" for="allItemsView">All Items</label>
+                            <input type="radio" class="btn-check" name="tableView" id="completedItemsView">
+                            <label class="btn btn-outline-success" for="completedItemsView">Completed</label>
+                            <input type="radio" class="btn-check" name="tableView" id="activeItemsView">
+                            <label class="btn btn-outline-warning" for="activeItemsView">In Progress</label>
+                        </div>
+                    </div>
+                    
+                    <!-- Table Container -->
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="workItemsTable">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th style="width: 8%">ID</th>
+                                    <th style="width: 25%">Title</th>
+                                    <th style="width: 10%">Type</th>
+                                    <th style="width: 10%">State</th>
+                                    <th style="width: 12%">Assigned To</th>
+                                    <th style="width: 10%">Workstream</th>
+                                    <th style="width: 8%">Priority</th>
+                                    <th style="width: 10%">Created</th>
+                                    <th style="width: 7%">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="workItemsTableBody">
+                                <tr>
+                                    <td colspan="9" class="text-center text-muted py-4">
+                                        <i class="fas fa-spinner fa-spin me-2"></i>Loading work items...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    <nav aria-label="Work items pagination" class="mt-3">
+                        <ul class="pagination pagination-sm justify-content-center" id="workItemsPagination">
+                            <!-- Pagination will be generated by JavaScript -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+            <!-- End Work Items Tab -->
+        </div>
+        <!-- End Tab Content -->
     </div>
 
     <!-- Hidden file input -->
@@ -371,6 +551,8 @@
     <script>
         // Executive Flow Metrics Dashboard
         class ExecutiveDashboard {
+            static ITEMS_PER_PAGE = 50;
+            static ADO_BASE_URL = 'https://dev.azure.com'; // This should be configurable
             constructor() {
                 this.data = null;
                 this.dbName = 'FlowMetricsExecutiveDB';
@@ -378,6 +560,11 @@
                 this.db = null;
                 this.workstreamManager = new WorkstreamManager();
                 this.selectedWorkstreams = ['All Teams'];
+                this.currentWorkItems = [];
+                this.filteredWorkItems = [];
+                this.currentPage = 1;
+                this.selectedTableView = 'allItemsView';
+                this.drilldownFilter = null;
                 this.init();
             }
 
@@ -479,6 +666,7 @@
 
                     if (data) {
                         this.data = data;
+                        this.extractWorkItems(data);
                         this.updateExecutiveDashboard(data);
 
                         if (selectedSource !== 'indexedDB') {
@@ -580,6 +768,7 @@
                 this.updateKPIs(data);
                 this.updateCharts(data);
                 this.updateTeamOverview(data);
+                this.enableChartDrilldown();
             }
 
             updateExecutiveSummary(data) {
@@ -1061,6 +1250,13 @@
 
                 this.updateWorkstreamDisplay();
                 this.updateExecutiveDashboard(this.data);
+                this.updateWorkItemsFilterSummary();
+                
+                // Update work items table if data has changed
+                if (this.currentWorkItems && this.currentWorkItems.length > 0) {
+                    this.filterWorkItems();
+                    this.updateWorkItemsTable();
+                }
             }
 
             updateWorkstreamDisplay() {
@@ -1077,6 +1273,395 @@
                     button.innerHTML = `<i class="fas fa-chart-pie me-2"></i>${this.selectedWorkstreams.length} Workstreams`;
                     info.textContent = `Executive view of ${this.selectedWorkstreams.length} workstreams: ${this.selectedWorkstreams.join(', ')}`;
                 }
+            }
+
+            updateWorkItemsFilterSummary() {
+                const summary = document.getElementById('workItemsFilterSummary');
+                if (summary) {
+                    if (this.selectedWorkstreams.includes('All Teams')) {
+                        summary.textContent = 'All Workstreams';
+                    } else {
+                        summary.textContent = this.selectedWorkstreams.join(', ');
+                    }
+                }
+            }
+
+            // ===== WORK ITEMS TABLE FUNCTIONALITY =====
+
+            extractWorkItems(data) {
+                // Extract work items from different data formats
+                let workItems = [];
+                
+                if (data.work_items) {
+                    workItems = data.work_items;
+                } else if (data.team_metrics) {
+                    // Generate work items from team metrics (mock data)
+                    workItems = this.generateWorkItemsFromTeamMetrics(data.team_metrics);
+                } else if (Array.isArray(data)) {
+                    workItems = data;
+                }
+                
+                this.currentWorkItems = workItems.map(item => ({
+                    id: item.id || item.raw_id || Math.random().toString(36),
+                    title: item.title || 'No Title',
+                    type: item.type || 'Task',
+                    state: item.current_state || item.state || 'New',
+                    assigned_to: item.assigned_to || 'Unassigned',
+                    priority: item.priority || 3,
+                    created_date: item.created_date || new Date().toISOString(),
+                    link: item.link || this.generateWorkItemLink(item),
+                    tags: item.tags || [],
+                    workstream: this.workstreamManager.getWorkstreamForMember(item.assigned_to || ''),
+                    story_points: item.story_points,
+                    effort_hours: item.effort_hours
+                }));
+                
+                this.filterWorkItems();
+            }
+
+            generateWorkItemsFromTeamMetrics(teamMetrics) {
+                // Generate sample work items for demo when real work items aren't available
+                const workItems = [];
+                let itemId = 1;
+                
+                Object.entries(teamMetrics).forEach(([memberName, metrics]) => {
+                    // Generate completed items
+                    for (let i = 0; i < Math.min(metrics.completed_items || 0, 10); i++) {
+                        workItems.push({
+                            id: `WI-${itemId}`,
+                            raw_id: itemId,
+                            title: `${this.getRandomTaskTitle()} - ${memberName}`,
+                            type: this.getRandomWorkItemType(),
+                            current_state: 'Done',
+                            assigned_to: memberName,
+                            priority: Math.floor(Math.random() * 4) + 1,
+                            created_date: this.getRandomDate(-30, -5),
+                            story_points: Math.floor(Math.random() * 8) + 1
+                        });
+                        itemId++;
+                    }
+                    
+                    // Generate active items
+                    for (let i = 0; i < Math.min(metrics.active_items || 0, 5); i++) {
+                        workItems.push({
+                            id: `WI-${itemId}`,
+                            raw_id: itemId,
+                            title: `${this.getRandomTaskTitle()} - ${memberName}`,
+                            type: this.getRandomWorkItemType(),
+                            current_state: this.getRandomActiveState(),
+                            assigned_to: memberName,
+                            priority: Math.floor(Math.random() * 4) + 1,
+                            created_date: this.getRandomDate(-20, -1),
+                            story_points: Math.floor(Math.random() * 8) + 1
+                        });
+                        itemId++;
+                    }
+                });
+                
+                return workItems;
+            }
+
+            getRandomTaskTitle() {
+                const titles = [
+                    'Implement user authentication',
+                    'Fix database connection issue', 
+                    'Update API documentation',
+                    'Add data validation',
+                    'Optimize query performance',
+                    'Create user interface',
+                    'Setup automated testing',
+                    'Configure deployment pipeline',
+                    'Refactor legacy code',
+                    'Add monitoring dashboards'
+                ];
+                return titles[Math.floor(Math.random() * titles.length)];
+            }
+
+            getRandomWorkItemType() {
+                const types = ['User Story', 'Bug', 'Task', 'Feature'];
+                return types[Math.floor(Math.random() * types.length)];
+            }
+
+            getRandomActiveState() {
+                const states = ['In Progress', 'Active', 'Testing', 'Review'];
+                return states[Math.floor(Math.random() * states.length)];
+            }
+
+            getRandomDate(minDaysAgo, maxDaysAgo) {
+                const now = new Date();
+                const randomDays = Math.floor(Math.random() * (maxDaysAgo - minDaysAgo + 1)) + minDaysAgo;
+                const date = new Date(now.getTime() + randomDays * 24 * 60 * 60 * 1000);
+                return date.toISOString();
+            }
+
+            generateWorkItemLink(item) {
+                const baseUrl = 'https://dev.azure.com';
+                const orgName = 'your-organization';
+                const projectName = 'your-project';
+                
+                if (item.raw_id || item.id) {
+                    const workItemId = item.raw_id || item.id.toString().replace('WI-', '');
+                    return `${baseUrl}/${orgName}/${projectName}/_workitems/edit/${workItemId}`;
+                }
+                
+                return '#';
+            }
+
+            filterWorkItems() {
+                let filtered = [...this.currentWorkItems];
+                
+                // Apply workstream filter
+                if (!this.selectedWorkstreams.includes('All Teams')) {
+                    filtered = this.workstreamManager.filterWorkItemsByWorkstream(filtered, this.selectedWorkstreams);
+                }
+                
+                // Apply drill-down filter if active
+                if (this.drilldownFilter) {
+                    filtered = filtered.filter(item => this.drilldownFilter(item));
+                }
+                
+                // Apply table view filter
+                switch (this.selectedTableView) {
+                    case 'completedItemsView':
+                        filtered = filtered.filter(item => 
+                            ['Done', 'Closed', 'Completed', 'Released', 'Approved'].includes(item.state)
+                        );
+                        break;
+                    case 'activeItemsView':
+                        filtered = filtered.filter(item => 
+                            ['In Progress', 'Active', 'Development', 'Testing', 'Review'].includes(item.state)
+                        );
+                        break;
+                }
+                
+                this.filteredWorkItems = filtered;
+                this.currentPage = 1;
+            }
+
+            updateWorkItemsTable() {
+                if (!this.filteredWorkItems.length) {
+                    this.showEmptyWorkItemsTable();
+                    return;
+                }
+                
+                const startIndex = (this.currentPage - 1) * ExecutiveDashboard.ITEMS_PER_PAGE;
+                const endIndex = startIndex + ExecutiveDashboard.ITEMS_PER_PAGE;
+                const pageItems = this.filteredWorkItems.slice(startIndex, endIndex);
+                
+                const tbody = document.getElementById('workItemsTableBody');
+                tbody.innerHTML = pageItems.map(item => this.renderWorkItemRow(item)).join('');
+                
+                this.updateWorkItemsPagination();
+                this.updateWorkItemsCount();
+            }
+
+            renderWorkItemRow(item) {
+                const workstreamClass = `workstream-${item.workstream.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+                const priorityClass = `priority-${item.priority}`;
+                const stateClass = `state-${item.state.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
+                
+                const priorityText = ['', 'Critical', 'High', 'Medium', 'Low'][item.priority] || 'Medium';
+                const createdDate = new Date(item.created_date).toLocaleDateString();
+                
+                return `
+                    <tr>
+                        <td><strong>${item.id}</strong></td>
+                        <td>
+                            <div class="text-truncate" style="max-width: 200px;" title="${item.title}">
+                                ${item.title}
+                            </div>
+                        </td>
+                        <td><span class="badge bg-secondary">${item.type}</span></td>
+                        <td><span class="badge state-badge ${stateClass}">${item.state}</span></td>
+                        <td>
+                            <div class="text-truncate" style="max-width: 120px;" title="${item.assigned_to}">
+                                ${item.assigned_to}
+                            </div>
+                        </td>
+                        <td><span class="badge workstream-badge ${workstreamClass}">${item.workstream}</span></td>
+                        <td><span class="badge priority-badge ${priorityClass}">${priorityText}</span></td>
+                        <td><small>${createdDate}</small></td>
+                        <td>
+                            <a href="${item.link}" target="_blank" class="btn btn-sm btn-outline-primary work-item-link" title="Open in Azure DevOps">
+                                <i class="fas fa-external-link-alt"></i>
+                            </a>
+                        </td>
+                    </tr>
+                `;
+            }
+
+            showEmptyWorkItemsTable() {
+                const tbody = document.getElementById('workItemsTableBody');
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="text-center text-muted py-4">
+                            <i class="fas fa-search me-2"></i>No work items match the current filters
+                        </td>
+                    </tr>
+                `;
+                document.getElementById('workItemsPagination').innerHTML = '';
+                this.updateWorkItemsCount();
+            }
+
+            updateWorkItemsPagination() {
+                const totalPages = Math.ceil(this.filteredWorkItems.length / ExecutiveDashboard.ITEMS_PER_PAGE);
+                const pagination = document.getElementById('workItemsPagination');
+                
+                if (totalPages <= 1) {
+                    pagination.innerHTML = '';
+                    return;
+                }
+                
+                let paginationHTML = '';
+                
+                paginationHTML += `
+                    <li class="page-item ${this.currentPage === 1 ? 'disabled' : ''}">
+                        <a class="page-link" href="#" data-page="${this.currentPage - 1}">Previous</a>
+                    </li>
+                `;
+                
+                const startPage = Math.max(1, this.currentPage - 2);
+                const endPage = Math.min(totalPages, this.currentPage + 2);
+                
+                if (startPage > 1) {
+                    paginationHTML += `<li class="page-item"><a class="page-link" href="#" data-page="1">1</a></li>`;
+                    if (startPage > 2) {
+                        paginationHTML += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                    }
+                }
+                
+                for (let i = startPage; i <= endPage; i++) {
+                    paginationHTML += `
+                        <li class="page-item ${i === this.currentPage ? 'active' : ''}">
+                            <a class="page-link" href="#" data-page="${i}">${i}</a>
+                        </li>
+                    `;
+                }
+                
+                if (endPage < totalPages) {
+                    if (endPage < totalPages - 1) {
+                        paginationHTML += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+                    }
+                    paginationHTML += `<li class="page-item"><a class="page-link" href="#" data-page="${totalPages}">${totalPages}</a></li>`;
+                }
+                
+                paginationHTML += `
+                    <li class="page-item ${this.currentPage === totalPages ? 'disabled' : ''}">
+                        <a class="page-link" href="#" data-page="${this.currentPage + 1}">Next</a>
+                    </li>
+                `;
+                
+                pagination.innerHTML = paginationHTML;
+                
+                pagination.querySelectorAll('a[data-page]').forEach(link => {
+                    link.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const page = parseInt(e.target.getAttribute('data-page'));
+                        if (page >= 1 && page <= totalPages && page !== this.currentPage) {
+                            this.currentPage = page;
+                            this.updateWorkItemsTable();
+                        }
+                    });
+                });
+            }
+
+            updateWorkItemsCount() {
+                const countElement = document.getElementById('workItemsCount');
+                if (countElement) {
+                    countElement.textContent = this.filteredWorkItems.length;
+                }
+            }
+
+            refreshWorkItems() {
+                this.filterWorkItems();
+                this.updateWorkItemsTable();
+            }
+
+            exportWorkItems() {
+                if (!this.filteredWorkItems.length) {
+                    alert('No work items to export');
+                    return;
+                }
+                
+                const headers = ['ID', 'Title', 'Type', 'State', 'Assigned To', 'Workstream', 'Priority', 'Created Date', 'Link'];
+                const csvRows = [headers.join(',')];
+                
+                this.filteredWorkItems.forEach(item => {
+                    const row = [
+                        `"${item.id}"`,
+                        `"${item.title.replace(/"/g, '""')}"`,
+                        `"${item.type}"`,
+                        `"${item.state}"`,
+                        `"${item.assigned_to}"`,
+                        `"${item.workstream}"`,
+                        `"${['', 'Critical', 'High', 'Medium', 'Low'][item.priority] || 'Medium'}"`,
+                        `"${new Date(item.created_date).toLocaleDateString()}"`,
+                        `"${item.link}"`
+                    ];
+                    csvRows.push(row.join(','));
+                });
+                
+                const csvContent = csvRows.join('\\n');
+                const blob = new Blob([csvContent], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `work-items-${new Date().toISOString().split('T')[0]}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            }
+
+            // ===== CHART DRILL-DOWN FUNCTIONALITY =====
+
+            enableChartDrilldown() {
+                setTimeout(() => {
+                    const deliveryChart = document.getElementById('deliveryTrendsChart');
+                    if (deliveryChart) {
+                        deliveryChart.classList.add('chart-clickable');
+                        deliveryChart.onclick = () => this.drilldownToWorkItems('delivery');
+                    }
+                    
+                    const workDistChart = document.getElementById('workDistributionChart');
+                    if (workDistChart) {
+                        workDistChart.classList.add('chart-clickable');
+                        workDistChart.onclick = () => this.drilldownToWorkItems('distribution');
+                    }
+                    
+                    const throughputChart = document.getElementById('throughputChart');
+                    if (throughputChart) {
+                        throughputChart.classList.add('chart-clickable');
+                        throughputChart.onclick = () => this.drilldownToWorkItems('throughput');
+                    }
+                }, 1000);
+            }
+
+            drilldownToWorkItems(chartType) {
+                const workItemsTab = document.getElementById('nav-workitems-tab');
+                const bsTab = new bootstrap.Tab(workItemsTab);
+                bsTab.show();
+                
+                switch (chartType) {
+                    case 'delivery':
+                        this.drilldownFilter = (item) => ['Done', 'Closed', 'Completed'].includes(item.state);
+                        document.getElementById('completedItemsView').checked = true;
+                        this.selectedTableView = 'completedItemsView';
+                        break;
+                    case 'distribution':
+                        this.drilldownFilter = null;
+                        document.getElementById('allItemsView').checked = true;
+                        this.selectedTableView = 'allItemsView';
+                        break;
+                    case 'throughput':
+                        this.drilldownFilter = (item) => ['In Progress', 'Active', 'Development', 'Testing', 'Review'].includes(item.state);
+                        document.getElementById('activeItemsView').checked = true;
+                        this.selectedTableView = 'activeItemsView';
+                        break;
+                }
+                
+                this.filterWorkItems();
+                this.updateWorkItemsTable();
             }
         }
 
