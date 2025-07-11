@@ -161,6 +161,9 @@
 
                         <input type="radio" class="btn-check" name="dataSource" id="indexedDB">
                         <label class="btn btn-outline-primary" for="indexedDB">Saved Data</label>
+
+                        <input type="radio" class="btn-check" name="dataSource" id="cliData">
+                        <label class="btn btn-outline-primary" for="cliData">CLI Data</label>
                     </div>
                 </div>
             </div>
@@ -468,6 +471,10 @@
                             data = await this.loadFromIndexedDB();
                             this.updateDataSourceInfo(data ? 'Data loaded from browser storage' : 'No saved data found');
                             break;
+                        case 'cliData':
+                            data = await this.loadFromCLI();
+                            this.updateDataSourceInfo(data ? 'CLI data loaded successfully' : 'No CLI data available');
+                            break;
                     }
 
                     if (data) {
@@ -524,6 +531,44 @@
                     request.onsuccess = () => resolve(request.result ? request.result.data : null);
                     request.onerror = () => resolve(null);
                 });
+            }
+
+            // Load data from CLI-generated files
+            async loadFromCLI() {
+                try {
+                    // Try multiple CLI data locations
+                    const dataSources = [
+                        './data/dashboard_data.json',
+                        './data/flow_metrics_report.json',
+                        './data/test_report.json',
+                        './data/test_metrics_report.json'
+                    ];
+
+                    for (const source of dataSources) {
+                        try {
+                            const response = await fetch(source);
+                            if (response.ok) {
+                                const data = await response.json();
+                                console.log(`Successfully loaded executive data from ${source}`);
+
+                                // Handle different data formats
+                                if (data.data) {
+                                    return data.data; // Dashboard format
+                                } else if (data.summary || data.lead_time || data.cycle_time) {
+                                    return data; // Direct metrics format
+                                }
+                            }
+                        } catch (err) {
+                            console.log(`Failed to load from ${source}: ${err.message}`);
+                        }
+                    }
+
+                    console.log('No CLI data found in any location');
+                    return null;
+                } catch (error) {
+                    console.log('CLI data loading error:', error.message);
+                    return null;
+                }
             }
 
             updateDataSourceInfo(message) {
