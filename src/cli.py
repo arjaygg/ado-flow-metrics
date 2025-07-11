@@ -110,6 +110,11 @@ def fetch(
                         main_task, description=f"Found {item_count} work items"
                     )
 
+                elif event_type == "items":
+                    # Handle state history progress updates
+                    items_description = args[0]
+                    progress.update(main_task, description=items_description)
+
                 elif event_type == "batch":
                     completed_batches, total_batches = args[0], args[1]
                     if batch_task is None:

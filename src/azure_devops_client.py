@@ -143,17 +143,18 @@ class AzureDevOpsClient:
             if progress_callback:
                 progress_callback("phase", "Processing work items and state history...")
 
-            # Transform to our format
+            # Transform to our format with concurrent state history fetching
             transformed_items = []
+
+            # First, prepare all work items without state history
+            work_items_to_process = []
             for item in work_items:
                 fields = item.get("fields", {})
 
-                # Get state history
-                state_transitions = self._get_state_history(item["id"])
-
-                # Build transformed item with better default handling
+                # Build transformed item without state history
                 transformed_item = {
                     "id": f"WI-{item['id']}",
+                    "raw_id": item["id"],  # Keep raw ID for state history fetching
                     "title": fields.get("System.Title") or "[No Title]",
                     "type": fields.get("System.WorkItemType") or "Unknown",
                     "priority": fields.get("Microsoft.VSTS.Common.Priority")
@@ -172,7 +173,7 @@ class AzureDevOpsClient:
                     )
                     or "Unassigned",
                     "current_state": fields.get("System.State") or "New",
-                    "state_transitions": state_transitions,
+                    "state_transitions": [],  # Will be populated concurrently
                     "story_points": fields.get("Microsoft.VSTS.Scheduling.StoryPoints"),
                     "effort_hours": fields.get(
                         "Microsoft.VSTS.Scheduling.OriginalEstimate"
@@ -191,7 +192,55 @@ class AzureDevOpsClient:
                     )
                     continue
 
-                transformed_items.append(transformed_item)
+                work_items_to_process.append(transformed_item)
+
+            # Now fetch state histories concurrently
+            if progress_callback:
+                progress_callback(
+                    "items",
+                    f"Fetching state history for {len(work_items_to_process)} items...",
+                )
+
+            # Use ThreadPoolExecutor for concurrent state history fetching
+            max_workers = min(
+                5, len(work_items_to_process)
+            )  # Limit concurrent requests
+            if work_items_to_process and max_workers > 0:
+                with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                    # Submit all state history requests
+                    future_to_item = {
+                        executor.submit(self._get_state_history, item["raw_id"]): item
+                        for item in work_items_to_process
+                    }
+
+                    # Update progress as histories are fetched
+                    completed = 0
+                    total = len(work_items_to_process)
+
+                    # Collect results as they complete
+                    for future in as_completed(future_to_item):
+                        item = future_to_item[future]
+                        try:
+                            state_transitions = future.result()
+                            item["state_transitions"] = state_transitions
+                        except Exception as e:
+                            logger.warning(
+                                f"Failed to get state history for {item['id']}: {e}"
+                            )
+                            item["state_transitions"] = []
+
+                        completed += 1
+                        if progress_callback and completed % 10 == 0:
+                            progress_callback(
+                                "items", f"Processed state history: {completed}/{total}"
+                            )
+
+                    # Remove raw_id field as it's no longer needed
+                    for item in work_items_to_process:
+                        item.pop("raw_id", None)
+                        transformed_items.append(item)
+            else:
+                transformed_items = work_items_to_process
 
             return transformed_items
 
