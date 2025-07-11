@@ -234,8 +234,14 @@ class AzureDevOpsClient:
                     for future in as_completed(future_to_item):
                         item = future_to_item[future]
                         try:
-                            state_transitions = future.result()
+                            state_transitions = future.result(timeout=30)  # Add timeout
                             item["state_transitions"] = state_transitions
+                        except KeyboardInterrupt:
+                            logger.info("Cancelling remaining state history requests...")
+                            # Cancel remaining futures
+                            for f in future_to_item:
+                                f.cancel()
+                            raise
                         except Exception as e:
                             logger.warning(
                                 f"Failed to get state history for {item['id']}: {e}"
