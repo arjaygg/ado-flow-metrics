@@ -62,7 +62,7 @@ def test_azure_connection():
                     sample = work_items[0]
                     print("\n📄 Sample work item structure:")
                     print(f"   ID: {sample.get('id', 'N/A')}")
-                    title = sample.get('title', 'N/A')
+                    title = sample.get("title", "N/A")
                     print(f"   Title: {title[:50]}...")
                     print(f"   Type: {sample.get('type', 'N/A')}")
                     print(f"   State: {sample.get('current_state', 'N/A')}")

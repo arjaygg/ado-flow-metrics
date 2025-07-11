@@ -68,7 +68,7 @@ class AzureDevOpsClient:
             if not self.project.replace("-", "").replace("_", "").isalnum():
                 logger.error(f"Invalid project name: {self.project}")
                 return []
-            
+
             # First, get work item IDs using WIQL
             # Note: Azure DevOps WIQL doesn't support full parameterization,
             # but we validate inputs above
