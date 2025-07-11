@@ -1,6 +1,7 @@
 import base64
 import json
 import logging
+import signal
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
@@ -332,17 +333,31 @@ class AzureDevOpsClient:
         # Limit to 5 concurrent requests to respect API rate limits
         max_workers = min(5, len(batches))
 
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # Submit all batch requests
-            future_to_batch = {
-                executor.submit(fetch_batch_with_retry, batch, idx): idx
-                for idx, batch in enumerate(batches)
-            }
+        try:
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                # Submit all batch requests
+                future_to_batch = {
+                    executor.submit(fetch_batch_with_retry, batch, idx): idx
+                    for idx, batch in enumerate(batches)
+                }
 
-            # Collect results as they complete
-            for future in as_completed(future_to_batch):
-                batch_items = future.result()
-                work_items.extend(batch_items)
+                # Collect results as they complete
+                for future in as_completed(future_to_batch):
+                    try:
+                        batch_items = future.result(timeout=30)  # Add timeout
+                        work_items.extend(batch_items)
+                    except KeyboardInterrupt:
+                        logger.info("Cancelling remaining batch requests...")
+                        # Cancel remaining futures
+                        for f in future_to_batch:
+                            f.cancel()
+                        raise
+                    except Exception as e:
+                        logger.warning(f"Batch request failed: {e}")
+                        continue
+        except KeyboardInterrupt:
+            logger.info("Operation cancelled by user")
+            raise
 
         return work_items
 

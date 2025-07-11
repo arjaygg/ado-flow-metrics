@@ -1,6 +1,7 @@
 """Command-line interface for Flow Metrics."""
 
 import json
+import signal
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -44,14 +45,29 @@ def cli():
     "--incremental", is_flag=True, help="Fetch only changed items since last run"
 )
 @click.option("--save-last-run", is_flag=True, help="Save execution timestamp")
+@click.option(
+    "--history-limit",
+    default=None,
+    type=int,
+    help="Limit number of state history entries per work item for faster testing",
+)
 def fetch(
     days_back: int,
     project: Optional[str],
     output: Optional[str],
     incremental: bool,
     save_last_run: bool,
+    history_limit: Optional[int],
 ):
     """Fetch work items from Azure DevOps."""
+
+    # Set up signal handler for graceful cancellation
+    def signal_handler(signum, frame):
+        console.print("\n[yellow]⚠️  Operation cancelled by user. Exiting...[/yellow]")
+        sys.exit(130)  # Standard exit code for Ctrl+C
+
+    signal.signal(signal.SIGINT, signal_handler)
+
     execution_start_time = datetime.now()
     execution_id = None
 
@@ -150,7 +166,9 @@ def fetch(
 
             # Fetch with enhanced progress tracking
             items = client.get_work_items(
-                days_back=days_back, progress_callback=progress_callback
+                days_back=days_back,
+                progress_callback=progress_callback,
+                history_limit=history_limit,
             )
 
             # Mark completion
@@ -305,8 +323,18 @@ def calculate(
 @click.option("--save-last-run", is_flag=True, help="Save execution timestamp")
 @click.option("--days-back", default=30, help="Number of days to fetch data for")
 @click.option("--project", help="Azure DevOps project (overrides config)")
+@click.option(
+    "--history-limit",
+    default=None,
+    type=int,
+    help="Limit number of state history entries per work item for faster testing",
+)
 def sync(
-    auto_increment: bool, save_last_run: bool, days_back: int, project: Optional[str]
+    auto_increment: bool,
+    save_last_run: bool,
+    days_back: int,
+    project: Optional[str],
+    history_limit: Optional[int],
 ):
     """Synchronize work items and calculate metrics."""
     try:
@@ -320,6 +348,7 @@ def sync(
             "output": None,
             "incremental": auto_increment,
             "save_last_run": save_last_run,
+            "history_limit": history_limit,
         }
 
         # Fetch data
