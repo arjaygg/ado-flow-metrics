@@ -1,6 +1,7 @@
 import base64
 import json
 import logging
+from datetime import datetime, timedelta
 from typing import Dict, List
 
 import requests
@@ -28,12 +29,10 @@ class AzureDevOpsClient:
             # First, get work item IDs using WIQL
             wiql_query = {
                 "query": f"""
-                SELECT [System.Id], [System.Title], [System.State], [System.WorkItemType],
-                       [System.CreatedDate], [System.AssignedTo], [Microsoft.VSTS.Common.Priority]
+                SELECT [System.Id]
                 FROM WorkItems
-                WHERE [System.TeamProject] = '{self.project}'
-                  AND [System.CreatedDate] >= @today - {days_back}
-                ORDER BY [System.CreatedDate] DESC
+                WHERE [System.ChangedDate] >= '{(datetime.now() - timedelta(days=days_back)).strftime("%Y-%m-%d")}'
+                ORDER BY [System.ChangedDate] DESC
                 """
             }
 
@@ -56,7 +55,14 @@ class AzureDevOpsClient:
             for i in range(0, len(work_item_ids), batch_size):
                 batch_ids = work_item_ids[i : i + batch_size]
                 ids_string = ",".join(map(str, batch_ids))
-                details_url = f"{self.org_url}/{self.project}/_apis/wit/workitems?ids={ids_string}&$expand=relations&api-version=6.0"
+                details_url = f"{self.org_url}/_apis/wit/workitemsbatch?api-version=6.0"
+                batch_body = {"ids": batch_ids, "fields": [
+                    "System.Id", "System.Title", "System.WorkItemType", "System.State",
+                    "System.CreatedDate", "Microsoft.VSTS.Common.ClosedDate",
+                    "Microsoft.VSTS.Common.StateChangeDate", "System.Tags",
+                    "System.AssignedTo", "Microsoft.VSTS.Common.Priority"
+                ]}
+                details_response = requests.post(details_url, headers=self.headers, json=batch_body, timeout=30)
 
                 logger.info(
                     f"Fetching details for batch {i//batch_size + 1}/{len(work_item_ids)//batch_size + 1} ({len(batch_ids)} items)."
