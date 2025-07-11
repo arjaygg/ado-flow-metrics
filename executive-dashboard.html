@@ -167,6 +167,67 @@
                     </div>
                 </div>
             </div>
+            <!-- Executive Work Item Type Filter -->
+            <div class="row align-items-center mb-3">
+                <div class="col-md-6">
+                    <h6 class="mb-1"><i class="fas fa-tags me-2"></i>Work Item Type Focus</h6>
+                    <small class="text-muted" id="executiveWorkItemTypeInfo">All types included</small>
+                </div>
+                <div class="col-md-6">
+                    <div class="dropdown">
+                        <button class="btn btn-outline-info dropdown-toggle w-100" type="button" id="executiveWorkItemTypeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-tags me-2"></i>All Types
+                        </button>
+                        <ul class="dropdown-menu w-100" aria-labelledby="executiveWorkItemTypeDropdown" id="executiveWorkItemTypeDropdownMenu">
+                            <li><a class="dropdown-item" href="#" data-work-item-type="All Types">
+                                <input type="checkbox" class="form-check-input me-2" checked> All Types
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" data-work-item-type="User Story">
+                                <input type="checkbox" class="form-check-input me-2"> User Story
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" data-work-item-type="Bug">
+                                <input type="checkbox" class="form-check-input me-2"> Bug
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" data-work-item-type="Task">
+                                <input type="checkbox" class="form-check-input me-2"> Task
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" data-work-item-type="Feature">
+                                <input type="checkbox" class="form-check-input me-2"> Feature
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" data-work-item-type="Epic">
+                                <input type="checkbox" class="form-check-input me-2"> Epic
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" data-work-item-type="Issue">
+                                <input type="checkbox" class="form-check-input me-2"> Issue
+                            </a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Executive Sprint Filter -->
+            <div class="row align-items-center mb-3">
+                <div class="col-md-6">
+                    <h6 class="mb-1"><i class="fas fa-running me-2"></i>Sprint Focus</h6>
+                    <small class="text-muted" id="executiveSprintInfo">All sprints included</small>
+                </div>
+                <div class="col-md-6">
+                    <div class="dropdown">
+                        <button class="btn btn-outline-warning dropdown-toggle w-100" type="button" id="executiveSprintDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-running me-2"></i>All Sprints
+                        </button>
+                        <ul class="dropdown-menu w-100" aria-labelledby="executiveSprintDropdown" id="executiveSprintDropdownMenu">
+                            <li><a class="dropdown-item" href="#" data-sprint="All Sprints">
+                                <input type="checkbox" class="form-check-input me-2" checked> All Sprints
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <!-- Sprint options will be populated by JavaScript -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
             <!-- Executive Workstream Filter -->
             <div class="row align-items-center">
                 <div class="col-md-6">
@@ -326,6 +387,75 @@
             </div>
         </div>
 
+        <!-- Defect Ratio Chart -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="chart-section">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="chart-title mb-0">
+                            <i class="fas fa-bug me-2"></i>Defect Ratio Analysis
+                        </h5>
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-danger dropdown-toggle" type="button" id="defectTypesDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-cog me-1"></i>Configure Types
+                                </button>
+                                <ul class="dropdown-menu" aria-labelledby="defectTypesDropdown" id="defectTypesDropdownMenu">
+                                    <li class="dropdown-header">Bug Types</li>
+                                    <li><a class="dropdown-item" href="#" data-defect-type="Bug">
+                                        <input type="checkbox" class="form-check-input me-2" checked> Bug
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" data-defect-type="Defect">
+                                        <input type="checkbox" class="form-check-input me-2" checked> Defect
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" data-defect-type="Issue">
+                                        <input type="checkbox" class="form-check-input me-2" checked> Issue
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li class="dropdown-header">Denominator Types</li>
+                                    <li><a class="dropdown-item" href="#" data-denominator-type="All">
+                                        <input type="radio" class="form-check-input me-2" name="denominatorType" value="All" checked> All Work Items
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" data-denominator-type="Selected">
+                                        <input type="radio" class="form-check-input me-2" name="denominatorType" value="Selected"> Selected Types Only
+                                    </a></li>
+                                </ul>
+                            </div>
+                            <div class="badge bg-info" id="defectRatioValue">0.0%</div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-lg-8">
+                            <div id="defectRatioChart" style="height: 350px;"></div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="p-3">
+                                <h6 class="mb-3">Configuration Summary</h6>
+                                <div class="mb-3">
+                                    <small class="text-muted d-block mb-1">Bug Types:</small>
+                                    <div id="bugTypesList" class="small">Bug, Defect, Issue</div>
+                                </div>
+                                <div class="mb-3">
+                                    <small class="text-muted d-block mb-1">Denominator:</small>
+                                    <div id="denominatorTypeText" class="small">All Work Items</div>
+                                </div>
+                                <div class="mb-3">
+                                    <small class="text-muted d-block mb-1">Calculation:</small>
+                                    <div class="small">
+                                        <span id="bugCount">0</span> bugs / <span id="totalCount">0</span> total items
+                                    </div>
+                                </div>
+                                <div class="alert alert-light small mb-0">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Adjust the work item types to customize the defect ratio calculation for your specific needs.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Team Capacity Overview -->
         <div class="row">
             <div class="col-12">
@@ -378,6 +508,13 @@
                 this.db = null;
                 this.workstreamManager = new WorkstreamManager();
                 this.selectedWorkstreams = ['All Teams'];
+                this.selectedWorkItemTypes = ['All Types'];
+                this.selectedSprints = ['All Sprints'];
+                this.availableSprints = [];
+                this.defectRatioConfig = {
+                    bugTypes: ['Bug', 'Defect', 'Issue'],
+                    denominatorType: 'All'
+                };
                 this.init();
             }
 
@@ -450,6 +587,21 @@
                 document.getElementById('workstreamDropdownMenu').addEventListener('click', (e) => {
                     this.handleWorkstreamFilter(e);
                 });
+
+                // Executive Work Item Type filter
+                document.getElementById('executiveWorkItemTypeDropdownMenu').addEventListener('click', (e) => {
+                    this.handleExecutiveWorkItemTypeFilter(e);
+                });
+
+                // Executive Sprint filter
+                document.getElementById('executiveSprintDropdownMenu').addEventListener('click', (e) => {
+                    this.handleExecutiveSprintFilter(e);
+                });
+
+                // Defect ratio configuration
+                document.getElementById('defectTypesDropdownMenu').addEventListener('click', (e) => {
+                    this.handleDefectRatioConfig(e);
+                });
             }
 
             async loadData() {
@@ -479,6 +631,7 @@
 
                     if (data) {
                         this.data = data;
+                        this.populateExecutiveSprintFilter(data);
                         this.updateExecutiveDashboard(data);
 
                         if (selectedSource !== 'indexedDB') {
@@ -575,10 +728,248 @@
                 document.getElementById('dataSourceInfo').textContent = message + ' • ' + new Date().toLocaleTimeString();
             }
 
+            populateExecutiveSprintFilter(data) {
+                const menu = document.getElementById('executiveSprintDropdownMenu');
+                const sprints = data.sprints || Object.keys(data.items_by_sprint || {});
+                
+                this.availableSprints = sprints;
+
+                // Clear existing sprint items (keep All Sprints)
+                const existingItems = menu.querySelectorAll('[data-sprint]:not([data-sprint="All Sprints"])');
+                existingItems.forEach(item => item.parentElement.remove());
+
+                // Add sprint options
+                sprints.forEach(sprint => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <a class="dropdown-item" href="#" data-sprint="${sprint}">
+                            <input type="checkbox" class="form-check-input me-2"> ${sprint}
+                        </a>
+                    `;
+                    menu.appendChild(li);
+                });
+            }
+
+            handleExecutiveWorkItemTypeFilter(event) {
+                event.preventDefault();
+                const target = event.target.closest('[data-work-item-type]');
+                if (!target) return;
+
+                const workItemType = target.getAttribute('data-work-item-type');
+                const checkbox = target.querySelector('input[type="checkbox"]');
+
+                if (workItemType === 'All Types') {
+                    if (checkbox.checked) {
+                        this.selectedWorkItemTypes = ['All Types'];
+                        document.querySelectorAll('#executiveWorkItemTypeDropdownMenu input[type="checkbox"]').forEach(cb => {
+                            cb.checked = cb.closest('[data-work-item-type]').getAttribute('data-work-item-type') === 'All Types';
+                        });
+                    } else {
+                        checkbox.checked = true;
+                        return;
+                    }
+                } else {
+                    const allTypesCheckbox = document.querySelector('#executiveWorkItemTypeDropdownMenu [data-work-item-type="All Types"] input');
+                    if (checkbox.checked) {
+                        if (this.selectedWorkItemTypes.includes('All Types')) {
+                            this.selectedWorkItemTypes = [workItemType];
+                            allTypesCheckbox.checked = false;
+                        } else if (!this.selectedWorkItemTypes.includes(workItemType)) {
+                            this.selectedWorkItemTypes.push(workItemType);
+                        }
+                    } else {
+                        this.selectedWorkItemTypes = this.selectedWorkItemTypes.filter(w => w !== workItemType);
+                        if (this.selectedWorkItemTypes.length === 0) {
+                            this.selectedWorkItemTypes = ['All Types'];
+                            allTypesCheckbox.checked = true;
+                        }
+                    }
+                }
+
+                this.updateExecutiveWorkItemTypeDisplay();
+                this.updateExecutiveDashboard(this.data);
+            }
+
+            handleExecutiveSprintFilter(event) {
+                event.preventDefault();
+                const target = event.target.closest('[data-sprint]');
+                if (!target) return;
+
+                const sprint = target.getAttribute('data-sprint');
+                const checkbox = target.querySelector('input[type="checkbox"]');
+
+                if (sprint === 'All Sprints') {
+                    if (checkbox.checked) {
+                        this.selectedSprints = ['All Sprints'];
+                        document.querySelectorAll('#executiveSprintDropdownMenu input[type="checkbox"]').forEach(cb => {
+                            cb.checked = cb.closest('[data-sprint]').getAttribute('data-sprint') === 'All Sprints';
+                        });
+                    } else {
+                        checkbox.checked = true;
+                        return;
+                    }
+                } else {
+                    const allSprintsCheckbox = document.querySelector('#executiveSprintDropdownMenu [data-sprint="All Sprints"] input');
+                    if (checkbox.checked) {
+                        if (this.selectedSprints.includes('All Sprints')) {
+                            this.selectedSprints = [sprint];
+                            allSprintsCheckbox.checked = false;
+                        } else if (!this.selectedSprints.includes(sprint)) {
+                            this.selectedSprints.push(sprint);
+                        }
+                    } else {
+                        this.selectedSprints = this.selectedSprints.filter(s => s !== sprint);
+                        if (this.selectedSprints.length === 0) {
+                            this.selectedSprints = ['All Sprints'];
+                            allSprintsCheckbox.checked = true;
+                        }
+                    }
+                }
+
+                this.updateExecutiveSprintDisplay();
+                this.updateExecutiveDashboard(this.data);
+            }
+
+            handleDefectRatioConfig(event) {
+                event.preventDefault();
+                const target = event.target.closest('[data-defect-type], [data-denominator-type]');
+                if (!target) return;
+
+                if (target.hasAttribute('data-defect-type')) {
+                    const defectType = target.getAttribute('data-defect-type');
+                    const checkbox = target.querySelector('input[type="checkbox"]');
+                    
+                    if (checkbox.checked) {
+                        if (!this.defectRatioConfig.bugTypes.includes(defectType)) {
+                            this.defectRatioConfig.bugTypes.push(defectType);
+                        }
+                    } else {
+                        this.defectRatioConfig.bugTypes = this.defectRatioConfig.bugTypes.filter(t => t !== defectType);
+                    }
+                } else if (target.hasAttribute('data-denominator-type')) {
+                    const denominatorType = target.getAttribute('data-denominator-type');
+                    const radio = target.querySelector('input[type="radio"]');
+                    
+                    if (radio.checked) {
+                        this.defectRatioConfig.denominatorType = denominatorType;
+                    }
+                }
+
+                this.updateDefectRatioConfigDisplay();
+                this.updateDefectRatioChart(this.data);
+            }
+
+            updateExecutiveWorkItemTypeDisplay() {
+                const button = document.getElementById('executiveWorkItemTypeDropdown');
+                const info = document.getElementById('executiveWorkItemTypeInfo');
+
+                if (this.selectedWorkItemTypes.includes('All Types')) {
+                    button.innerHTML = '<i class="fas fa-tags me-2"></i>All Types';
+                    info.textContent = 'All types included';
+                } else if (this.selectedWorkItemTypes.length === 1) {
+                    button.innerHTML = `<i class="fas fa-tags me-2"></i>${this.selectedWorkItemTypes[0]}`;
+                    info.textContent = `Executive view filtered to ${this.selectedWorkItemTypes[0]} items`;
+                } else {
+                    button.innerHTML = `<i class="fas fa-tags me-2"></i>${this.selectedWorkItemTypes.length} Types`;
+                    info.textContent = `Executive view of ${this.selectedWorkItemTypes.length} types: ${this.selectedWorkItemTypes.join(', ')}`;
+                }
+            }
+
+            updateExecutiveSprintDisplay() {
+                const button = document.getElementById('executiveSprintDropdown');
+                const info = document.getElementById('executiveSprintInfo');
+
+                if (this.selectedSprints.includes('All Sprints')) {
+                    button.innerHTML = '<i class="fas fa-running me-2"></i>All Sprints';
+                    info.textContent = 'All sprints included';
+                } else if (this.selectedSprints.length === 1) {
+                    button.innerHTML = `<i class="fas fa-running me-2"></i>${this.selectedSprints[0]}`;
+                    info.textContent = `Executive view filtered to ${this.selectedSprints[0]}`;
+                } else {
+                    button.innerHTML = `<i class="fas fa-running me-2"></i>${this.selectedSprints.length} Sprints`;
+                    info.textContent = `Executive view of ${this.selectedSprints.length} sprints: ${this.selectedSprints.join(', ')}`;
+                }
+            }
+
+            updateDefectRatioConfigDisplay() {
+                document.getElementById('bugTypesList').textContent = this.defectRatioConfig.bugTypes.join(', ');
+                document.getElementById('denominatorTypeText').textContent = 
+                    this.defectRatioConfig.denominatorType === 'All' ? 'All Work Items' : 'Selected Types Only';
+            }
+
+            updateDefectRatioChart(data) {
+                const itemsByType = data.items_by_type || {};
+                
+                // Calculate defect ratio based on configuration
+                let bugCount = 0;
+                let totalCount = 0;
+
+                // Count bugs based on configured bug types
+                this.defectRatioConfig.bugTypes.forEach(bugType => {
+                    bugCount += itemsByType[bugType] || 0;
+                });
+
+                // Calculate total based on denominator configuration
+                if (this.defectRatioConfig.denominatorType === 'All') {
+                    totalCount = Object.values(itemsByType).reduce((sum, count) => sum + count, 0);
+                } else {
+                    // Use only selected work item types
+                    if (this.selectedWorkItemTypes.includes('All Types')) {
+                        totalCount = Object.values(itemsByType).reduce((sum, count) => sum + count, 0);
+                    } else {
+                        this.selectedWorkItemTypes.forEach(type => {
+                            totalCount += itemsByType[type] || 0;
+                        });
+                    }
+                }
+
+                const defectRatio = totalCount > 0 ? (bugCount / totalCount) * 100 : 0;
+                const nonBugCount = totalCount - bugCount;
+
+                // Update display values
+                document.getElementById('defectRatioValue').textContent = `${defectRatio.toFixed(1)}%`;
+                document.getElementById('bugCount').textContent = bugCount;
+                document.getElementById('totalCount').textContent = totalCount;
+
+                // Create chart
+                const chartData = [{
+                    values: [nonBugCount, bugCount],
+                    labels: ['Non-Defects', 'Defects'],
+                    type: 'pie',
+                    hole: 0.6,
+                    marker: {
+                        colors: ['#27ae60', '#e74c3c']
+                    },
+                    textinfo: 'label+percent',
+                    textposition: 'outside'
+                }];
+
+                const layout = {
+                    margin: { l: 20, r: 20, t: 20, b: 20 },
+                    showlegend: true,
+                    legend: { 
+                        orientation: 'h', 
+                        y: -0.1,
+                        x: 0.5,
+                        xanchor: 'center'
+                    },
+                    annotations: [{
+                        font: { size: 20, color: '#2c3e50' },
+                        showarrow: false,
+                        text: `${defectRatio.toFixed(1)}%`,
+                        x: 0.5,
+                        y: 0.5
+                    }]
+                };
+
+                Plotly.newPlot('defectRatioChart', chartData, layout, { responsive: true });
+            }
+
             updateExecutiveDashboard(data) {
                 this.updateExecutiveSummary(data);
                 this.updateKPIs(data);
                 this.updateCharts(data);
+                this.updateDefectRatioChart(data);
                 this.updateTeamOverview(data);
             }
 
@@ -1001,7 +1392,23 @@
                         "QA Team": { completed_items: 52, active_items: 12, completion_rate: 78.5, average_lead_time: 15.3 },
                         "DevOps Team": { completed_items: 28, active_items: 4, completion_rate: 91.3, average_lead_time: 8.1 },
                         "Product Team": { completed_items: 24, active_items: 7, completion_rate: 77.4, average_lead_time: 13.6 }
-                    }
+                    },
+                    // Enhanced mock data for executive dashboard
+                    items_by_type: {
+                        "User Story": 125,
+                        "Bug": 32,
+                        "Task": 68,
+                        "Feature": 18,
+                        "Epic": 7
+                    },
+                    items_by_sprint: {
+                        "Sprint 24.1": 45,
+                        "Sprint 24.2": 52,
+                        "Sprint 24.3": 48,
+                        "Sprint 24.4": 38,
+                        "Backlog": 17
+                    },
+                    sprints: ["Sprint 24.1", "Sprint 24.2", "Sprint 24.3", "Sprint 24.4", "Backlog"]
                 };
             }
 
