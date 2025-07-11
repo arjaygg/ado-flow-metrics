@@ -1,6 +1,7 @@
 import base64
 import json
 import logging
+from datetime import datetime, timedelta
 from typing import Dict, List
 
 import requests
@@ -74,12 +75,10 @@ class AzureDevOpsClient:
             # but we validate inputs above
             wiql_query = {
                 "query": f"""
-                SELECT [System.Id], [System.Title], [System.State], [System.WorkItemType],
-                       [System.CreatedDate], [System.AssignedTo], [Microsoft.VSTS.Common.Priority]
+                SELECT [System.Id]
                 FROM WorkItems
-                WHERE [System.TeamProject] = '{self.project}'
-                  AND [System.CreatedDate] >= @today - {days_back}
-                ORDER BY [System.CreatedDate] DESC
+                WHERE [System.ChangedDate] >= '{(datetime.now() - timedelta(days=days_back)).strftime("%Y-%m-%d")}'
+                ORDER BY [System.ChangedDate] DESC
                 """
             }
 
