@@ -12,6 +12,7 @@
     <script src="js/predictive-analytics.js"></script>
     <script src="js/time-series-analysis.js"></script>
     <script src="js/enhanced-ux.js"></script>
+    <script src="js/advanced-filtering.js"></script>
     <style>
         :root {
             --primary-color: #4e73df;
@@ -48,6 +49,211 @@
             padding: 1rem;
             margin-bottom: 1rem;
             box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        }
+        
+        .advanced-filtering-panel {
+            background: white;
+            border-radius: 0.35rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        }
+        
+        .filter-section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .filter-presets {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .preset-btn {
+            padding: 0.375rem 0.75rem;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+        }
+        
+        .preset-btn:hover {
+            background: #f8f9fa;
+            border-color: #adb5bd;
+        }
+        
+        .preset-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .filter-summary {
+            background: #f8f9fa;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--info-color);
+        }
+        
+        .filter-summary.active {
+            border-left-color: var(--success-color);
+        }
+        
+        .filter-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.375rem;
+            margin-top: 0.5rem;
+        }
+        
+        .filter-chip {
+            background: var(--info-color);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .filter-chip .remove-chip {
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        
+        .filter-chip .remove-chip:hover {
+            opacity: 1;
+        }
+        
+        .drill-down-breadcrumb {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 0.375rem;
+            padding: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .breadcrumb-item {
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+        
+        .breadcrumb-item:not(:last-child)::after {
+            content: '>';
+            margin-left: 0.5rem;
+            color: #6c757d;
+        }
+        
+        .breadcrumb-link {
+            color: var(--primary-color);
+            text-decoration: none;
+            cursor: pointer;
+        }
+        
+        .breadcrumb-link:hover {
+            text-decoration: underline;
+        }
+        
+        .filter-controls {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .filter-history-nav {
+            display: flex;
+            gap: 0.25rem;
+        }
+        
+        .filter-history-nav button {
+            padding: 0.25rem 0.5rem;
+            border: 1px solid #dee2e6;
+            background: white;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .filter-history-nav button:hover:not(:disabled) {
+            background: #f8f9fa;
+        }
+        
+        .filter-history-nav button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .filter-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+        }
+        
+        .filter-panel-collapsed .filter-content {
+            display: none;
+        }
+        
+        .multi-select {
+            position: relative;
+        }
+        
+        .multi-select-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .multi-select-option {
+            padding: 0.5rem 0.75rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .multi-select-option:hover {
+            background: #f8f9fa;
+        }
+        
+        .multi-select-option.selected {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .date-range-picker {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        
+        @media (max-width: 768px) {
+            .filter-presets {
+                flex-direction: column;
+            }
+            
+            .filter-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .date-range-picker {
+                flex-direction: column;
+                align-items: stretch;
+            }
         }
     </style>
 </head>
@@ -116,6 +322,138 @@
                             <li><hr class="dropdown-divider"></li>
                             <!-- Workstream options will be populated by JavaScript -->
                         </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advanced Filtering Panel -->
+        <div class="advanced-filtering-panel" id="advancedFilteringPanel">
+            <div class="filter-toggle" onclick="toggleFilterPanel()">
+                <h5 class="mb-0">
+                    <i class="fas fa-filter me-2"></i>
+                    Advanced Filtering & Drill-Down
+                </h5>
+                <i class="fas fa-chevron-down ms-auto" id="filterToggleIcon"></i>
+            </div>
+            
+            <div class="filter-content" id="filterContent">
+                <!-- Filter Summary -->
+                <div class="filter-summary" id="filterSummary">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>Active Filters:</strong>
+                            <span id="filterCount">None</span>
+                        </div>
+                        <div class="filter-controls">
+                            <div class="filter-history-nav">
+                                <button type="button" id="filterBackBtn" onclick="goBackFilter()" disabled>
+                                    <i class="fas fa-arrow-left"></i>
+                                </button>
+                                <button type="button" id="filterForwardBtn" onclick="goForwardFilter()" disabled>
+                                    <i class="fas fa-arrow-right"></i>
+                                </button>
+                            </div>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="clearAllFilters()">
+                                <i class="fas fa-times me-1"></i>Clear All
+                            </button>
+                            <button class="btn btn-sm btn-outline-primary" onclick="shareFilters()">
+                                <i class="fas fa-share me-1"></i>Share
+                            </button>
+                        </div>
+                    </div>
+                    <div class="filter-chips" id="filterChips"></div>
+                </div>
+
+                <!-- Drill-down Breadcrumb -->
+                <div class="drill-down-breadcrumb" id="drillDownBreadcrumb" style="display: none;">
+                    <i class="fas fa-sitemap me-2"></i>
+                    <span class="text-muted">Drill-down Path:</span>
+                    <div class="breadcrumb-items" id="breadcrumbItems"></div>
+                </div>
+
+                <!-- Filter Presets -->
+                <div class="filter-section">
+                    <h6 class="mb-2">Quick Presets</h6>
+                    <div class="filter-presets" id="filterPresets">
+                        <button class="preset-btn" data-preset="last7days">Last 7 Days</button>
+                        <button class="preset-btn" data-preset="last30days">Last 30 Days</button>
+                        <button class="preset-btn" data-preset="current-sprint">Current Sprint</button>
+                        <button class="preset-btn" data-preset="high-priority">High Priority</button>
+                        <button class="preset-btn" data-preset="bugs-only">Bugs Only</button>
+                        <button class="preset-btn" data-preset="completed-items">Completed Items</button>
+                    </div>
+                </div>
+
+                <!-- Filter Controls -->
+                <div class="row">
+                    <!-- Date Range Filter -->
+                    <div class="col-md-6 filter-section">
+                        <h6 class="mb-2">Date Range</h6>
+                        <div class="date-range-picker">
+                            <input type="date" class="form-control" id="startDateFilter" placeholder="Start Date">
+                            <span class="align-self-center">to</span>
+                            <input type="date" class="form-control" id="endDateFilter" placeholder="End Date">
+                        </div>
+                    </div>
+
+                    <!-- Work Item Types Filter -->
+                    <div class="col-md-6 filter-section">
+                        <h6 class="mb-2">Work Item Types</h6>
+                        <div class="multi-select" id="workItemTypesFilter">
+                            <input type="text" class="form-control" placeholder="Select work item types..." readonly onclick="toggleMultiSelect('workItemTypes')">
+                            <div class="multi-select-dropdown" id="workItemTypesDropdown" style="display: none;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Priorities Filter -->
+                    <div class="col-md-6 filter-section">
+                        <h6 class="mb-2">Priorities</h6>
+                        <div class="multi-select" id="prioritiesFilter">
+                            <input type="text" class="form-control" placeholder="Select priorities..." readonly onclick="toggleMultiSelect('priorities')">
+                            <div class="multi-select-dropdown" id="prioritiesDropdown" style="display: none;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Assignees Filter -->
+                    <div class="col-md-6 filter-section">
+                        <h6 class="mb-2">Assignees</h6>
+                        <div class="multi-select" id="assigneesFilter">
+                            <input type="text" class="form-control" placeholder="Select assignees..." readonly onclick="toggleMultiSelect('assignees')">
+                            <div class="multi-select-dropdown" id="assigneesDropdown" style="display: none;"></div>
+                        </div>
+                    </div>
+
+                    <!-- States Filter -->
+                    <div class="col-md-6 filter-section">
+                        <h6 class="mb-2">States</h6>
+                        <div class="multi-select" id="statesFilter">
+                            <input type="text" class="form-control" placeholder="Select states..." readonly onclick="toggleMultiSelect('states')">
+                            <div class="multi-select-dropdown" id="statesDropdown" style="display: none;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Tags Filter -->
+                    <div class="col-md-6 filter-section">
+                        <h6 class="mb-2">Tags</h6>
+                        <div class="multi-select" id="tagsFilter">
+                            <input type="text" class="form-control" placeholder="Select tags..." readonly onclick="toggleMultiSelect('tags')">
+                            <div class="multi-select-dropdown" id="tagsDropdown" style="display: none;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Save Custom Preset -->
+                <div class="filter-section">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <input type="text" class="form-control" id="customPresetName" placeholder="Save current filters as preset...">
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-outline-success w-100" onclick="saveCustomPreset()">
+                                <i class="fas fa-save me-1"></i>Save Preset
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -399,6 +737,7 @@
                 this.predictiveAnalytics = new PredictiveAnalytics();
                 this.timeSeriesAnalyzer = new TimeSeriesAnalyzer();
                 this.enhancedUX = new EnhancedUX();
+                this.advancedFiltering = new AdvancedFiltering();
                 
                 this.init();
             }
@@ -542,6 +881,9 @@
                 this.enhancedUX.showSkeleton('movingAveragesChart', 'chart');
                 this.enhancedUX.showSkeleton('periodComparisonChart', 'chart');
                 this.enhancedUX.showSkeleton('insightCards', 'predictiveCard');
+                
+                // Initialize advanced filtering
+                this.setupAdvancedFiltering();
             }
 
             async loadData() {
@@ -660,6 +1002,9 @@
                 this.updatePredictiveAnalytics(data);
                 this.updateTimeSeriesAnalysis(data);
                 this.updateInsightsAndRecommendations(data);
+                
+                // Update advanced filtering dropdowns with new data
+                this.updateFilteringDropdowns(data);
             }
 
             updateMetricsCards(data) {
@@ -1506,11 +1851,388 @@
                     default: return 'info';
                 }
             }
+
+            // Advanced Filtering Methods
+            setupAdvancedFiltering() {
+                // Initialize the advanced filtering module
+                this.advancedFiltering.init();
+                
+                // Set up filter change callback
+                this.advancedFiltering.setOnFilterChange((filters) => {
+                    this.applyAdvancedFilters(filters);
+                });
+                
+                // Set up drill-down callback
+                this.advancedFiltering.setOnDrillDown((drillDownInfo) => {
+                    this.handleDrillDown(drillDownInfo);
+                });
+                
+                // Set up preset buttons
+                this.setupFilterPresets();
+                
+                // Set up multi-select dropdowns
+                this.setupMultiSelectDropdowns();
+                
+                // Set up date range inputs
+                this.setupDateRangeInputs();
+                
+                // Initialize filter panel state
+                this.filterPanelExpanded = false;
+                
+                console.log('Advanced filtering initialized');
+            }
+
+            setupFilterPresets() {
+                const presetButtons = document.querySelectorAll('.preset-btn');
+                presetButtons.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const preset = btn.dataset.preset;
+                        this.advancedFiltering.applyPreset(preset);
+                        
+                        // Update UI
+                        presetButtons.forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                    });
+                });
+            }
+
+            setupMultiSelectDropdowns() {
+                // This will be called after data is loaded
+                // The actual population happens in updateFilteringDropdowns
+            }
+
+            populateMultiSelectDropdowns(availableValues) {
+                const dropdowns = {
+                    workItemTypes: availableValues.workItemTypes || ['User Story', 'Bug', 'Task', 'Feature'],
+                    priorities: availableValues.priorities || ['Critical', 'High', 'Medium', 'Low'],
+                    assignees: availableValues.assignees || ['John Doe', 'Jane Smith', 'Bob Johnson'],
+                    states: availableValues.states || ['New', 'In Progress', 'Review', 'Testing', 'Done'],
+                    tags: availableValues.tags || ['urgent', 'bug-fix', 'feature', 'refactor']
+                };
+
+                Object.entries(dropdowns).forEach(([key, values]) => {
+                    const dropdown = document.getElementById(`${key}Dropdown`);
+                    if (dropdown) {
+                        dropdown.innerHTML = values.map(value => `
+                            <div class="multi-select-option" data-value="${value}" onclick="toggleFilterOption('${key}', '${value}')">
+                                <input type="checkbox" class="form-check-input me-2" id="${key}_${value}">
+                                <label for="${key}_${value}">${value}</label>
+                            </div>
+                        `).join('');
+                    }
+                });
+            }
+
+            setupDateRangeInputs() {
+                const startDate = document.getElementById('startDateFilter');
+                const endDate = document.getElementById('endDateFilter');
+
+                if (startDate && endDate) {
+                    startDate.addEventListener('change', () => {
+                        this.advancedFiltering.setDateRange(startDate.value, endDate.value);
+                    });
+
+                    endDate.addEventListener('change', () => {
+                        this.advancedFiltering.setDateRange(startDate.value, endDate.value);
+                    });
+                }
+            }
+
+            applyAdvancedFilters(filters) {
+                if (!this.data || !this.data.historical_data) {
+                    return;
+                }
+
+                // Apply filters to the data
+                const filteredData = this.advancedFiltering.applyFilters(this.data.historical_data);
+                
+                // Update the current data with filtered results
+                const filteredDataset = { 
+                    ...this.data, 
+                    historical_data: filteredData 
+                };
+                
+                // Recalculate metrics based on filtered data
+                this.updateDisplayWithFilteredData(filteredDataset);
+                
+                // Update filter summary UI
+                this.updateFilterSummaryUI();
+                
+                // Update filter history navigation
+                this.updateFilterHistoryNav();
+            }
+
+            updateDisplayWithFilteredData(filteredData) {
+                // Update metrics cards
+                this.updateMetricsCards(filteredData);
+                
+                // Update charts
+                this.updateCharts(filteredData);
+                
+                // Update insights and recommendations
+                this.updateInsightsAndRecommendations(filteredData);
+                
+                // Update predictive analytics
+                if (filteredData.historical_data && filteredData.historical_data.length > 0) {
+                    this.predictiveAnalytics.initialize(filteredData.historical_data);
+                    this.updatePredictiveAnalytics();
+                }
+                
+                // Update time series analysis
+                this.updateTimeSeriesAnalysis(filteredData);
+            }
+
+            updateFilterSummaryUI() {
+                const summary = this.advancedFiltering.getFilterSummary();
+                const filterCount = document.getElementById('filterCount');
+                const filterChips = document.getElementById('filterChips');
+                const filterSummaryDiv = document.getElementById('filterSummary');
+
+                // Update filter count
+                if (filterCount) {
+                    filterCount.textContent = summary.active ? `${summary.count} active` : 'None';
+                }
+
+                // Update filter chips
+                if (filterChips) {
+                    filterChips.innerHTML = summary.descriptions.map(desc => `
+                        <div class="filter-chip">
+                            ${desc}
+                            <i class="fas fa-times remove-chip" onclick="removeFilterChip('${desc}')"></i>
+                        </div>
+                    `).join('');
+                }
+
+                // Update summary styling
+                if (filterSummaryDiv) {
+                    if (summary.active) {
+                        filterSummaryDiv.classList.add('active');
+                    } else {
+                        filterSummaryDiv.classList.remove('active');
+                    }
+                }
+            }
+
+            updateFilterHistoryNav() {
+                const backBtn = document.getElementById('filterBackBtn');
+                const forwardBtn = document.getElementById('filterForwardBtn');
+
+                if (backBtn) {
+                    backBtn.disabled = !this.advancedFiltering.canGoBack();
+                }
+
+                if (forwardBtn) {
+                    forwardBtn.disabled = !this.advancedFiltering.canGoForward();
+                }
+            }
+
+            handleDrillDown(drillDownInfo) {
+                // Update breadcrumb
+                this.updateDrillDownBreadcrumb(drillDownInfo);
+                
+                // Show drill-down UI
+                const breadcrumb = document.getElementById('drillDownBreadcrumb');
+                if (breadcrumb) {
+                    breadcrumb.style.display = 'block';
+                }
+                
+                console.log('Drill-down applied:', drillDownInfo);
+            }
+
+            updateDrillDownBreadcrumb(drillDownInfo) {
+                const breadcrumbItems = document.getElementById('breadcrumbItems');
+                if (breadcrumbItems) {
+                    const item = document.createElement('div');
+                    item.className = 'breadcrumb-item';
+                    item.innerHTML = `
+                        <span class="breadcrumb-link" onclick="clearDrillDown('${drillDownInfo.dimension}', '${drillDownInfo.value}')">
+                            ${drillDownInfo.dimension}: ${drillDownInfo.value}
+                        </span>
+                    `;
+                    breadcrumbItems.appendChild(item);
+                }
+            }
+
+            updateTimeSeriesAnalysis(data) {
+                if (!data.historical_data || data.historical_data.length === 0) {
+                    return;
+                }
+
+                // Prepare time series data
+                const timeSeriesData = [];
+                data.historical_data.forEach(item => {
+                    if (item.resolvedDate) {
+                        timeSeriesData.push({
+                            date: item.resolvedDate,
+                            value: item.leadTime || 0,
+                            metric: 'leadTime'
+                        });
+                        timeSeriesData.push({
+                            date: item.resolvedDate,
+                            value: item.cycleTime || 0,
+                            metric: 'cycleTime'
+                        });
+                    }
+                });
+
+                // Update time series analyzer
+                this.timeSeriesAnalyzer.initialize(timeSeriesData);
+                
+                // Update the selected metric's moving averages
+                const selectedMetric = document.querySelector('input[name="maMetric"]:checked');
+                if (selectedMetric) {
+                    this.updateMovingAverages(selectedMetric.value);
+                }
+            }
+
+            updateFilteringDropdowns(data) {
+                if (!data.historical_data || data.historical_data.length === 0) {
+                    return;
+                }
+
+                // Get available filter values from the data
+                const availableValues = this.advancedFiltering.getAvailableFilterValues(data.historical_data);
+                
+                // Update multi-select dropdowns
+                this.populateMultiSelectDropdowns(availableValues);
+                
+                console.log('Filtering dropdowns updated with data:', availableValues);
+            }
+        }
+
+        // Global utility functions for filtering UI
+        let dashboardInstance = null;
+
+        function toggleFilterPanel() {
+            const content = document.getElementById('filterContent');
+            const icon = document.getElementById('filterToggleIcon');
+            
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+            } else {
+                content.style.display = 'none';
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+            }
+        }
+
+        function toggleMultiSelect(filterType) {
+            const dropdown = document.getElementById(`${filterType}Dropdown`);
+            if (dropdown) {
+                dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        function toggleFilterOption(filterType, value) {
+            const checkbox = document.getElementById(`${filterType}_${value}`);
+            if (checkbox) {
+                checkbox.checked = !checkbox.checked;
+                
+                // Update the filter
+                const selectedValues = Array.from(document.querySelectorAll(`#${filterType}Dropdown input:checked`))
+                    .map(cb => cb.parentElement.dataset.value);
+                
+                if (dashboardInstance && dashboardInstance.advancedFiltering) {
+                    switch (filterType) {
+                        case 'workItemTypes':
+                            dashboardInstance.advancedFiltering.setWorkItemTypes(selectedValues);
+                            break;
+                        case 'priorities':
+                            dashboardInstance.advancedFiltering.setPriorities(selectedValues);
+                            break;
+                        case 'assignees':
+                            dashboardInstance.advancedFiltering.setAssignees(selectedValues);
+                            break;
+                        case 'states':
+                            dashboardInstance.advancedFiltering.setStates(selectedValues);
+                            break;
+                        case 'tags':
+                            dashboardInstance.advancedFiltering.setTags(selectedValues);
+                            break;
+                    }
+                }
+            }
+        }
+
+        function clearAllFilters() {
+            if (dashboardInstance && dashboardInstance.advancedFiltering) {
+                dashboardInstance.advancedFiltering.clearAllFilters();
+            }
+        }
+
+        function shareFilters() {
+            if (dashboardInstance && dashboardInstance.advancedFiltering) {
+                const url = dashboardInstance.advancedFiltering.getShareableUrl();
+                navigator.clipboard.writeText(url).then(() => {
+                    alert('Filter URL copied to clipboard!');
+                }).catch(() => {
+                    // Fallback for browsers that don't support clipboard API
+                    const textarea = document.createElement('textarea');
+                    textarea.value = url;
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                    alert('Filter URL copied to clipboard!');
+                });
+            }
+        }
+
+        function goBackFilter() {
+            if (dashboardInstance && dashboardInstance.advancedFiltering) {
+                dashboardInstance.advancedFiltering.goBack();
+            }
+        }
+
+        function goForwardFilter() {
+            if (dashboardInstance && dashboardInstance.advancedFiltering) {
+                dashboardInstance.advancedFiltering.goForward();
+            }
+        }
+
+        function removeFilterChip(description) {
+            // This is a simplified implementation - in a real app you'd parse the description
+            // and remove the specific filter
+            console.log('Remove filter chip:', description);
+        }
+
+        function saveCustomPreset() {
+            const nameInput = document.getElementById('customPresetName');
+            if (nameInput && nameInput.value.trim()) {
+                if (dashboardInstance && dashboardInstance.advancedFiltering) {
+                    dashboardInstance.advancedFiltering.savePreset(
+                        nameInput.value.trim(),
+                        'Custom filter preset'
+                    );
+                    nameInput.value = '';
+                    alert('Preset saved successfully!');
+                }
+            }
+        }
+
+        function clearDrillDown(dimension, value) {
+            if (dashboardInstance && dashboardInstance.advancedFiltering) {
+                dashboardInstance.advancedFiltering.clearAllFilters();
+                
+                // Hide drill-down breadcrumb
+                const breadcrumb = document.getElementById('drillDownBreadcrumb');
+                if (breadcrumb) {
+                    breadcrumb.style.display = 'none';
+                }
+                
+                // Clear breadcrumb items
+                const breadcrumbItems = document.getElementById('breadcrumbItems');
+                if (breadcrumbItems) {
+                    breadcrumbItems.innerHTML = '';
+                }
+            }
         }
 
         // Initialize dashboard when page loads
         document.addEventListener('DOMContentLoaded', () => {
-            new FlowDashboard();
+            dashboardInstance = new FlowDashboard();
         });
     </script>
 </body>
