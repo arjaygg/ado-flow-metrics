@@ -7,6 +7,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="js/workstream_config.js"></script>
+    <script src="js/workstream-manager.js"></script>
     <style>
         :root {
             --primary-color: #2c3e50;
@@ -15,20 +17,20 @@
             --danger-color: #e74c3c;
             --info-color: #3498db;
         }
-        
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #ecf0f1;
             color: #2c3e50;
         }
-        
+
         .executive-header {
             background: linear-gradient(135deg, var(--primary-color) 0%, #34495e 100%);
             color: white;
             padding: 2rem 0;
             margin-bottom: 2rem;
         }
-        
+
         .kpi-card {
             background: white;
             border-radius: 12px;
@@ -38,23 +40,23 @@
             border-left: 5px solid var(--primary-color);
             transition: transform 0.2s ease;
         }
-        
+
         .kpi-card:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 25px rgba(0,0,0,0.15);
         }
-        
+
         .kpi-card.success { border-left-color: var(--success-color); }
         .kpi-card.warning { border-left-color: var(--warning-color); }
         .kpi-card.danger { border-left-color: var(--danger-color); }
         .kpi-card.info { border-left-color: var(--info-color); }
-        
+
         .kpi-value {
             font-size: 2.5rem;
             font-weight: 700;
             margin: 0;
         }
-        
+
         .kpi-label {
             font-size: 0.9rem;
             font-weight: 600;
@@ -62,16 +64,16 @@
             letter-spacing: 1px;
             color: #7f8c8d;
         }
-        
+
         .kpi-trend {
             font-size: 0.85rem;
             margin-top: 0.5rem;
         }
-        
+
         .trend-up { color: var(--success-color); }
         .trend-down { color: var(--danger-color); }
         .trend-stable { color: var(--info-color); }
-        
+
         .chart-section {
             background: white;
             border-radius: 12px;
@@ -79,7 +81,7 @@
             padding: 2rem;
             margin-bottom: 2rem;
         }
-        
+
         .chart-title {
             font-size: 1.25rem;
             font-weight: 600;
@@ -88,7 +90,7 @@
             padding-bottom: 0.5rem;
             border-bottom: 2px solid #ecf0f1;
         }
-        
+
         .data-source-panel {
             background: white;
             border-radius: 12px;
@@ -96,14 +98,14 @@
             margin-bottom: 2rem;
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         }
-        
+
         .executive-summary {
             background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
             border-radius: 12px;
             padding: 2rem;
             margin-bottom: 2rem;
         }
-        
+
         .benchmark-indicator {
             display: inline-block;
             width: 12px;
@@ -111,7 +113,7 @@
             border-radius: 50%;
             margin-right: 8px;
         }
-        
+
         .benchmark-excellent { background-color: var(--success-color); }
         .benchmark-good { background-color: var(--info-color); }
         .benchmark-needs-improvement { background-color: var(--warning-color); }
@@ -144,7 +146,7 @@
     <div class="container-fluid">
         <!-- Data Source Panel -->
         <div class="data-source-panel">
-            <div class="row align-items-center">
+            <div class="row align-items-center mb-3">
                 <div class="col-md-6">
                     <h6 class="mb-1"><i class="fas fa-database me-2"></i>Data Source</h6>
                     <small class="text-muted" id="dataSourceInfo">Select data source to begin</small>
@@ -153,12 +155,33 @@
                     <div class="btn-group w-100" role="group">
                         <input type="radio" class="btn-check" name="dataSource" id="mockData" checked>
                         <label class="btn btn-outline-primary" for="mockData">Demo Data</label>
-                        
+
                         <input type="radio" class="btn-check" name="dataSource" id="jsonFile">
                         <label class="btn btn-outline-primary" for="jsonFile">Upload Report</label>
-                        
+
                         <input type="radio" class="btn-check" name="dataSource" id="indexedDB">
                         <label class="btn btn-outline-primary" for="indexedDB">Saved Data</label>
+                    </div>
+                </div>
+            </div>
+            <!-- Executive Workstream Filter -->
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h6 class="mb-1"><i class="fas fa-project-diagram me-2"></i>Workstream Focus</h6>
+                    <small class="text-muted" id="workstreamInfo">All workstreams included</small>
+                </div>
+                <div class="col-md-6">
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" id="workstreamDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-chart-pie me-2"></i>All Workstreams
+                        </button>
+                        <ul class="dropdown-menu w-100" aria-labelledby="workstreamDropdown" id="workstreamDropdownMenu">
+                            <li><a class="dropdown-item" href="#" data-workstream="All Teams">
+                                <input type="checkbox" class="form-check-input me-2" checked> All Workstreams
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <!-- Workstream options will be populated by JavaScript -->
+                        </ul>
                     </div>
                 </div>
             </div>
@@ -350,13 +373,46 @@
                 this.dbName = 'FlowMetricsExecutiveDB';
                 this.dbVersion = 1;
                 this.db = null;
+                this.workstreamManager = new WorkstreamManager();
+                this.selectedWorkstreams = ['All Teams'];
                 this.init();
             }
 
             async init() {
                 await this.initIndexedDB();
+                await this.initWorkstreams();
                 this.setupEventListeners();
                 this.loadData();
+            }
+
+            async initWorkstreams() {
+                try {
+                    await this.workstreamManager.init();
+                    this.populateWorkstreamFilter();
+                    console.log('Executive workstream filtering initialized');
+                } catch (error) {
+                    console.error('Failed to initialize executive workstream filtering:', error);
+                }
+            }
+
+            populateWorkstreamFilter() {
+                const menu = document.getElementById('workstreamDropdownMenu');
+                const workstreams = this.workstreamManager.getAvailableWorkstreams();
+
+                // Clear existing workstream items (keep All Teams)
+                const existingItems = menu.querySelectorAll('[data-workstream]:not([data-workstream="All Teams"])');
+                existingItems.forEach(item => item.parentElement.remove());
+
+                // Add workstream options
+                workstreams.forEach(workstream => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <a class="dropdown-item" href="#" data-workstream="${workstream}">
+                            <input type="checkbox" class="form-check-input me-2"> ${workstream}
+                        </a>
+                    `;
+                    menu.appendChild(li);
+                });
             }
 
             async initIndexedDB() {
@@ -386,14 +442,19 @@
                 document.querySelectorAll('input[name="dataSource"]').forEach(radio => {
                     radio.addEventListener('change', () => this.loadData());
                 });
+
+                // Workstream filter
+                document.getElementById('workstreamDropdownMenu').addEventListener('click', (e) => {
+                    this.handleWorkstreamFilter(e);
+                });
             }
 
             async loadData() {
                 const selectedSource = document.querySelector('input[name="dataSource"]:checked').id;
-                
+
                 try {
                     let data = null;
-                    
+
                     switch (selectedSource) {
                         case 'mockData':
                             data = this.generateExecutiveMockData();
@@ -412,7 +473,7 @@
                     if (data) {
                         this.data = data;
                         this.updateExecutiveDashboard(data);
-                        
+
                         if (selectedSource !== 'indexedDB') {
                             await this.saveToIndexedDB(data);
                         }
@@ -481,10 +542,32 @@
                 const leadTime = data.lead_time || {};
                 const efficiency = data.flow_efficiency || {};
                 const wip = data.work_in_progress || {};
+                let teamMetrics = data.team_metrics || {};
 
-                // Executive summary text
-                const summaryText = `Team delivered ${summary.completed_items || 0} items out of ${summary.total_work_items || 0} total items (${(summary.completion_rate || 0).toFixed(1)}% completion rate). Average delivery time is ${(leadTime.average_days || 0).toFixed(1)} days with ${((efficiency.average_efficiency || 0) * 100).toFixed(1)}% flow efficiency.`;
-                
+                // Apply workstream filtering for summary calculations
+                teamMetrics = this.workstreamManager.filterTeamMetrics(teamMetrics, this.selectedWorkstreams);
+                const filteredTeamSize = Object.keys(teamMetrics).length;
+
+                // Calculate filtered metrics
+                let filteredCompleted = 0;
+                let filteredActive = 0;
+                Object.values(teamMetrics).forEach(member => {
+                    filteredCompleted += member.completed_items || 0;
+                    filteredActive += member.active_items || 0;
+                });
+
+                const totalFiltered = filteredCompleted + filteredActive;
+                const filteredCompletionRate = totalFiltered > 0 ? (filteredCompleted / totalFiltered) * 100 : 0;
+
+                // Executive summary text with workstream context
+                let summaryText;
+                if (this.selectedWorkstreams.includes('All Teams')) {
+                    summaryText = `Team delivered ${summary.completed_items || 0} items out of ${summary.total_work_items || 0} total items (${(summary.completion_rate || 0).toFixed(1)}% completion rate). Average delivery time is ${(leadTime.average_days || 0).toFixed(1)} days with ${((efficiency.average_efficiency || 0) * 100).toFixed(1)}% flow efficiency.`;
+                } else {
+                    const workstreamNames = this.selectedWorkstreams.join(', ');
+                    summaryText = `${workstreamNames} workstream(s) with ${filteredTeamSize} team members delivered ${filteredCompleted} items with ${filteredCompletionRate.toFixed(1)}% completion rate. Average delivery time is ${(leadTime.average_days || 0).toFixed(1)} days with ${((efficiency.average_efficiency || 0) * 100).toFixed(1)}% flow efficiency.`;
+                }
+
                 document.getElementById('summaryText').textContent = summaryText;
 
                 // Key insights
@@ -546,13 +629,13 @@
 
                 // Delivery Speed (Lead Time)
                 document.getElementById('deliverySpeed').textContent = `${(leadTime.average_days || 0).toFixed(1)} days`;
-                
+
                 // Flow Efficiency
                 document.getElementById('flowEfficiency').textContent = `${((efficiency.average_efficiency || 0) * 100).toFixed(1)}%`;
-                
+
                 // WIP
                 document.getElementById('wipItems').textContent = wip.total_wip || 0;
-                
+
                 // Team Velocity (Throughput)
                 document.getElementById('teamVelocity').textContent = `${(throughput.items_per_period || 0).toFixed(1)}/mo`;
 
@@ -570,7 +653,7 @@
                     'down': { icon: 'fa-arrow-down', class: 'trend-down', text: 'Declining' },
                     'stable': { icon: 'fa-minus', class: 'trend-stable', text: 'Stable' }
                 };
-                
+
                 const trendData = trends[trend];
                 element.innerHTML = `<i class="fas ${trendData.icon}"></i> ${trendData.text}`;
                 element.className = `kpi-trend ${trendData.class}`;
@@ -588,16 +671,16 @@
                 const days = 30;
                 const leadTimeData = [];
                 const cycleTimeData = [];
-                
+
                 for (let i = days; i >= 0; i--) {
                     const date = new Date();
                     date.setDate(date.getDate() - i);
-                    
+
                     leadTimeData.push({
                         x: date.toISOString().split('T')[0],
                         y: Math.random() * 5 + 8 // 8-13 days
                     });
-                    
+
                     cycleTimeData.push({
                         x: date.toISOString().split('T')[0],
                         y: Math.random() * 4 + 6 // 6-10 days
@@ -729,9 +812,12 @@
             }
 
             updateTeamOverview(data) {
-                const teamMetrics = data.team_metrics || {};
+                let teamMetrics = data.team_metrics || {};
                 const summary = data.summary || {};
                 const leadTime = data.lead_time || {};
+
+                // Apply workstream filtering
+                teamMetrics = this.workstreamManager.filterTeamMetrics(teamMetrics, this.selectedWorkstreams);
 
                 const teamSize = Object.keys(teamMetrics).length;
                 let totalCompletionRate = 0;
@@ -806,6 +892,69 @@
 
             showErrorMessage(message) {
                 this.updateDataSourceInfo('Error: ' + message);
+            }
+
+            handleWorkstreamFilter(event) {
+                event.preventDefault();
+                const target = event.target.closest('[data-workstream]');
+                if (!target) return;
+
+                const workstream = target.getAttribute('data-workstream');
+                const checkbox = target.querySelector('input[type="checkbox"]');
+
+                if (workstream === 'All Teams') {
+                    // Toggle all workstreams
+                    if (checkbox.checked) {
+                        this.selectedWorkstreams = ['All Teams'];
+                        // Uncheck all other checkboxes
+                        document.querySelectorAll('#workstreamDropdownMenu input[type="checkbox"]').forEach(cb => {
+                            cb.checked = cb.closest('[data-workstream]').getAttribute('data-workstream') === 'All Teams';
+                        });
+                    } else {
+                        checkbox.checked = true; // Keep All Teams checked if trying to uncheck
+                        return;
+                    }
+                } else {
+                    // Toggle specific workstream
+                    const allTeamsCheckbox = document.querySelector('[data-workstream="All Teams"] input');
+
+                    if (checkbox.checked) {
+                        // Add to selection
+                        if (this.selectedWorkstreams.includes('All Teams')) {
+                            this.selectedWorkstreams = [workstream];
+                            allTeamsCheckbox.checked = false;
+                        } else if (!this.selectedWorkstreams.includes(workstream)) {
+                            this.selectedWorkstreams.push(workstream);
+                        }
+                    } else {
+                        // Remove from selection
+                        this.selectedWorkstreams = this.selectedWorkstreams.filter(w => w !== workstream);
+                        if (this.selectedWorkstreams.length === 0) {
+                            // If no workstreams selected, default to All Teams
+                            this.selectedWorkstreams = ['All Teams'];
+                            allTeamsCheckbox.checked = true;
+                        }
+                    }
+                }
+
+                this.updateWorkstreamDisplay();
+                this.updateExecutiveDashboard(this.data);
+            }
+
+            updateWorkstreamDisplay() {
+                const button = document.getElementById('workstreamDropdown');
+                const info = document.getElementById('workstreamInfo');
+
+                if (this.selectedWorkstreams.includes('All Teams')) {
+                    button.innerHTML = '<i class="fas fa-chart-pie me-2"></i>All Workstreams';
+                    info.textContent = 'All workstreams included';
+                } else if (this.selectedWorkstreams.length === 1) {
+                    button.innerHTML = `<i class="fas fa-chart-pie me-2"></i>${this.selectedWorkstreams[0]} Focus`;
+                    info.textContent = `Executive view focused on ${this.selectedWorkstreams[0]} workstream`;
+                } else {
+                    button.innerHTML = `<i class="fas fa-chart-pie me-2"></i>${this.selectedWorkstreams.length} Workstreams`;
+                    info.textContent = `Executive view of ${this.selectedWorkstreams.length} workstreams: ${this.selectedWorkstreams.join(', ')}`;
+                }
             }
         }
 

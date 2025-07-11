@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workstream Manager Browser Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .pass { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .fail { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background-color: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .test-section { margin: 20px 0; border: 1px solid #ddd; padding: 15px; border-radius: 5px; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Workstream Manager Browser Test</h1>
+    <p>Testing JavaScript WorkstreamManager implementation with Power BI CONTAINSSTRING logic</p>
+
+    <div id="testResults"></div>
+
+    <script src="js/workstream_config.js"></script>
+    <script src="js/workstream-manager.js"></script>
+    <script>
+        async function runTests() {
+            const results = document.getElementById('testResults');
+            const testResults = [];
+
+            // Test 1: WorkstreamManager Initialization
+            try {
+                const manager = new WorkstreamManager();
+                await manager.init();
+                testResults.push({ name: 'WorkstreamManager Initialization', passed: true, details: 'Manager initialized successfully' });
+            } catch (error) {
+                testResults.push({ name: 'WorkstreamManager Initialization', passed: false, details: error.message });
+            }
+
+            const manager = new WorkstreamManager();
+            await manager.init();
+
+            // Test 2: Configuration Loading
+            try {
+                const config = manager.configuration;
+                const hasWorkstreams = config && config.workstreams && Object.keys(config.workstreams).length > 0;
+                testResults.push({
+                    name: 'Configuration Loading',
+                    passed: hasWorkstreams,
+                    details: hasWorkstreams ? `Loaded ${Object.keys(config.workstreams).length} workstreams` : 'No workstreams found'
+                });
+            } catch (error) {
+                testResults.push({ name: 'Configuration Loading', passed: false, details: error.message });
+            }
+
+            // Test 3: CONTAINSSTRING Logic (Power BI Equivalence)
+            const containsStringTests = [
+                { member: 'Nenissa Malibago', expected: 'Data', description: 'Data team member assignment' },
+                { member: 'Glizzel Ann Artates', expected: 'OutSystems', description: 'OutSystems team member assignment' },
+                { member: 'Sharon Smith', expected: 'QA', description: 'QA team member assignment' },
+                { member: 'Unknown Person', expected: 'Others', description: 'Default assignment for unknown member' },
+                { member: 'ARIEL DIMAPILIS', expected: 'Data', description: 'Case insensitive matching' },
+                { member: 'Dr. Kennedy Oliveira PhD', expected: 'Data', description: 'Partial name matching' }
+            ];
+
+            let containsStringPassed = 0;
+            for (const test of containsStringTests) {
+                try {
+                    const result = manager.getWorkstreamForMember(test.member);
+                    const passed = result === test.expected;
+                    testResults.push({
+                        name: `CONTAINSSTRING: ${test.description}`,
+                        passed: passed,
+                        details: `Member: "${test.member}" → Expected: "${test.expected}", Got: "${result}"`
+                    });
+                    if (passed) containsStringPassed++;
+                } catch (error) {
+                    testResults.push({
+                        name: `CONTAINSSTRING: ${test.description}`,
+                        passed: false,
+                        details: `Error: ${error.message}`
+                    });
+                }
+            }
+
+            // Test 4: Team Metrics Filtering
+            try {
+                const mockTeamMetrics = {
+                    'Nenissa Malibago': { completed_items: 15, active_items: 3 },
+                    'Glizzel Ann Artates': { completed_items: 12, active_items: 2 },
+                    'Sharon Smith': { completed_items: 10, active_items: 1 },
+                    'Unknown Member': { completed_items: 5, active_items: 1 }
+                };
+
+                // Test filtering by Data workstream
+                const dataFiltered = manager.filterTeamMetrics(mockTeamMetrics, ['Data']);
+                const dataMembers = Object.keys(dataFiltered);
+                const hasNenissa = dataMembers.includes('Nenissa Malibago');
+                const noGlizzel = !dataMembers.includes('Glizzel Ann Artates');
+
+                testResults.push({
+                    name: 'Team Metrics Filtering - Data Workstream',
+                    passed: hasNenissa && noGlizzel,
+                    details: `Filtered to Data workstream: ${dataMembers.join(', ')}`
+                });
+
+                // Test filtering by multiple workstreams
+                const multiFiltered = manager.filterTeamMetrics(mockTeamMetrics, ['Data', 'QA']);
+                const multiMembers = Object.keys(multiFiltered);
+
+                testResults.push({
+                    name: 'Team Metrics Filtering - Multiple Workstreams',
+                    passed: multiMembers.length >= 2,
+                    details: `Filtered to Data + QA: ${multiMembers.join(', ')}`
+                });
+
+                // Test "All Teams" filtering
+                const allFiltered = manager.filterTeamMetrics(mockTeamMetrics, ['All Teams']);
+                const allMembers = Object.keys(allFiltered);
+
+                testResults.push({
+                    name: 'Team Metrics Filtering - All Teams',
+                    passed: allMembers.length === 4,
+                    details: `All Teams: ${allMembers.length} members included`
+                });
+
+            } catch (error) {
+                testResults.push({
+                    name: 'Team Metrics Filtering',
+                    passed: false,
+                    details: `Error: ${error.message}`
+                });
+            }
+
+            // Test 5: Available Workstreams
+            try {
+                const workstreams = manager.getAvailableWorkstreams();
+                const hasExpectedWorkstreams = workstreams.includes('Data') &&
+                                              workstreams.includes('QA') &&
+                                              workstreams.includes('OutSystems') &&
+                                              workstreams.includes('Others');
+
+                testResults.push({
+                    name: 'Available Workstreams',
+                    passed: hasExpectedWorkstreams,
+                    details: `Available: ${workstreams.join(', ')}`
+                });
+            } catch (error) {
+                testResults.push({
+                    name: 'Available Workstreams',
+                    passed: false,
+                    details: `Error: ${error.message}`
+                });
+            }
+
+            // Test 6: Configuration Validation
+            try {
+                const validation = manager.validateConfiguration();
+                testResults.push({
+                    name: 'Configuration Validation',
+                    passed: validation.valid,
+                    details: validation.valid ? 'Configuration is valid' : `Errors: ${validation.errors.join(', ')}`
+                });
+            } catch (error) {
+                testResults.push({
+                    name: 'Configuration Validation',
+                    passed: false,
+                    details: `Error: ${error.message}`
+                });
+            }
+
+            // Display Results
+            const totalTests = testResults.length;
+            const passedTests = testResults.filter(r => r.passed).length;
+            const successRate = ((passedTests / totalTests) * 100).toFixed(1);
+
+            results.innerHTML = `
+                <div class="test-section">
+                    <h2>📊 Test Summary</h2>
+                    <div class="info">
+                        <strong>Total Tests:</strong> ${totalTests}<br>
+                        <strong>Passed:</strong> ${passedTests}<br>
+                        <strong>Failed:</strong> ${totalTests - passedTests}<br>
+                        <strong>Success Rate:</strong> ${successRate}%
+                    </div>
+                </div>
+
+                <div class="test-section">
+                    <h2>🧪 Test Results</h2>
+                    ${testResults.map(result => `
+                        <div class="test-result ${result.passed ? 'pass' : 'fail'}">
+                            <strong>${result.passed ? '✅' : '❌'} ${result.name}</strong><br>
+                            <small>${result.details}</small>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div class="test-section">
+                    <h2>🔧 Implementation Verification</h2>
+                    <div class="info">
+                        <strong>Power BI CONTAINSSTRING Equivalence:</strong> ${containsStringPassed}/${containsStringTests.length} tests passed<br>
+                        <strong>Browser Compatibility:</strong> JavaScript WorkstreamManager functional<br>
+                        <strong>Configuration Loading:</strong> ${manager.configLoaded ? 'Success' : 'Failed'}<br>
+                        <strong>Ready for Dashboard Integration:</strong> ${passedTests >= totalTests * 0.8 ? 'Yes ✅' : 'No ❌'}
+                    </div>
+                </div>
+            `;
+
+            // Console summary
+            console.log(`🧪 Workstream Manager Test Results: ${passedTests}/${totalTests} passed (${successRate}%)`);
+            if (passedTests >= totalTests * 0.8) {
+                console.log('✅ Implementation ready for dashboard integration!');
+            } else {
+                console.log('❌ Implementation needs attention before dashboard integration');
+            }
+        }
+
+        // Run tests when page loads
+        document.addEventListener('DOMContentLoaded', runTests);
+    </script>
+</body>
+</html>

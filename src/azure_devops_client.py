@@ -54,7 +54,10 @@ class AzureDevOpsClient:
             return False
 
     def get_work_items(
-        self, days_back: int = 90, progress_callback: Optional[Callable] = None
+        self,
+        days_back: int = 90,
+        progress_callback: Optional[Callable] = None,
+        history_limit: Optional[int] = None,
     ) -> List[Dict]:
         """Fetch work items from Azure DevOps with enhanced progress tracking"""
         if progress_callback:
@@ -151,7 +154,7 @@ class AzureDevOpsClient:
             for item in work_items:
                 fields = item.get("fields", {})
 
-                # Build transformed item without state history
+                # Build transformed item without state history (will be fetched concurrently)
                 transformed_item = {
                     "id": f"WI-{item['id']}",
                     "raw_id": item["id"],  # Keep raw ID for state history fetching
@@ -209,7 +212,9 @@ class AzureDevOpsClient:
                 with ThreadPoolExecutor(max_workers=max_workers) as executor:
                     # Submit all state history requests
                     future_to_item = {
-                        executor.submit(self._get_state_history, item["raw_id"]): item
+                        executor.submit(
+                            self._get_state_history, item["raw_id"], history_limit
+                        ): item
                         for item in work_items_to_process
                     }
 
@@ -341,10 +346,14 @@ class AzureDevOpsClient:
 
         return work_items
 
-    def _get_state_history(self, work_item_id: int) -> List[Dict]:
-        """Get state transition history for a work item"""
+    def _get_state_history(
+        self, work_item_id: int, limit: Optional[int] = None
+    ) -> List[Dict]:
+        """Get state transition history for a work item with optional limit for performance"""
         try:
-            updates_url = f"{self.org_url}/{self.project}/_apis/wit/workitems/{work_item_id}/updates?api-version=7.0"
+            # Add limit parameter for performance optimization during testing
+            limit_param = f"&$top={limit}" if limit else ""
+            updates_url = f"{self.org_url}/{self.project}/_apis/wit/workitems/{work_item_id}/updates?api-version=7.0{limit_param}"
             response = requests.get(updates_url, headers=self.headers, timeout=30)
 
             if response.status_code == 405:

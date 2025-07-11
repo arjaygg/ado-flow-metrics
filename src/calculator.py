@@ -4,6 +4,8 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Union
 
+from .workstream_manager import WorkstreamManager
+
 logger = logging.getLogger(__name__)
 
 
@@ -403,15 +405,46 @@ class FlowMetricsCalculator:
             "count": len(efficiencies),
         }
 
-    def calculate_team_metrics(self) -> Dict:
-        """Calculate metrics by team member"""
+    def calculate_team_metrics(
+        self,
+        selected_members: Optional[List[str]] = None,
+        workstreams: Optional[List[str]] = None,
+    ) -> Dict:
+        """Calculate metrics by team member with optional filtering by members or workstreams"""
         logger.info("Starting team metrics calculation...")
+
+        # Handle workstream filtering
+        if workstreams:
+            logger.info(f"Filtering for workstreams: {workstreams}")
+            workstream_manager = WorkstreamManager()
+
+            # Get all members for specified workstreams
+            workstream_members = set()
+            for item in self.parsed_items:
+                assigned_to = item.get("assigned_to", "")
+                item_workstream = workstream_manager.get_workstream_for_member(
+                    assigned_to
+                )
+                if item_workstream in workstreams:
+                    workstream_members.add(assigned_to)
+
+            selected_members = list(workstream_members)
+            logger.info(
+                f"Workstream filtering resulted in {len(selected_members)} members: {selected_members}"
+            )
+        elif selected_members:
+            logger.info(
+                f"Filtering for {len(selected_members)} selected team members: {selected_members}"
+            )
         team_metrics = {}
 
-        # Group items by assignee
+        # Group items by assignee with optional filtering
         assignee_items = defaultdict(list)
         for item in self.parsed_items:
-            assignee_items[item["assigned_to"]].append(item)
+            assignee = item["assigned_to"]
+            # Apply team member filter if specified
+            if selected_members is None or assignee in selected_members:
+                assignee_items[assignee].append(item)
 
         logger.info(f"Found {len(assignee_items)} team members with work assignments")
 

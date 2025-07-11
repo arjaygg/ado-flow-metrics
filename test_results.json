@@ -1,0 +1,21 @@
+{
+  "history_performance": {
+    "unlimited_time": 0.0014617443084716797,
+    "limited_time": 0.0011365413665771484,
+    "improvement_percent": 22.247594193443156
+  },
+  "team_filtering": {
+    "total_members": 25,
+    "selected_members": [
+      "Christopher Reyes",
+      "Antonio Florencio Bisquera",
+      "Nenissa Malibago"
+    ],
+    "filtered_count": 3,
+    "filter_success": true
+  },
+  "client_integration": {
+    "client_initialized": true,
+    "history_limit_supported": true
+  }
+}
