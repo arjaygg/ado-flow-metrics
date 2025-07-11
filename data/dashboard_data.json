@@ -1,0 +1,137 @@
+{
+  "summary": {
+    "total_work_items": 285,
+    "completed_items": 198,
+    "completion_rate": 69.5,
+    "period_start": "2024-01-01T00:00:00Z",
+    "period_end": "2024-12-31T23:59:59Z"
+  },
+  "lead_time": {
+    "average_days": 12.4,
+    "median_days": 9.2,
+    "percentile_50": 9.2,
+    "percentile_75": 15.8,
+    "percentile_95": 28.3
+  },
+  "cycle_time": {
+    "average_days": 8.1,
+    "median_days": 6.5,
+    "percentile_50": 6.5,
+    "percentile_75": 10.2,
+    "percentile_95": 18.7
+  },
+  "throughput": {
+    "items_per_period": 24.3,
+    "items_per_week": 5.6,
+    "period_days": 30
+  },
+  "work_in_progress": {
+    "total_wip": 47,
+    "wip_by_state": {
+      "New": 12,
+      "Active": 18,
+      "In Review": 8,
+      "Testing": 9
+    }
+  },
+  "flow_efficiency": {
+    "average_efficiency": 0.67
+  },
+  "items_by_type": {
+    "User Story": 125,
+    "Bug": 45,
+    "Task": 68,
+    "Feature": 22,
+    "Epic": 12,
+    "Issue": 8,
+    "Test Case": 5
+  },
+  "items_by_sprint": {
+    "Sprint 24.1": 52,
+    "Sprint 24.2": 48,
+    "Sprint 24.3": 55,
+    "Sprint 24.4": 42,
+    "Sprint 25.1": 38,
+    "Backlog": 50
+  },
+  "sprints": [
+    "Sprint 24.1",
+    "Sprint 24.2",
+    "Sprint 24.3",
+    "Sprint 24.4",
+    "Sprint 25.1",
+    "Backlog"
+  ],
+  "team_metrics": {
+    "Engineering Team Alpha": {
+      "completed_items": 45,
+      "active_items": 8,
+      "completion_rate": 89.2,
+      "average_lead_time": 9.8,
+      "work_item_types": [
+        "User Story",
+        "Bug"
+      ],
+      "sprints": [
+        "Sprint 24.1",
+        "Sprint 24.2"
+      ]
+    },
+    "Engineering Team Beta": {
+      "completed_items": 38,
+      "active_items": 12,
+      "completion_rate": 84.7,
+      "average_lead_time": 11.2,
+      "work_item_types": [
+        "Task",
+        "Feature"
+      ],
+      "sprints": [
+        "Sprint 24.2",
+        "Sprint 24.3"
+      ]
+    },
+    "QA Team": {
+      "completed_items": 52,
+      "active_items": 15,
+      "completion_rate": 78.5,
+      "average_lead_time": 15.3,
+      "work_item_types": [
+        "Bug",
+        "Issue"
+      ],
+      "sprints": [
+        "Sprint 24.3",
+        "Sprint 24.4"
+      ]
+    },
+    "Product Team": {
+      "completed_items": 28,
+      "active_items": 6,
+      "completion_rate": 92.1,
+      "average_lead_time": 7.4,
+      "work_item_types": [
+        "Epic",
+        "Feature"
+      ],
+      "sprints": [
+        "Sprint 24.1",
+        "Sprint 25.1"
+      ]
+    },
+    "DevOps Team": {
+      "completed_items": 35,
+      "active_items": 6,
+      "completion_rate": 86.3,
+      "average_lead_time": 13.7,
+      "work_item_types": [
+        "Task",
+        "Bug"
+      ],
+      "sprints": [
+        "Sprint 24.4",
+        "Sprint 25.1"
+      ]
+    }
+  }
+}
