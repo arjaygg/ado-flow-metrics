@@ -56,6 +56,12 @@ class FlowMetricsWebServer:
         @self.app.route("/")
         def index():
             """Serve the main dashboard page."""
+            # Use the direct dashboard.html file in project root
+            from pathlib import Path
+            dashboard_path = Path(__file__).parent.parent / "dashboard.html"
+            if dashboard_path.exists():
+                with open(dashboard_path, 'r', encoding='utf-8') as f:
+                    return f.read()
             return render_template("index.html")
 
         @self.app.route("/api/metrics")
@@ -113,6 +119,22 @@ class FlowMetricsWebServer:
         def not_found(error):
             """Handle 404 errors."""
             return jsonify({"error": "Not found"}), 404
+
+        @self.app.route("/js/<path:filename>")
+        def serve_js(filename):
+            """Serve JavaScript files."""
+            from pathlib import Path
+            from flask import send_from_directory
+            js_dir = Path(__file__).parent.parent / "js"
+            return send_from_directory(js_dir, filename)
+
+        @self.app.route("/config/<path:filename>")
+        def serve_config(filename):
+            """Serve config files."""
+            from pathlib import Path
+            from flask import send_from_directory
+            config_dir = Path(__file__).parent.parent / "config"
+            return send_from_directory(config_dir, filename)
 
         @self.app.errorhandler(500)
         def internal_error(error):
