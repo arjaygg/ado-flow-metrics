@@ -19,13 +19,59 @@ class AzureDevOpsClient:
             "Accept": "application/json",
         }
 
+    def verify_connection(self) -> bool:
+        """Verify connection to Azure DevOps and permissions"""
+        try:
+            # Test basic project access
+            project_url = (
+                f"{self.org_url}/_apis/projects/{self.project}?api-version=7.0"
+            )
+            logger.info(f"Testing connection to: {project_url}")
+            response = requests.get(project_url, headers=self.headers, timeout=30)
+
+            if response.status_code == 401:
+                logger.error("Authentication failed - check your PAT token")
+                return False
+            elif response.status_code == 403:
+                logger.error("Access forbidden - check project permissions")
+                return False
+            elif response.status_code == 404:
+                logger.error(f"Project '{self.project}' not found")
+                return False
+            elif response.status_code == 405:
+                logger.error("Method not allowed - possible API endpoint issue")
+                return False
+
+            response.raise_for_status()
+            logger.info("Connection to Azure DevOps verified successfully")
+            return True
+
+        except Exception as e:
+            logger.error(f"Connection verification failed: {e}")
+            return False
+
     def get_work_items(self, days_back: int = 90) -> List[Dict]:
         """Fetch work items from Azure DevOps"""
         logger.info(
             f"Fetching work items from the last {days_back} days for project '{self.project}'."
         )
+
+        # Verify connection first to provide better error diagnostics
+        if not self.verify_connection():
+            logger.error(
+                "Connection verification failed. Cannot proceed with work item fetch."
+            )
+            return []
+
         try:
+            # Validate project name to prevent injection (basic sanitization)
+            if not self.project.replace("-", "").replace("_", "").isalnum():
+                logger.error(f"Invalid project name: {self.project}")
+                return []
+            
             # First, get work item IDs using WIQL
+            # Note: Azure DevOps WIQL doesn't support full parameterization,
+            # but we validate inputs above
             wiql_query = {
                 "query": f"""
                 SELECT [System.Id], [System.Title], [System.State], [System.WorkItemType],
@@ -37,8 +83,20 @@ class AzureDevOpsClient:
                 """
             }
 
-            wiql_url = f"{self.org_url}/{self.project}/_apis/wit/wiql?api-version=6.0"
-            response = requests.post(wiql_url, json=wiql_query, headers=self.headers)
+            wiql_url = f"{self.org_url}/{self.project}/_apis/wit/wiql?api-version=7.0"
+            logger.debug(f"Making WIQL request to: {wiql_url}")
+            response = requests.post(
+                wiql_url, json=wiql_query, headers=self.headers, timeout=30
+            )
+
+            if response.status_code == 405:
+                logger.error(f"HTTP 405 Method Not Allowed. URL: {wiql_url}")
+                logger.error(f"Request headers: {self.headers}")
+                logger.error(f"Request body: {wiql_query}")
+                raise requests.exceptions.HTTPError(
+                    f"Azure DevOps API returned 405 Method Not Allowed. This usually indicates an incorrect API endpoint or authentication issue."
+                )
+
             response.raise_for_status()  # Raise an exception for bad status codes
 
             work_item_refs = response.json().get("workItems", [])
@@ -56,12 +114,27 @@ class AzureDevOpsClient:
             for i in range(0, len(work_item_ids), batch_size):
                 batch_ids = work_item_ids[i : i + batch_size]
                 ids_string = ",".join(map(str, batch_ids))
-                details_url = f"{self.org_url}/{self.project}/_apis/wit/workitems?ids={ids_string}&$expand=relations&api-version=6.0"
+                details_url = f"{self.org_url}/{self.project}/_apis/wit/workitems?ids={ids_string}&$expand=relations&api-version=7.0"
 
                 logger.info(
                     f"Fetching details for batch {i//batch_size + 1}/{len(work_item_ids)//batch_size + 1} ({len(batch_ids)} items)."
                 )
-                details_response = requests.get(details_url, headers=self.headers)
+                logger.debug(f"Making work items request to: {details_url}")
+                details_response = requests.get(
+                    details_url, headers=self.headers, timeout=30
+                )
+
+                if details_response.status_code == 405:
+                    logger.error(
+                        f"HTTP 405 Method Not Allowed for work items detail. URL: {details_url}"
+                    )
+                    logger.error(
+                        f"This might indicate an authentication or permissions issue."
+                    )
+                    raise requests.exceptions.HTTPError(
+                        f"Azure DevOps API returned 405 Method Not Allowed for work items details."
+                    )
+
                 details_response.raise_for_status()
 
                 batch_work_items = details_response.json().get("value", [])
@@ -135,10 +208,19 @@ class AzureDevOpsClient:
     def _get_state_history(self, work_item_id: int) -> List[Dict]:
         """Get state transition history for a work item"""
         try:
-            updates_url = f"{self.org_url}/{self.project}/_apis/wit/workitems/{work_item_id}/updates?api-version=6.0"
-            response = requests.get(updates_url, headers=self.headers)
+            updates_url = f"{self.org_url}/{self.project}/_apis/wit/workitems/{work_item_id}/updates?api-version=7.0"
+            response = requests.get(updates_url, headers=self.headers, timeout=30)
+
+            if response.status_code == 405:
+                logger.warning(
+                    f"HTTP 405 for state history of work item {work_item_id}. Skipping state history."
+                )
+                return []
 
             if response.status_code != 200:
+                logger.warning(
+                    f"Failed to get state history for work item {work_item_id}: HTTP {response.status_code}"
+                )
                 return []
 
             updates = response.json().get("value", [])
@@ -175,7 +257,7 @@ class AzureDevOpsClient:
             teams_url = (
                 f"{self.org_url}/_apis/projects/{self.project}/teams?api-version=6.0"
             )
-            response = requests.get(teams_url, headers=self.headers)
+            response = requests.get(teams_url, headers=self.headers, timeout=30)
 
             if response.status_code != 200:
                 return []
@@ -188,7 +270,9 @@ class AzureDevOpsClient:
             team_id = teams[0]["id"]
             members_url = f"{self.org_url}/_apis/projects/{self.project}/teams/{team_id}/members?api-version=6.0"
 
-            members_response = requests.get(members_url, headers=self.headers)
+            members_response = requests.get(
+                members_url, headers=self.headers, timeout=30
+            )
 
             if members_response.status_code != 200:
                 return []
