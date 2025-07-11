@@ -9,6 +9,9 @@
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script src="js/workstream_config.js"></script>
     <script src="js/workstream-manager.js"></script>
+    <script src="js/predictive-analytics.js"></script>
+    <script src="js/time-series-analysis.js"></script>
+    <script src="js/enhanced-ux.js"></script>
     <style>
         :root {
             --primary-color: #4e73df;
@@ -221,6 +224,133 @@
             </div>
         </div>
 
+        <!-- Predictive Analytics Section -->
+        <div class="row mb-4">
+            <div class="col-lg-8">
+                <div class="chart-container">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="text-primary mb-0">Delivery Forecast</h6>
+                        <div class="d-flex gap-2">
+                            <select id="forecastItems" class="form-select form-select-sm" style="width: auto;">
+                                <option value="10">10 items</option>
+                                <option value="20" selected>20 items</option>
+                                <option value="50">50 items</option>
+                                <option value="100">100 items</option>
+                            </select>
+                            <button id="updateForecast" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-sync"></i> Update
+                            </button>
+                        </div>
+                    </div>
+                    <div id="forecastChart" style="height: 300px;"></div>
+                    <div class="row mt-3">
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <div class="text-success fw-bold" id="optimisticDate">--</div>
+                                <small class="text-muted">Optimistic (10%)</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <div class="text-primary fw-bold" id="realisticDate">--</div>
+                                <small class="text-muted">Realistic (50%)</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <div class="text-warning fw-bold" id="pessimisticDate">--</div>
+                                <small class="text-muted">Pessimistic (90%)</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="chart-container">
+                    <h6 class="text-primary mb-3">Velocity Trend</h6>
+                    <div id="velocityTrendChart" style="height: 200px;"></div>
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">Trend Direction</span>
+                            <span id="trendDirection" class="badge bg-secondary">--</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">Risk Level</span>
+                            <span id="riskLevel" class="badge bg-secondary">--</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Confidence</span>
+                            <span id="forecastConfidence" class="fw-bold">--%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Insights and Recommendations -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="chart-container">
+                    <h6 class="text-primary mb-3">
+                        <i class="fas fa-lightbulb me-2"></i>Insights & Recommendations
+                    </h6>
+                    <div id="insightsContainer">
+                        <div class="row" id="insightCards">
+                            <!-- Insight cards will be populated dynamically -->
+                        </div>
+                        <div class="mt-3">
+                            <h6 class="text-secondary mb-2">Recommendations</h6>
+                            <ul id="recommendationsList" class="list-unstyled">
+                                <!-- Recommendations will be populated dynamically -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Time Series Analysis -->
+        <div class="row mb-4">
+            <div class="col-lg-6">
+                <div class="chart-container">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="text-primary mb-0">Moving Averages</h6>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <input type="radio" class="btn-check" name="maMetric" id="ma-leadtime" value="leadTime" checked>
+                            <label class="btn btn-outline-primary" for="ma-leadtime">Lead Time</label>
+                            <input type="radio" class="btn-check" name="maMetric" id="ma-cycletime" value="cycleTime">
+                            <label class="btn btn-outline-primary" for="ma-cycletime">Cycle Time</label>
+                            <input type="radio" class="btn-check" name="maMetric" id="ma-throughput" value="throughput">
+                            <label class="btn btn-outline-primary" for="ma-throughput">Throughput</label>
+                        </div>
+                    </div>
+                    <div id="movingAveragesChart" style="height: 300px;"></div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="chart-container">
+                    <h6 class="text-primary mb-3">Period Comparison</h6>
+                    <div id="periodComparisonChart" style="height: 300px;"></div>
+                    <div class="mt-3">
+                        <div class="row text-center">
+                            <div class="col">
+                                <div class="text-primary fw-bold" id="currentPeriodValue">--</div>
+                                <small class="text-muted">Current Period</small>
+                            </div>
+                            <div class="col">
+                                <div class="text-secondary fw-bold" id="previousPeriodValue">--</div>
+                                <small class="text-muted">Previous Period</small>
+                            </div>
+                            <div class="col">
+                                <div id="periodChange" class="fw-bold">--%</div>
+                                <small class="text-muted">Change</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Team Table -->
         <div class="row">
             <div class="col-12">
@@ -252,7 +382,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Simple Flow Metrics Dashboard
+        // Enhanced Flow Metrics Dashboard with Predictive Analytics
         class FlowDashboard {
             constructor() {
                 this.data = null;
@@ -264,6 +394,12 @@
                 this.lastDataSource = null;
                 this.workstreamManager = new WorkstreamManager();
                 this.selectedWorkstreams = ['All Teams'];
+                
+                // Initialize new feature modules
+                this.predictiveAnalytics = new PredictiveAnalytics();
+                this.timeSeriesAnalyzer = new TimeSeriesAnalyzer();
+                this.enhancedUX = new EnhancedUX();
+                
                 this.init();
             }
 
@@ -271,6 +407,7 @@
                 await this.initIndexedDB();
                 await this.initWorkstreams();
                 this.setupEventListeners();
+                this.setupEnhancedFeatures();
                 this.loadData();
             }
 
@@ -380,6 +517,31 @@
                 document.getElementById('autoRefreshToggle').addEventListener('change', (e) => {
                     this.toggleAutoRefresh(e.target.checked);
                 });
+            }
+
+            setupEnhancedFeatures() {
+                // Predictive analytics controls
+                document.getElementById('updateForecast').addEventListener('click', () => {
+                    this.updatePredictiveAnalytics();
+                });
+
+                document.getElementById('forecastItems').addEventListener('change', () => {
+                    this.updatePredictiveAnalytics();
+                });
+
+                // Time series analysis controls
+                document.querySelectorAll('input[name="maMetric"]').forEach(radio => {
+                    radio.addEventListener('change', () => {
+                        this.updateMovingAverages(radio.value);
+                    });
+                });
+
+                // Initialize skeleton loading for new components
+                this.enhancedUX.showSkeleton('forecastChart', 'chart');
+                this.enhancedUX.showSkeleton('velocityTrendChart', 'chart');
+                this.enhancedUX.showSkeleton('movingAveragesChart', 'chart');
+                this.enhancedUX.showSkeleton('periodComparisonChart', 'chart');
+                this.enhancedUX.showSkeleton('insightCards', 'predictiveCard');
             }
 
             async loadData() {
@@ -493,6 +655,11 @@
                 this.updateMetricsCards(data);
                 this.updateCharts(data);
                 this.updateTeamTable(data);
+                
+                // Update enhanced features
+                this.updatePredictiveAnalytics(data);
+                this.updateTimeSeriesAnalysis(data);
+                this.updateInsightsAndRecommendations(data);
             }
 
             updateMetricsCards(data) {
@@ -890,6 +1057,453 @@
                         this.autoRefreshTimer = null;
                     }
                     console.log('Auto-refresh disabled');
+                }
+            }
+
+            // Enhanced Features Implementation
+
+            updatePredictiveAnalytics(data = null) {
+                const currentData = data || this.data;
+                if (!currentData || !currentData.historical_data) {
+                    console.warn('No historical data available for predictive analytics');
+                    return;
+                }
+
+                try {
+                    // Initialize predictive analytics with historical data
+                    this.predictiveAnalytics.initialize(currentData.historical_data);
+
+                    // Get forecast parameters
+                    const remainingItems = parseInt(document.getElementById('forecastItems').value) || 20;
+
+                    // Generate prediction
+                    const prediction = this.predictiveAnalytics.predictDeliveryDate(remainingItems, {
+                        confidenceLevel: 0.85
+                    });
+
+                    // Update forecast display
+                    this.updateForecastDisplay(prediction);
+
+                    // Update velocity trend chart
+                    this.updateVelocityTrendChart(prediction);
+
+                    // Hide skeleton loading
+                    this.enhancedUX.hideSkeleton('forecastChart');
+                    this.enhancedUX.hideSkeleton('velocityTrendChart');
+
+                } catch (error) {
+                    console.error('Error updating predictive analytics:', error);
+                    this.enhancedUX.hideSkeleton('forecastChart');
+                    this.enhancedUX.hideSkeleton('velocityTrendChart');
+                }
+            }
+
+            updateForecastDisplay(prediction) {
+                // Update date displays
+                const options = { month: 'short', day: 'numeric', year: 'numeric' };
+                document.getElementById('optimisticDate').textContent = 
+                    prediction.range.optimistic.toLocaleDateString('en-US', options);
+                document.getElementById('realisticDate').textContent = 
+                    prediction.range.realistic.toLocaleDateString('en-US', options);
+                document.getElementById('pessimisticDate').textContent = 
+                    prediction.range.pessimistic.toLocaleDateString('en-US', options);
+
+                // Update trend indicators
+                document.getElementById('trendDirection').textContent = prediction.velocityTrend.direction;
+                document.getElementById('trendDirection').className = 
+                    `badge ${this.getTrendBadgeClass(prediction.velocityTrend.direction)}`;
+
+                document.getElementById('riskLevel').textContent = prediction.riskLevel;
+                document.getElementById('riskLevel').className = 
+                    `badge ${this.getRiskBadgeClass(prediction.riskLevel)}`;
+
+                document.getElementById('forecastConfidence').textContent = 
+                    `${(prediction.confidence * 100).toFixed(0)}%`;
+
+                // Create forecast chart
+                this.createForecastChart(prediction);
+            }
+
+            createForecastChart(prediction) {
+                const trace1 = {
+                    x: ['Optimistic', 'Realistic', 'Pessimistic'],
+                    y: [
+                        prediction.weeksToComplete.optimistic,
+                        prediction.weeksToComplete.realistic,
+                        prediction.weeksToComplete.pessimistic
+                    ],
+                    type: 'bar',
+                    marker: {
+                        color: ['#1cc88a', '#4e73df', '#f6c23e']
+                    },
+                    text: [
+                        `${prediction.weeksToComplete.optimistic.toFixed(1)} weeks`,
+                        `${prediction.weeksToComplete.realistic.toFixed(1)} weeks`,
+                        `${prediction.weeksToComplete.pessimistic.toFixed(1)} weeks`
+                    ],
+                    textposition: 'auto'
+                };
+
+                const layout = {
+                    title: {
+                        text: 'Delivery Timeline Forecast',
+                        font: { size: 14 }
+                    },
+                    xaxis: { title: 'Confidence Level' },
+                    yaxis: { title: 'Weeks to Complete' },
+                    margin: { t: 40, b: 40, l: 60, r: 20 },
+                    showlegend: false
+                };
+
+                Plotly.newPlot('forecastChart', [trace1], layout, { responsive: true });
+            }
+
+            updateVelocityTrendChart(prediction) {
+                // Create velocity trend visualization
+                const velocityHistory = this.predictiveAnalytics.velocityHistory;
+                const weeks = velocityHistory.map((_, i) => `Week ${i + 1}`);
+
+                const trace = {
+                    x: weeks,
+                    y: velocityHistory,
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    line: { color: '#4e73df', width: 2 },
+                    marker: { size: 6 }
+                };
+
+                const layout = {
+                    title: {
+                        text: 'Velocity Trend',
+                        font: { size: 14 }
+                    },
+                    xaxis: { title: 'Time Period' },
+                    yaxis: { title: 'Items/Week' },
+                    margin: { t: 40, b: 40, l: 60, r: 20 },
+                    showlegend: false
+                };
+
+                Plotly.newPlot('velocityTrendChart', [trace], layout, { responsive: true });
+            }
+
+            updateTimeSeriesAnalysis(data = null) {
+                const currentData = data || this.data;
+                if (!currentData) return;
+
+                try {
+                    // Prepare time series data
+                    const timeSeriesData = this.prepareTimeSeriesData(currentData);
+                    
+                    // Initialize analyzer
+                    this.timeSeriesAnalyzer.initialize(timeSeriesData);
+
+                    // Update moving averages chart
+                    this.updateMovingAverages('leadTime');
+
+                    // Update period comparison chart
+                    this.updatePeriodComparison(timeSeriesData);
+
+                    // Hide skeleton loading
+                    this.enhancedUX.hideSkeleton('movingAveragesChart');
+                    this.enhancedUX.hideSkeleton('periodComparisonChart');
+
+                } catch (error) {
+                    console.error('Error updating time series analysis:', error);
+                    this.enhancedUX.hideSkeleton('movingAveragesChart');
+                    this.enhancedUX.hideSkeleton('periodComparisonChart');
+                }
+            }
+
+            prepareTimeSeriesData(data) {
+                const timeSeriesData = [];
+                
+                // Extract historical data points
+                if (data.historical_data) {
+                    data.historical_data.forEach(item => {
+                        if (item.resolvedDate) {
+                            timeSeriesData.push({
+                                date: item.resolvedDate,
+                                value: item.leadTime || 0,
+                                metric: 'leadTime'
+                            });
+                            timeSeriesData.push({
+                                date: item.resolvedDate,
+                                value: item.cycleTime || 0,
+                                metric: 'cycleTime'
+                            });
+                        }
+                    });
+                }
+
+                // Add current metrics as latest data points
+                const today = new Date().toISOString().split('T')[0];
+                const leadTime = data.lead_time?.average_days || 0;
+                const cycleTime = data.cycle_time?.average_days || 0;
+                const throughput = data.throughput?.items_per_period || 0;
+
+                timeSeriesData.push(
+                    { date: today, value: leadTime, metric: 'leadTime' },
+                    { date: today, value: cycleTime, metric: 'cycleTime' },
+                    { date: today, value: throughput, metric: 'throughput' }
+                );
+
+                return timeSeriesData;
+            }
+
+            updateMovingAverages(metric) {
+                const analysis = this.timeSeriesAnalyzer.getAnalysis(metric);
+                if (!analysis) return;
+
+                const movingAverages = analysis.movingAverages;
+                const traces = [];
+
+                // Add raw data
+                traces.push({
+                    x: analysis.rawData.map(d => d.date),
+                    y: analysis.rawData.map(d => d.value),
+                    type: 'scatter',
+                    mode: 'markers',
+                    name: 'Raw Data',
+                    marker: { color: '#e3e6f0', size: 4 }
+                });
+
+                // Add moving averages
+                const colors = ['#4e73df', '#1cc88a', '#f6c23e'];
+                movingAverages.forEach((ma, index) => {
+                    traces.push({
+                        x: ma.data.map(d => d.date),
+                        y: ma.data.map(d => d.value),
+                        type: 'scatter',
+                        mode: 'lines',
+                        name: `${ma.window}-day MA`,
+                        line: { color: colors[index], width: 2 }
+                    });
+                });
+
+                const layout = {
+                    title: {
+                        text: `${metric} Moving Averages`,
+                        font: { size: 14 }
+                    },
+                    xaxis: { title: 'Date' },
+                    yaxis: { title: 'Value' },
+                    margin: { t: 40, b: 40, l: 60, r: 20 },
+                    legend: { x: 0, y: 1 }
+                };
+
+                Plotly.newPlot('movingAveragesChart', traces, layout, { responsive: true });
+            }
+
+            updatePeriodComparison(timeSeriesData) {
+                // Get period comparisons from analyzer
+                const leadTimeData = timeSeriesData.filter(d => d.metric === 'leadTime');
+                if (leadTimeData.length < 14) return;
+
+                // Simple period comparison - last 7 days vs previous 7 days
+                const now = new Date();
+                const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+                const currentPeriod = leadTimeData.filter(d => new Date(d.date) >= sevenDaysAgo);
+                const previousPeriod = leadTimeData.filter(d => 
+                    new Date(d.date) >= fourteenDaysAgo && new Date(d.date) < sevenDaysAgo
+                );
+
+                const currentAvg = currentPeriod.length > 0 ? 
+                    currentPeriod.reduce((sum, d) => sum + d.value, 0) / currentPeriod.length : 0;
+                const previousAvg = previousPeriod.length > 0 ? 
+                    previousPeriod.reduce((sum, d) => sum + d.value, 0) / previousPeriod.length : 0;
+
+                // Update display
+                document.getElementById('currentPeriodValue').textContent = currentAvg.toFixed(1);
+                document.getElementById('previousPeriodValue').textContent = previousAvg.toFixed(1);
+                
+                const change = previousAvg > 0 ? ((currentAvg - previousAvg) / previousAvg * 100) : 0;
+                const changeElement = document.getElementById('periodChange');
+                changeElement.textContent = `${change.toFixed(1)}%`;
+                changeElement.className = `fw-bold ${change >= 0 ? 'text-warning' : 'text-success'}`;
+
+                // Create comparison chart
+                const trace = {
+                    x: ['Previous Period', 'Current Period'],
+                    y: [previousAvg, currentAvg],
+                    type: 'bar',
+                    marker: {
+                        color: [currentAvg >= previousAvg ? '#f6c23e' : '#1cc88a', '#4e73df']
+                    }
+                };
+
+                const layout = {
+                    title: {
+                        text: 'Period Comparison',
+                        font: { size: 14 }
+                    },
+                    yaxis: { title: 'Average Lead Time (days)' },
+                    margin: { t: 40, b: 40, l: 60, r: 20 },
+                    showlegend: false
+                };
+
+                Plotly.newPlot('periodComparisonChart', [trace], layout, { responsive: true });
+            }
+
+            updateInsightsAndRecommendations(data = null) {
+                const currentData = data || this.data;
+                if (!currentData) return;
+
+                try {
+                    // Generate insights based on current metrics and trends
+                    const insights = this.generateInsights(currentData);
+                    const recommendations = this.generateRecommendations(currentData);
+
+                    // Update insights cards
+                    this.updateInsightCards(insights);
+
+                    // Update recommendations list
+                    this.updateRecommendationsList(recommendations);
+
+                    // Hide skeleton loading
+                    this.enhancedUX.hideSkeleton('insightCards');
+
+                } catch (error) {
+                    console.error('Error updating insights:', error);
+                    this.enhancedUX.hideSkeleton('insightCards');
+                }
+            }
+
+            generateInsights(data) {
+                const insights = [];
+                
+                // Lead time insights
+                const leadTime = data.lead_time?.average_days || 0;
+                if (leadTime > 30) {
+                    insights.push({
+                        type: 'warning',
+                        title: 'High Lead Time',
+                        description: `Average lead time of ${leadTime.toFixed(1)} days is concerning`,
+                        icon: 'exclamation-triangle'
+                    });
+                } else if (leadTime < 5) {
+                    insights.push({
+                        type: 'success',
+                        title: 'Excellent Lead Time',
+                        description: `Very good lead time of ${leadTime.toFixed(1)} days`,
+                        icon: 'check-circle'
+                    });
+                }
+
+                // Throughput insights
+                const throughput = data.throughput?.items_per_period || 0;
+                if (throughput < 5) {
+                    insights.push({
+                        type: 'info',
+                        title: 'Low Throughput',
+                        description: `Consider ways to increase throughput (${throughput} items/period)`,
+                        icon: 'info-circle'
+                    });
+                }
+
+                // WIP insights
+                const wip = data.work_in_progress?.total_wip || 0;
+                if (wip > 20) {
+                    insights.push({
+                        type: 'warning',
+                        title: 'High WIP',
+                        description: `${wip} items in progress may cause bottlenecks`,
+                        icon: 'exclamation-triangle'
+                    });
+                }
+
+                return insights;
+            }
+
+            generateRecommendations(data) {
+                const recommendations = [];
+
+                const leadTime = data.lead_time?.average_days || 0;
+                const cycleTime = data.cycle_time?.average_days || 0;
+                const wip = data.work_in_progress?.total_wip || 0;
+
+                if (leadTime > cycleTime * 2) {
+                    recommendations.push('Focus on reducing waiting time between work stages');
+                }
+
+                if (wip > 15) {
+                    recommendations.push('Consider implementing WIP limits to improve flow');
+                }
+
+                if (leadTime > 20) {
+                    recommendations.push('Break down large work items into smaller, deliverable pieces');
+                }
+
+                if (recommendations.length === 0) {
+                    recommendations.push('Flow metrics look healthy. Continue monitoring for changes.');
+                }
+
+                return recommendations;
+            }
+
+            updateInsightCards(insights) {
+                const container = document.getElementById('insightCards');
+                
+                if (insights.length === 0) {
+                    container.innerHTML = '<div class="col-12"><p class="text-muted">No specific insights available.</p></div>';
+                    return;
+                }
+
+                container.innerHTML = insights.map(insight => `
+                    <div class="col-md-4 mb-3">
+                        <div class="card border-${this.getInsightBorderClass(insight.type)}">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="fas fa-${insight.icon} fa-2x text-${insight.type}"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="card-title mb-1">${insight.title}</h6>
+                                        <p class="card-text small">${insight.description}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            updateRecommendationsList(recommendations) {
+                const container = document.getElementById('recommendationsList');
+                
+                container.innerHTML = recommendations.map(rec => `
+                    <li class="d-flex align-items-start mb-2">
+                        <i class="fas fa-arrow-right text-primary me-2 mt-1"></i>
+                        <span>${rec}</span>
+                    </li>
+                `).join('');
+            }
+
+            // Utility methods for styling
+            getTrendBadgeClass(direction) {
+                switch (direction) {
+                    case 'IMPROVING': return 'bg-success';
+                    case 'DECLINING': return 'bg-danger';
+                    default: return 'bg-secondary';
+                }
+            }
+
+            getRiskBadgeClass(risk) {
+                switch (risk) {
+                    case 'LOW': return 'bg-success';
+                    case 'MEDIUM': return 'bg-warning';
+                    case 'HIGH': return 'bg-danger';
+                    default: return 'bg-secondary';
+                }
+            }
+
+            getInsightBorderClass(type) {
+                switch (type) {
+                    case 'success': return 'success';
+                    case 'warning': return 'warning';
+                    case 'danger': return 'danger';
+                    default: return 'info';
                 }
             }
         }
