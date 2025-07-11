@@ -9,7 +9,14 @@ from typing import List, Optional
 import click
 from rich import print as rprint
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.progress import (
+    BarColumn,
+    Progress,
+    SpinnerColumn,
+    TaskProgressColumn,
+    TextColumn,
+    TimeRemainingColumn,
+)
 from rich.table import Table
 
 from .azure_devops_client import AzureDevOpsClient
@@ -76,12 +83,44 @@ def fetch(
             settings.azure_devops.pat_token,
         )
 
+        # Setup enhanced progress tracking
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            TimeRemainingColumn(),
             console=console,
         ) as progress:
-            task = progress.add_task("Fetching work items...", total=None)
+            # Create task for overall progress
+            main_task = progress.add_task("Initializing...", total=None)
+            batch_task = None
+
+            def progress_callback(event_type: str, *args):
+                """Handle progress updates from Azure DevOps client"""
+                nonlocal batch_task
+
+                if event_type == "phase":
+                    phase_description = args[0]
+                    progress.update(main_task, description=phase_description)
+
+                elif event_type == "count":
+                    item_count = args[0]
+                    progress.update(
+                        main_task, description=f"Found {item_count} work items"
+                    )
+
+                elif event_type == "batch":
+                    completed_batches, total_batches = args[0], args[1]
+                    if batch_task is None:
+                        batch_task = progress.add_task(
+                            "Fetching batches...", total=total_batches
+                        )
+                    progress.update(
+                        batch_task,
+                        completed=completed_batches,
+                        description=f"Batch {completed_batches}/{total_batches}",
+                    )
 
             if incremental:
                 # Get last successful execution timestamp
@@ -104,8 +143,17 @@ def fetch(
                         "[yellow]No previous runs found, using full sync[/yellow]"
                     )
 
-            items = client.get_work_items(days_back=days_back)
-            progress.update(task, completed=True)
+            # Fetch with enhanced progress tracking
+            items = client.get_work_items(
+                days_back=days_back, progress_callback=progress_callback
+            )
+
+            # Mark completion
+            progress.update(
+                main_task, description="✓ Fetch complete!", completed=1, total=1
+            )
+            if batch_task is not None:
+                progress.remove_task(batch_task)
 
         # Save to file
         output_path = (

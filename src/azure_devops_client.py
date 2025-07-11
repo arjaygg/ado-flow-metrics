@@ -1,8 +1,10 @@
 import base64
 import json
 import logging
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
-from typing import Dict, List
+from typing import Callable, Dict, List, Optional
 
 import requests
 
@@ -51,9 +53,14 @@ class AzureDevOpsClient:
             logger.error(f"Connection verification failed: {e}")
             return False
 
-    def get_work_items(self, days_back: int = 90) -> List[Dict]:
-        """Fetch work items from Azure DevOps"""
-        logger.info(
+    def get_work_items(
+        self, days_back: int = 90, progress_callback: Optional[Callable] = None
+    ) -> List[Dict]:
+        """Fetch work items from Azure DevOps with enhanced progress tracking"""
+        if progress_callback:
+            progress_callback("phase", "Initializing Azure DevOps connection...")
+
+        logger.debug(
             f"Fetching work items from the last {days_back} days for project '{self.project}'."
         )
 
@@ -69,6 +76,9 @@ class AzureDevOpsClient:
             if not self.project.replace("-", "").replace("_", "").isalnum():
                 logger.error(f"Invalid project name: {self.project}")
                 return []
+
+            if progress_callback:
+                progress_callback("phase", "Querying work item IDs...")
 
             # First, get work item IDs using WIQL
             # Note: Azure DevOps WIQL doesn't support full parameterization,
@@ -99,7 +109,10 @@ class AzureDevOpsClient:
             response.raise_for_status()  # Raise an exception for bad status codes
 
             work_item_refs = response.json().get("workItems", [])
-            logger.info(f"Found {len(work_item_refs)} work item references.")
+            logger.debug(f"Found {len(work_item_refs)} work item references.")
+
+            if progress_callback:
+                progress_callback("count", len(work_item_refs))
 
             if not work_item_refs:
                 logger.warning("No work items found in the specified period.")
@@ -107,41 +120,28 @@ class AzureDevOpsClient:
 
             work_item_ids = [item["id"] for item in work_item_refs]
 
-            # Get detailed work item information in batches to avoid URL length limits
+            # Get detailed work item information in batches using concurrent processing
             work_items = []
             batch_size = 200  # Azure DevOps API limit
-            for i in range(0, len(work_item_ids), batch_size):
-                batch_ids = work_item_ids[i : i + batch_size]
-                ids_string = ",".join(map(str, batch_ids))
-                details_url = f"{self.org_url}/{self.project}/_apis/wit/workitems?ids={ids_string}&$expand=relations&api-version=7.0"
+            batches = [
+                work_item_ids[i : i + batch_size]
+                for i in range(0, len(work_item_ids), batch_size)
+            ]
 
-                logger.info(
-                    f"Fetching details for batch {i//batch_size + 1}/{len(work_item_ids)//batch_size + 1} ({len(batch_ids)} items)."
-                )
-                logger.debug(f"Making work items request to: {details_url}")
-                details_response = requests.get(
-                    details_url, headers=self.headers, timeout=30
+            if progress_callback:
+                progress_callback(
+                    "phase", f"Fetching {len(batches)} batches concurrently..."
                 )
 
-                if details_response.status_code == 405:
-                    logger.error(
-                        f"HTTP 405 Method Not Allowed for work items detail. URL: {details_url}"
-                    )
-                    logger.error(
-                        f"This might indicate an authentication or permissions issue."
-                    )
-                    raise requests.exceptions.HTTPError(
-                        f"Azure DevOps API returned 405 Method Not Allowed for work items details."
-                    )
+            # Use concurrent processing for better performance
+            work_items = self._fetch_work_items_concurrent(batches, progress_callback)
 
-                details_response.raise_for_status()
-
-                batch_work_items = details_response.json().get("value", [])
-                work_items.extend(batch_work_items)
-
-            logger.info(
+            logger.debug(
                 f"Successfully fetched details for {len(work_items)} work items in total."
             )
+
+            if progress_callback:
+                progress_callback("phase", "Processing work items and state history...")
 
             # Transform to our format
             transformed_items = []
@@ -203,6 +203,94 @@ class AzureDevOpsClient:
                 f"An unexpected error occurred while fetching work items: {e}"
             )
             return []
+
+    def _fetch_work_items_concurrent(
+        self, batches: List[List[int]], progress_callback: Optional[Callable] = None
+    ) -> List[Dict]:
+        """Fetch work item batches concurrently for improved performance"""
+        work_items = []
+        completed_batches = 0
+        total_batches = len(batches)
+
+        def fetch_batch_with_retry(batch_ids: List[int], batch_num: int) -> List[Dict]:
+            """Fetch a single batch with retry logic"""
+            max_retries = 3
+            base_delay = 1  # seconds
+
+            for attempt in range(max_retries):
+                try:
+                    ids_string = ",".join(map(str, batch_ids))
+                    details_url = f"{self.org_url}/{self.project}/_apis/wit/workitems?ids={ids_string}&$expand=relations&api-version=7.0"
+
+                    logger.debug(
+                        f"Fetching batch {batch_num + 1}/{total_batches} (attempt {attempt + 1})"
+                    )
+
+                    response = requests.get(
+                        details_url, headers=self.headers, timeout=60
+                    )
+
+                    if response.status_code == 429:  # Rate limited
+                        retry_after = int(
+                            response.headers.get(
+                                "Retry-After", base_delay * (2**attempt)
+                            )
+                        )
+                        logger.debug(f"Rate limited, waiting {retry_after} seconds...")
+                        time.sleep(retry_after)
+                        continue
+
+                    if response.status_code == 405:
+                        logger.error(
+                            f"HTTP 405 Method Not Allowed for batch {batch_num + 1}"
+                        )
+                        raise requests.exceptions.HTTPError(
+                            f"Azure DevOps API returned 405 Method Not Allowed for work items details."
+                        )
+
+                    response.raise_for_status()
+                    batch_work_items = response.json().get("value", [])
+
+                    # Update progress
+                    nonlocal completed_batches
+                    completed_batches += 1
+                    if progress_callback:
+                        progress_callback("batch", completed_batches, total_batches)
+
+                    return batch_work_items
+
+                except requests.RequestException as e:
+                    if attempt == max_retries - 1:  # Last attempt
+                        logger.error(
+                            f"Failed to fetch batch {batch_num + 1} after {max_retries} attempts: {e}"
+                        )
+                        return []
+                    else:
+                        delay = base_delay * (2**attempt)
+                        logger.debug(
+                            f"Batch {batch_num + 1} failed (attempt {attempt + 1}), retrying in {delay}s..."
+                        )
+                        time.sleep(delay)
+
+            return []
+
+        # Use ThreadPoolExecutor for concurrent requests
+        # Limit to 5 concurrent requests to respect API rate limits
+        max_workers = min(5, len(batches))
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all batch requests
+            future_to_batch = {
+                executor.submit(fetch_batch_with_retry, batch, idx): idx
+                for idx, batch in enumerate(batches)
+            }
+
+            # Collect results as they complete
+            for future in as_completed(future_to_batch):
+                batch_items = future.result()
+                work_items.extend(batch_items)
+
+        return work_items
 
     def _get_state_history(self, work_item_id: int) -> List[Dict]:
         """Get state transition history for a work item"""

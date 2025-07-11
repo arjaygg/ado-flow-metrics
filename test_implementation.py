@@ -8,12 +8,13 @@ from pathlib import Path
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from src.mock_data import generate_mock_azure_devops_data as generate_mock_data
-from src.calculator import FlowMetricsCalculator
-from src.config_manager import ConfigManager, FlowMetricsSettings, AzureDevOpsConfig
+from rich import print as rprint
 from rich.console import Console
 from rich.table import Table
-from rich import print as rprint
+
+from src.calculator import FlowMetricsCalculator
+from src.config_manager import AzureDevOpsConfig, ConfigManager, FlowMetricsSettings
+from src.mock_data import generate_mock_azure_devops_data as generate_mock_data
 
 console = Console()
 
@@ -36,54 +37,81 @@ def test_mock_data_generation():
             f"✓ Item has {len(sample_item.get('transitions', []))} state transitions"
         )
 
-    return mock_items
+    # Assert that we generated valid data
+    assert len(mock_items) > 0, "Must generate at least one work item"
+    assert all("id" in item for item in mock_items), "All items must have IDs"
+
+    console.print(f"✅ Mock data generation test passed")
 
 
-def test_metrics_calculation(work_items):
+def test_metrics_calculation():
     """Test metrics calculation."""
     console.print("\n[bold cyan]Testing Metrics Calculation[/bold cyan]")
 
-    calculator = FlowMetricsCalculator()
-    report = calculator.calculate_all_metrics(work_items, analysis_period_days=30)
+    # Generate test data
+    from src.mock_data import generate_mock_azure_devops_data
 
-    metrics = report["metrics"]
-    console.print(f"✓ Calculated metrics for {metrics['total_items']} items")
+    work_items = generate_mock_azure_devops_data()
+
+    # Calculate metrics
+    from src.calculator import FlowMetricsCalculator
+    from src.config_manager import get_settings
+
+    settings = get_settings()
+    calculator = FlowMetricsCalculator(work_items, settings)
+    report = calculator.generate_flow_metrics_report()
+
+    # Validate results with assertions
+    assert "summary" in report, "Report must contain summary section"
+    assert "lead_time" in report, "Report must contain lead_time section"
+    assert "cycle_time" in report, "Report must contain cycle_time section"
+
+    summary = report["summary"]
+    assert isinstance(
+        summary["total_work_items"], int
+    ), "total_work_items must be integer"
+    assert summary["total_work_items"] > 0, "Must have work items"
+
+    console.print(f"✓ Calculated metrics for {summary['total_work_items']} work items")
 
     # Display results in a table
     table = Table(title="Flow Metrics Results")
     table.add_column("Metric", style="cyan")
     table.add_column("Value", style="magenta")
 
-    table.add_row("Total Items", str(metrics["total_items"]))
-    table.add_row("Completed Items", str(metrics["completed_items"]))
-    table.add_row("Current WIP", str(metrics["wip"]["total"]))
+    table.add_row("Total Items", str(summary["total_work_items"]))
+    table.add_row("Completed Items", str(summary["completed_items"]))
+    table.add_row("Current WIP", str(report["work_in_progress"]["total_wip"]))
 
-    if metrics.get("lead_time"):
+    if report.get("lead_time"):
         table.add_row(
-            "Average Lead Time", f"{metrics['lead_time']['average']:.1f} days"
-        )
-        table.add_row("Median Lead Time", f"{metrics['lead_time']['median']:.1f} days")
-
-    if metrics.get("cycle_time"):
-        table.add_row(
-            "Average Cycle Time", f"{metrics['cycle_time']['average']:.1f} days"
+            "Average Lead Time", f"{report['lead_time']['average_days']:.1f} days"
         )
         table.add_row(
-            "Median Cycle Time", f"{metrics['cycle_time']['median']:.1f} days"
+            "Median Lead Time", f"{report['lead_time']['median_days']:.1f} days"
         )
 
-    if metrics.get("throughput"):
+    if report.get("cycle_time"):
         table.add_row(
-            "Throughput (30 days)", f"{metrics['throughput']['per_30_days']:.1f} items"
+            "Average Cycle Time", f"{report['cycle_time']['average_days']:.1f} days"
         )
-
-    if metrics.get("flow_efficiency"):
-        table.add_row("Flow Efficiency", f"{metrics['flow_efficiency']:.1f}%")
-
-    if metrics.get("littles_law"):
         table.add_row(
-            "Little's Law Variance", f"{metrics['littles_law']['variance']:.1f}%"
+            "Median Cycle Time", f"{report['cycle_time']['median_days']:.1f} days"
         )
+
+    if report.get("throughput"):
+        table.add_row(
+            "Throughput (30 days)",
+            f"{report['throughput']['items_per_period']:.1f} items",
+        )
+
+    if report.get("flow_efficiency"):
+        eff_pct = report["flow_efficiency"]["average_efficiency"] * 100
+        table.add_row("Flow Efficiency", f"{eff_pct:.1f}%")
+
+    if report.get("littles_law_validation"):
+        variance = report["littles_law_validation"].get("variance_percentage", 0)
+        table.add_row("Little's Law Variance", f"{variance:.1f}%")
 
     console.print(table)
 
@@ -95,21 +123,25 @@ def test_metrics_calculation(work_items):
         team_table.add_column("Active", style="yellow")
         team_table.add_column("Avg Lead Time", style="magenta")
 
-        for member in report["team_metrics"]:
+        for member_name, metrics in report["team_metrics"].items():
             team_table.add_row(
-                member["name"],
-                str(member["completed_items"]),
-                str(member["active_items"]),
+                member_name,
+                str(metrics.get("completed_items", 0)),
+                str(metrics.get("active_items", 0)),
                 (
-                    f"{member.get('average_lead_time', 0):.1f} days"
-                    if member.get("average_lead_time")
+                    f"{metrics.get('average_lead_time', 0):.1f} days"
+                    if metrics.get("average_lead_time")
                     else "N/A"
                 ),
             )
 
         console.print(team_table)
 
-    return report
+    # Final assertion that everything worked
+    assert isinstance(report, dict), "Report must be a dictionary"
+    assert "summary" in report, "Report must have summary section"
+
+    console.print("✅ Metrics calculation test passed")
 
 
 def test_configuration():
@@ -175,9 +207,9 @@ def test_configuration():
 
     except Exception as e:
         console.print(f"[red]✗ Configuration error: {e}[/red]")
-        return False
+        assert False, f"Configuration test failed: {e}"
 
-    return True
+    console.print("✅ Configuration test passed")
 
 
 def save_test_results(work_items, report):

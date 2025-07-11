@@ -3,14 +3,14 @@
 
 import json
 import sys
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from src.mock_data import generate_mock_azure_devops_data
 from src.calculator import FlowMetricsCalculator
+from src.mock_data import generate_mock_azure_devops_data
 
 
 def test_mock_data():
@@ -28,7 +28,12 @@ def test_mock_data():
         )
         print(f"✓ Sample assigned to: {sample.get('assigned_to', 'Unassigned')}")
 
-    return mock_items
+    # Assert validation
+    assert len(mock_items) > 0, "Must generate at least one work item"
+    assert all("id" in item for item in mock_items), "All items must have IDs"
+
+    print("✅ Mock data generation test passed")
+    return mock_items  # Still return for use in main function
 
 
 def test_calculator():
@@ -73,7 +78,13 @@ def test_calculator():
                 f"✓ Flow efficiency: {report['flow_efficiency'].get('efficiency_percentage', 0):.1f}%"
             )
 
-        return report
+        # Assert validation
+        assert isinstance(report, dict), "Report must be a dictionary"
+        assert "summary" in report, "Report must have summary"
+        assert summary.get("total_work_items", 0) > 0, "Must have work items"
+
+        print("✅ Calculator test passed")
+        return report  # Still return for use in main function
 
     except Exception as e:
         print(f"✗ Calculation failed: {e}")

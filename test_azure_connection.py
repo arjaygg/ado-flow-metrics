@@ -68,21 +68,20 @@ def test_azure_connection():
                     print(f"   State: {sample.get('current_state', 'N/A')}")
                     print(f"   Created: {sample.get('created_date', 'N/A')}")
 
-                return True
+                pass  # Test passed
             else:
                 print(
                     "⚠️  No work items found "
                     "(this might be normal for a short time period)"
                 )
-                return True
         else:
             print("❌ Connection verification failed")
-            return False
+            assert False, "Connection verification failed"
 
     except Exception as e:
         print(f"❌ Test failed with error: {e}")
         logging.exception("Detailed error information:")
-        return False
+        assert False, f"Azure connection test failed: {e}"
 
 
 if __name__ == "__main__":
