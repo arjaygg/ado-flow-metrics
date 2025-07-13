@@ -1020,18 +1020,43 @@ def serve(port: int, open_browser: bool, auto_generate: bool, executive: bool):
         class DashboardHandler(http.server.SimpleHTTPRequestHandler):
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, directory=str(dashboard_file.parent), **kwargs)
+            
+            def end_headers(self):
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+                self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+                super().end_headers()
+            
+            def guess_type(self, path):
+                """Override to ensure correct MIME types"""
+                mimetype, encoding = super().guess_type(path)
+                if path.endswith('.js'):
+                    return 'application/javascript', encoding
+                elif path.endswith('.json'):
+                    return 'application/json', encoding
+                elif path.endswith('.html'):
+                    return 'text/html', encoding
+                elif path.endswith('.css'):
+                    return 'text/css', encoding
+                return mimetype, encoding
 
         # Start server in background thread
         def start_server():
-            with socketserver.TCPServer(("", port), DashboardHandler) as httpd:
-                console.print(
-                    f"[green]✓ Dashboard server started on http://localhost:{port}[/green]"
-                )
-                console.print("[yellow]Press Ctrl+C to stop the server[/yellow]")
-                try:
-                    httpd.serve_forever()
-                except KeyboardInterrupt:
-                    console.print("[yellow]Dashboard server stopped[/yellow]")
+            try:
+                with socketserver.TCPServer(("", port), DashboardHandler) as httpd:
+                    httpd.allow_reuse_address = True
+                    console.print(
+                        f"[green]✓ Dashboard server started on http://localhost:{port}[/green]"
+                    )
+                    console.print(f"[cyan]Serving files from: {dashboard_file.parent}[/cyan]")
+                    console.print("[yellow]Press Ctrl+C to stop the server[/yellow]")
+                    try:
+                        httpd.serve_forever()
+                    except KeyboardInterrupt:
+                        console.print("[yellow]Dashboard server stopped[/yellow]")
+            except OSError as e:
+                console.print(f"[red]Server error: {e}[/red]")
+                console.print(f"[yellow]Try a different port: --port {port + 1}[/yellow]")
 
         server_thread = threading.Thread(target=start_server, daemon=True)
         server_thread.start()
