@@ -91,7 +91,7 @@ class TestDependencyUpdates:
     def test_requests_version_updated(self):
         """Test that requests dependency is updated to secure version."""
         # Read requirements.txt to verify version update
-        with open("/home/devag/git/fix-ccflow/requirements.txt", "r") as f:
+        with open("requirements.txt", "r") as f:
             requirements_content = f.read()
 
         # Should require secure version
@@ -101,7 +101,7 @@ class TestDependencyUpdates:
 
     def test_pydantic_version_pinned(self):
         """Test that pydantic version is properly pinned."""
-        with open("/home/devag/git/fix-ccflow/requirements.txt", "r") as f:
+        with open("requirements.txt", "r") as f:
             requirements_content = f.read()
 
         # Should have version pinning to prevent breaking changes
