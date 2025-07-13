@@ -68,11 +68,11 @@ class AzureDevOpsConfig(BaseModel):
 
         env_project = os.getenv("AZURE_DEVOPS_PROJECT")
         if env_project:
-            data["project"] = env_project
-        elif "project" not in data or data["project"] is None:
-            data["project"] = None
-        if data.get("project") and data["project"].strip() == "":
-            data["project"] = None
+            data["default_project"] = env_project
+        elif "default_project" not in data or data["default_project"] is None:
+            data["default_project"] = ""
+        if data.get("default_project") and data["default_project"].strip() == "":
+            data["default_project"] = ""
         super().__init__(**data)
 
     @field_validator("org_url")
