@@ -68,6 +68,8 @@ class WorkItem(BaseModel):
     tags: List[str] = Field(default_factory=list, description="Tags")
     area_path: Optional[str] = Field(None, description="Area path")
     iteration_path: Optional[str] = Field(None, description="Iteration path")
+    sprint_name: Optional[str] = Field(None, description="Sprint name")
+    sprint_path: Optional[str] = Field(None, description="Sprint path")
     transitions: List[StateTransition] = Field(
         default_factory=list, description="State transition history"
     )
@@ -106,6 +108,20 @@ class WorkItem(BaseModel):
     def age_days(self) -> float:
         """Calculate age in days since creation."""
         return (datetime.now() - self.created_date).total_seconds() / 86400
+
+    @property
+    def is_bug(self) -> bool:
+        """Check if work item is a bug/defect."""
+        bug_types = ["Bug", "Defect", "Issue"]
+        return self.type in bug_types
+
+    @property
+    def sprint_info(self) -> Dict[str, Optional[str]]:
+        """Get sprint information."""
+        return {
+            "name": self.sprint_name,
+            "path": self.sprint_path
+        }
 
     def get_time_in_state(self, state_name: str) -> Optional[float]:
         """Get time spent in a specific state in hours."""
@@ -193,6 +209,19 @@ class FlowMetrics(BaseModel):
     items_by_priority: Dict[int, int] = Field(
         default_factory=dict, description="Items breakdown by priority"
     )
+    items_by_sprint: Dict[str, int] = Field(
+        default_factory=dict, description="Items breakdown by sprint"
+    )
+    
+    # Defect ratio metrics
+    defect_ratio: Optional[float] = Field(
+        None, description="Ratio of bugs to total work items"
+    )
+    bug_count: int = Field(0, description="Number of bug/defect items")
+    non_bug_count: int = Field(0, description="Number of non-bug items")
+    configurable_defect_ratio: Optional[Dict[str, Any]] = Field(
+        None, description="Configurable defect ratio with selected work item types"
+    )
 
 
 class TeamMemberMetrics(BaseModel):
@@ -204,6 +233,24 @@ class TeamMemberMetrics(BaseModel):
     average_lead_time: Optional[float] = Field(None, description="Average lead time")
     average_cycle_time: Optional[float] = Field(None, description="Average cycle time")
     throughput_per_week: float = Field(0, description="Items completed per week")
+
+
+class FilterCriteria(BaseModel):
+    """Filtering criteria for flow metrics calculation."""
+    
+    work_item_types: Optional[List[str]] = Field(None, description="Filter by work item types")
+    sprint_names: Optional[List[str]] = Field(None, description="Filter by sprint names")
+    assignees: Optional[List[str]] = Field(None, description="Filter by assignees")
+    date_range: Optional[Dict[str, datetime]] = Field(None, description="Filter by date range")
+    include_completed_only: bool = Field(False, description="Include only completed items")
+
+
+class DefectRatioConfig(BaseModel):
+    """Configuration for defect ratio calculation."""
+    
+    bug_types: List[str] = Field(default=["Bug", "Defect", "Issue"], description="Work item types considered as bugs")
+    denominator_types: List[str] = Field(default=[], description="Work item types to include in denominator (empty = all types)")
+    exclude_types: List[str] = Field(default=[], description="Work item types to exclude from calculation")
 
 
 class FlowMetricsReport(BaseModel):
@@ -218,6 +265,10 @@ class FlowMetricsReport(BaseModel):
     )
     analysis_period_days: int = Field(..., description="Analysis period in days")
     data_source: str = Field(..., description="Data source identifier")
+    
+    # Filtering information
+    applied_filters: Optional[FilterCriteria] = Field(None, description="Applied filtering criteria")
+    defect_ratio_config: Optional[DefectRatioConfig] = Field(None, description="Defect ratio configuration")
 
     # Optional advanced analytics
     trends: Optional[Dict[str, Any]] = Field(None, description="Trend analysis")

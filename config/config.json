@@ -1,39 +1,27 @@
 {
-    "azure_devops": {
-        "org_url": "https://dev.azure.com/bofaz",
-        "default_project": "Axos-Universal-Core"
-    },
-    "stage_metadata": [
-        { "stage_name": "0 - New", "stage_group": "1. Requirement", "is_active": false, "is_done": false },
-        { "stage_name": "To Do", "stage_group": "1. Requirement", "is_active": false, "is_done": false },
-        { "stage_name": "1.1 - In Requirements", "stage_group": "1. Requirement", "is_active": false, "is_done": false },
-        { "stage_name": "1.1.1 - Ready for Refinement", "stage_group": "1. Requirement", "is_active": false, "is_done": false },
-        { "stage_name": "1.1.2 - Requirements Adjustment", "stage_group": "1. Requirement", "is_active": true, "is_done": false },
-        { "stage_name": "1.2 - Ready for Estimate", "stage_group": "1. Requirement", "is_active": false, "is_done": false },
-        { "stage_name": "1.2 - Ready for Refinement", "stage_group": "1. Requirement", "is_active": false, "is_done": false },
-        { "stage_name": "1.2.1 - Requirements Adjustment", "stage_group": "1. Requirement", "is_active": true, "is_done": false },
-        { "stage_name": "1.2.2 - Ready for Estimate", "stage_group": "1. Requirement", "is_active": false, "is_done": false },
-        { "stage_name": "2.1 - Ready for Development", "stage_group": "2. Development", "is_active": false, "is_done": false },
-        { "stage_name": "2.2 - In Progress", "stage_group": "2. Development", "is_active": true, "is_done": false },
-        { "stage_name": "In Progress", "stage_group": "2. Development", "is_active": true, "is_done": false },
-        { "stage_name": "2.3 - Ready for Code Review", "stage_group": "2. Development", "is_active": false, "is_done": false },
-        { "stage_name": "2.4 - Code Review In Progress", "stage_group": "2. Development", "is_active": true, "is_done": false },
-        { "stage_name": "2.5 - Dev Blocked", "stage_group": "2. Development", "is_active": false, "is_done": false },
-        { "stage_name": "2.5 - Ready to Build", "stage_group": "2. Development", "is_active": false, "is_done": false },
-        { "stage_name": "2.5.1 - Build Complete", "stage_group": "2. Development", "is_active": false, "is_done": false },
-        { "stage_name": "2.6 - Dev Blocked", "stage_group": "2. Development", "is_active": false, "is_done": false },
-        { "stage_name": "2.7 - Dependent on Other Work Item", "stage_group": "2. Development", "is_active": false, "is_done": false },
-        { "stage_name": "3.1 - Ready for Test", "stage_group": "3. QA", "is_active": false, "is_done": false },
-        { "stage_name": "3.2 - QA in Progress", "stage_group": "3. QA", "is_active": true, "is_done": false },
-        { "stage_name": "3.2.1 - Rejected by QA", "stage_group": "3. QA", "is_active": false, "is_done": false },
-        { "stage_name": "3.3 - QA Blocked", "stage_group": "3. QA", "is_active": false, "is_done": false },
-        { "stage_name": "3.4 - QA Approved", "stage_group": "3. QA", "is_active": false, "is_done": true },
-        { "stage_name": "3.4 -QA Approved", "stage_group": "3. QA", "is_active": false, "is_done": true },
-        { "stage_name": "3.4.1 - Ready for Demo", "stage_group": "3. QA", "is_active": false, "is_done": true },
-        { "stage_name": "4.1 - Ready for Release", "stage_group": "5. Ready for Release", "is_active": false, "is_done": true },
-        { "stage_name": "Ready for Release", "stage_group": "5. Ready for Release", "is_active": false, "is_done": true },
-        { "stage_name": "5 - Done", "stage_group": "6. Done", "is_active": false, "is_done": true },
-        { "stage_name": "Done", "stage_group": "6. Done", "is_active": false, "is_done": true },
-        { "stage_name": "Closed", "stage_group": "6. Done", "is_active": false, "is_done": true }
-    ]
+  "azure_devops": {
+    "org_url": "https://dev.azure.com/bofaz",
+    "default_project": "Axos-Universal-Core",
+    "pat_token": "${AZURE_DEVOPS_PAT}"
+  },
+  "flow_metrics": {
+    "throughput_period_days": 30,
+    "default_days_back": 20,
+    "executive_dashboard": {
+      "enable_work_items_table": true,
+      "items_per_page": 50,
+      "enable_chart_drilldown": true,
+      "enable_csv_export": true
+    }
+  },
+  "data_management": {
+    "data_directory": "data",
+    "auto_backup": true,
+    "export_directory": "exports"
+  },
+  "server": {
+    "default_port": 8080,
+    "host": "0.0.0.0",
+    "auto_open_browser": false
+  }
 }

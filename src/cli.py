@@ -561,7 +561,10 @@ def history(limit: int, detailed: bool):
 @click.option("--port", default=8000, help="Port to serve dashboard on")
 @click.option("--open-browser", is_flag=True, help="Open browser automatically")
 @click.option("--use-mock-data", is_flag=True, help="Use mock data for demo")
-def demo(port: int, open_browser: bool, use_mock_data: bool):
+@click.option(
+    "--executive", is_flag=True, help="Launch executive dashboard instead of standard dashboard"
+)
+def demo(port: int, open_browser: bool, use_mock_data: bool, executive: bool):
     """Quick demo: generate data and launch dashboard."""
     try:
         console.print("[cyan]🚀 Starting Flow Metrics Demo...[/cyan]")
@@ -579,7 +582,7 @@ def demo(port: int, open_browser: bool, use_mock_data: bool):
         # Launch dashboard
         ctx = click.get_current_context()
         ctx.invoke(
-            serve, port=port, open_browser=open_browser, auto_generate=not use_mock_data
+            serve, port=port, open_browser=open_browser, auto_generate=not use_mock_data, executive=executive
         )
 
     except Exception as e:
@@ -675,7 +678,13 @@ def data_reset(keep_config: bool):
 @data.command("fresh")
 @click.option("--days-back", default=30, help="Number of days to fetch")
 @click.option("--use-mock", is_flag=True, help="Use mock data instead of Azure DevOps")
-def data_fresh(days_back: int, use_mock: bool):
+@click.option(
+    "--history-limit",
+    default=None,
+    type=int,
+    help="Limit number of state history entries per work item for faster testing",
+)
+def data_fresh(days_back: int, use_mock: bool, history_limit: Optional[int]):
     """Start fresh: reset data and fetch new."""
     try:
         console.print("[cyan]🔄 Starting fresh data load...[/cyan]")
@@ -692,12 +701,15 @@ def data_fresh(days_back: int, use_mock: bool):
             console.print(
                 f"[yellow]Fetching fresh data for last {days_back} days...[/yellow]"
             )
-            ctx.invoke(fetch, days_back=days_back, save_last_run=True)
+            ctx.invoke(fetch, days_back=days_back, save_last_run=True, history_limit=history_limit)
             ctx.invoke(calculate)
 
         console.print("[green]✓ Fresh data load complete![/green]")
         console.print(
             "[cyan]💡 Run 'python3 -m src.cli serve --open-browser' to view dashboard[/cyan]"
+        )
+        console.print(
+            "[cyan]💡 Run 'python3 -m src.cli serve --open-browser --executive' to view executive dashboard[/cyan]"
         )
 
     except Exception as e:
@@ -711,7 +723,10 @@ def data_fresh(days_back: int, use_mock: bool):
 @click.option(
     "--auto-generate", is_flag=True, help="Auto-generate fresh data before serving"
 )
-def serve(port: int, open_browser: bool, auto_generate: bool):
+@click.option(
+    "--executive", is_flag=True, help="Launch executive dashboard instead of standard dashboard"
+)
+def serve(port: int, open_browser: bool, auto_generate: bool, executive: bool):
     """Launch the Flow Metrics dashboard with HTTP server."""
     import http.server
     import socketserver
@@ -728,7 +743,8 @@ def serve(port: int, open_browser: bool, auto_generate: bool):
             ctx.invoke(calculate, use_mock_data=True)
 
         # Check if dashboard file exists
-        dashboard_file = Path(__file__).parent.parent / "dashboard.html"
+        dashboard_filename = "executive-dashboard.html" if executive else "dashboard.html"
+        dashboard_file = Path(__file__).parent.parent / dashboard_filename
         if not dashboard_file.exists():
             console.print(
                 f"[red]Error: Dashboard file not found: {dashboard_file}[/red]"
@@ -760,8 +776,9 @@ def serve(port: int, open_browser: bool, auto_generate: bool):
 
         time.sleep(1)
 
-        dashboard_url = f"http://localhost:{port}/dashboard.html"
-        console.print(f"[green]Dashboard available at: {dashboard_url}[/green]")
+        dashboard_url = f"http://localhost:{port}/{dashboard_filename}"
+        dashboard_type = "Executive Dashboard" if executive else "Dashboard"
+        console.print(f"[green]{dashboard_type} available at: {dashboard_url}[/green]")
         console.print(
             "[cyan]💡 Select 'CLI Data' in the dashboard to load generated metrics[/cyan]"
         )

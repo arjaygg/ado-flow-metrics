@@ -3,32 +3,18 @@
     "Data": {
       "description": "Data analytics and engineering team",
       "name_patterns": [
-        "Nenissa",
-        "Ariel",
-        "Patrick Oniel",
-        "Kennedy Oliveira",
-        "Christopher Jan",
-        "Jegs",
-        "Ian Belmonte"
+        "Nenissa", "Ariel", "Patrick Oniel", "Kennedy Oliveira",
+        "Christopher Jan", "Jegs", "Ian Belmonte"
       ]
     },
     "QA": {
       "description": "Quality assurance and testing team",
-      "name_patterns": [
-        "Sharon",
-        "Lorenz",
-        "Arvin"
-      ]
+      "name_patterns": ["Sharon", "Lorenz", "Arvin"]
     },
     "OutSystems": {
       "description": "OutSystems development team",
       "name_patterns": [
-        "Apollo",
-        "Glizzel",
-        "Prince",
-        "Patrick Russel",
-        "Rio",
-        "Nymar"
+        "Apollo", "Glizzel", "Prince", "Patrick Russel", "Rio", "Nymar"
       ]
     }
   },
