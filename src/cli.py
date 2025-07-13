@@ -736,6 +736,118 @@ def data_reset(keep_config: bool):
         sys.exit(1)
 
 
+@data.command("validate")
+def data_validate():
+    """Validate Azure DevOps configuration and connection."""
+    try:
+        console.print("[bold cyan]Flow Metrics - Azure DevOps Validation[/bold cyan]")
+        console.print("=" * 50)
+        
+        from .config_manager import get_settings
+        from .azure_devops_client import AzureDevOpsClient
+        import os
+        
+        validation_errors = []
+        warnings = []
+        
+        # Step 1: Validate configuration file
+        console.print("\n[cyan]1. Checking configuration file...[/cyan]")
+        try:
+            settings = get_settings()
+            safe_print(f"[green]{SYMBOLS['check']} Configuration loaded successfully[/green]")
+            
+            # Validate Azure DevOps config
+            if not hasattr(settings, 'azure_devops'):
+                validation_errors.append("Missing 'azure_devops' section in config")
+            else:
+                if not settings.azure_devops.org_url:
+                    validation_errors.append("Missing 'org_url' in azure_devops config")
+                elif not settings.azure_devops.org_url.startswith('https://dev.azure.com/'):
+                    warnings.append(f"Unusual org_url format: {settings.azure_devops.org_url}")
+                else:
+                    safe_print(f"[green]{SYMBOLS['check']} Organization URL: {settings.azure_devops.org_url}[/green]")
+                
+                if not settings.azure_devops.default_project:
+                    validation_errors.append("Missing 'default_project' in azure_devops config")
+                else:
+                    safe_print(f"[green]{SYMBOLS['check']} Project: {settings.azure_devops.default_project}[/green]")
+                    
+        except Exception as config_error:
+            validation_errors.append(f"Configuration error: {config_error}")
+            
+        # Step 2: Validate PAT token
+        console.print("\n[cyan]2. Checking PAT token...[/cyan]")
+        pat_token = os.getenv("AZURE_DEVOPS_PAT")
+        
+        if not pat_token:
+            validation_errors.append("AZURE_DEVOPS_PAT environment variable not set")
+            console.print("[yellow]To set PAT token:[/yellow]")
+            console.print("  Windows: set AZURE_DEVOPS_PAT=your_token_here")
+            console.print("  Unix/Mac: export AZURE_DEVOPS_PAT=your_token_here")
+        else:
+            if len(pat_token) < 20:
+                warnings.append(f"PAT token seems short (length: {len(pat_token)})")
+            safe_print(f"[green]{SYMBOLS['check']} PAT Token: {'*' * (len(pat_token) - 4)}{pat_token[-4:]} (length: {len(pat_token)})[/green]")
+        
+        # Step 3: Check data directory
+        console.print("\n[cyan]3. Checking data directory...[/cyan]")
+        data_dir = Path("data")
+        if not data_dir.exists():
+            data_dir.mkdir()
+            safe_print(f"[green]{SYMBOLS['check']} Created data directory[/green]")
+        else:
+            safe_print(f"[green]{SYMBOLS['check']} Data directory exists[/green]")
+        
+        # Step 4: Test Azure DevOps connection (only if config and token are valid)
+        if not validation_errors:
+            console.print("\n[cyan]4. Testing Azure DevOps connection...[/cyan]")
+            
+            client = AzureDevOpsClient(
+                org_url=settings.azure_devops.org_url,
+                project=settings.azure_devops.default_project,
+                pat_token=pat_token
+            )
+            
+            if client.verify_connection():
+                safe_print(f"[green]{SYMBOLS['check']} Azure DevOps connection successful![/green]")
+            else:
+                validation_errors.append("Azure DevOps connection verification failed")
+        
+        # Display results
+        console.print("\n" + "=" * 50)
+        console.print("[bold]Validation Summary[/bold]")
+        console.print("=" * 50)
+        
+        if warnings:
+            console.print(f"\n[yellow]{SYMBOLS['warning']} Warnings ({len(warnings)}):[/yellow]")
+            for warning in warnings:
+                console.print(f"  • {warning}")
+        
+        if validation_errors:
+            console.print(f"\n[red]{SYMBOLS['error']} Errors ({len(validation_errors)}):[/red]")
+            for error in validation_errors:
+                console.print(f"  • {error}")
+            
+            console.print("\n[yellow]Recommended actions:[/yellow]")
+            console.print("1. Fix configuration errors above")
+            console.print("2. Ensure AZURE_DEVOPS_PAT is set correctly")
+            console.print("3. Check network connectivity to Azure DevOps")
+            console.print("\n[cyan]For immediate testing, use mock data:[/cyan]")
+            console.print("  python -m src.cli data fresh --use-mock")
+            sys.exit(1)
+        else:
+            safe_print(f"\n[green]{SYMBOLS['check']} All validation checks passed![/green]")
+            console.print("\n[green]You can now fetch real data:[/green]")
+            console.print("  python -m src.cli data fresh --days-back 7")
+            console.print("  python -m src.cli serve --open-browser")
+            
+    except Exception as e:
+        safe_print(f"[red]{SYMBOLS['error']} Validation failed: {e}[/red]")
+        console.print("\n[cyan]For immediate testing, use mock data:[/cyan]")
+        console.print("  python -m src.cli data fresh --use-mock")
+        sys.exit(1)
+
+
 @data.command("fresh")
 @click.option("--days-back", default=30, help="Number of days to fetch")
 @click.option("--use-mock", is_flag=True, help="Use mock data instead of Azure DevOps")
@@ -762,6 +874,45 @@ def data_fresh(days_back: int, use_mock: bool, history_limit: Optional[int]):
             console.print(
                 f"[yellow]Fetching fresh data for last {days_back} days...[/yellow]"
             )
+            
+            # Pre-validate Azure DevOps connection
+            console.print("[cyan]Validating Azure DevOps connection...[/cyan]")
+            try:
+                from .config_manager import get_settings
+                from .azure_devops_client import AzureDevOpsClient
+                import os
+                
+                settings = get_settings()
+                pat_token = os.getenv("AZURE_DEVOPS_PAT")
+                
+                if not pat_token:
+                    safe_print(f"[yellow]{SYMBOLS['warning']} AZURE_DEVOPS_PAT environment variable not set[/yellow]")
+                    safe_print(f"[cyan]{SYMBOLS['info']} Falling back to mock data for testing...[/cyan]")
+                    ctx.invoke(calculate, use_mock_data=True)
+                    return
+                
+                client = AzureDevOpsClient(
+                    org_url=settings.azure_devops.org_url,
+                    project=settings.azure_devops.default_project,
+                    pat_token=pat_token
+                )
+                
+                if not client.verify_connection():
+                    safe_print(f"[yellow]{SYMBOLS['warning']} Azure DevOps connection verification failed[/yellow]")
+                    safe_print(f"[cyan]{SYMBOLS['info']} This may be due to conditional access policies or authentication issues[/cyan]")
+                    safe_print(f"[cyan]{SYMBOLS['info']} Falling back to mock data for testing...[/cyan]")
+                    ctx.invoke(calculate, use_mock_data=True)
+                    return
+                
+                safe_print(f"[green]{SYMBOLS['check']} Azure DevOps connection verified[/green]")
+                
+            except Exception as conn_error:
+                safe_print(f"[yellow]{SYMBOLS['warning']} Connection validation failed: {conn_error}[/yellow]")
+                safe_print(f"[cyan]{SYMBOLS['info']} Falling back to mock data for testing...[/cyan]")
+                ctx.invoke(calculate, use_mock_data=True)
+                return
+            
+            # Connection is valid, proceed with fetch
             try:
                 ctx.invoke(fetch, days_back=days_back, save_last_run=True, history_limit=history_limit)
                 
