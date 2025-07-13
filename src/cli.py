@@ -857,7 +857,12 @@ def data_validate():
     type=int,
     help="Limit number of state history entries per work item for faster testing",
 )
-def data_fresh(days_back: int, use_mock: bool, history_limit: Optional[int]):
+@click.option(
+    "--force-mock",
+    is_flag=True,
+    help="Skip Azure DevOps validation and use mock data directly",
+)
+def data_fresh(days_back: int, use_mock: bool, history_limit: Optional[int], force_mock: bool):
     """Start fresh: reset data and fetch new."""
     try:
         safe_print(f"[cyan]{SYMBOLS['arrow']} Starting fresh data load...[/cyan]")
@@ -867,7 +872,7 @@ def data_fresh(days_back: int, use_mock: bool, history_limit: Optional[int]):
         ctx.invoke(data_reset, keep_config=True)
 
         # Generate fresh data
-        if use_mock:
+        if use_mock or force_mock:
             console.print("[yellow]Generating fresh mock data...[/yellow]")
             ctx.invoke(calculate, use_mock_data=True)
         else:
@@ -884,6 +889,10 @@ def data_fresh(days_back: int, use_mock: bool, history_limit: Optional[int]):
                 
                 settings = get_settings()
                 pat_token = os.getenv("AZURE_DEVOPS_PAT")
+                
+                # Debug: Print what config is being loaded
+                console.print(f"[dim]Debug: Organization: {settings.azure_devops.org_url}[/dim]")
+                console.print(f"[dim]Debug: Project: {settings.azure_devops.default_project}[/dim]")
                 
                 if not pat_token:
                     safe_print(f"[yellow]{SYMBOLS['warning']} AZURE_DEVOPS_PAT environment variable not set[/yellow]")
@@ -907,7 +916,17 @@ def data_fresh(days_back: int, use_mock: bool, history_limit: Optional[int]):
                 safe_print(f"[green]{SYMBOLS['check']} Azure DevOps connection verified[/green]")
                 
             except Exception as conn_error:
+                error_msg = str(conn_error)
                 safe_print(f"[yellow]{SYMBOLS['warning']} Connection validation failed: {conn_error}[/yellow]")
+                
+                # Provide specific guidance for common errors
+                if "not found" in error_msg and "project" in error_msg.lower():
+                    console.print("[yellow]This usually means:[/yellow]")
+                    console.print("• Project name is incorrect in config/config.json")
+                    console.print("• You don't have access to this project")
+                    console.print("• The project has been renamed or moved")
+                    console.print(f"[cyan]Check that '{settings.azure_devops.default_project}' is the correct project name[/cyan]")
+                
                 safe_print(f"[cyan]{SYMBOLS['info']} Falling back to mock data for testing...[/cyan]")
                 ctx.invoke(calculate, use_mock_data=True)
                 return
