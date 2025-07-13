@@ -116,7 +116,11 @@ def fetch(
     save_last_run: bool,
     history_limit: Optional[int],
 ):
-    """Fetch work items from Azure DevOps."""
+    """Fetch work items from Azure DevOps.
+    
+    Note: If you encounter authentication or conditional access policy errors,
+    use 'python -m src.cli data fresh --use-mock' to generate test data instead.
+    """
 
     # Set up signal handler for graceful cancellation
     def signal_handler(signum, frame):
@@ -758,8 +762,20 @@ def data_fresh(days_back: int, use_mock: bool, history_limit: Optional[int]):
             console.print(
                 f"[yellow]Fetching fresh data for last {days_back} days...[/yellow]"
             )
-            ctx.invoke(fetch, days_back=days_back, save_last_run=True, history_limit=history_limit)
-            ctx.invoke(calculate)
+            try:
+                ctx.invoke(fetch, days_back=days_back, save_last_run=True, history_limit=history_limit)
+                ctx.invoke(calculate)
+            except Exception as e:
+                error_msg = str(e).lower()
+                if any(keyword in error_msg for keyword in ['json', 'conditional access', 'authentication', 'invalid']):
+                    safe_print(f"[red]{SYMBOLS['error']} Azure DevOps connection failed: {e}[/red]")
+                    safe_print(f"[yellow]{SYMBOLS['warning']} This is likely due to conditional access policies or authentication issues[/yellow]")
+                    safe_print(f"[cyan]{SYMBOLS['info']} Falling back to mock data for testing...[/cyan]")
+                    # Fallback to mock data
+                    ctx.invoke(calculate, use_mock_data=True)
+                else:
+                    # Re-raise other errors
+                    raise
 
         safe_print(f"[green]{SYMBOLS['check']} Fresh data load complete![/green]")
         safe_print(

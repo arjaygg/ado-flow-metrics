@@ -119,7 +119,29 @@ class AzureDevOpsClient:
 
             response.raise_for_status()  # Raise an exception for bad status codes
 
-            work_item_refs = response.json().get("workItems", [])
+            # Check if response is valid JSON before parsing
+            try:
+                response_data = response.json()
+                work_item_refs = response_data.get("workItems", [])
+            except ValueError as json_error:
+                # Log the actual response for debugging
+                logger.error(f"Invalid JSON response from Azure DevOps API")
+                logger.error(f"Response status: {response.status_code}")
+                logger.error(f"Response headers: {dict(response.headers)}")
+                logger.error(f"Response content (first 500 chars): {response.text[:500]}")
+                
+                # Check if it's an HTML error page (common with auth issues)
+                if response.text.strip().startswith('<'):
+                    logger.error("Response appears to be HTML, likely an authentication or access error")
+                    if "conditional access" in response.text.lower():
+                        logger.error("Conditional Access Policy detected - use --use-mock flag for testing")
+                    elif "sign in" in response.text.lower() or "login" in response.text.lower():
+                        logger.error("Authentication required - check your PAT token")
+                
+                raise requests.exceptions.RequestException(
+                    f"Azure DevOps API returned invalid JSON. This usually indicates an authentication or policy issue. "
+                    f"Response status: {response.status_code}. Use --use-mock flag to generate test data instead."
+                ) from json_error
             logger.debug(f"Found {len(work_item_refs)} work item references.")
 
             if progress_callback:
