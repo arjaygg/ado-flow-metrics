@@ -23,7 +23,7 @@ from rich.table import Table
 
 from .azure_devops_client import AzureDevOpsClient
 from .calculator import FlowMetricsCalculator
-from .config_manager import ConfigManager, get_settings
+from .config_manager import get_settings
 from .data_storage import FlowMetricsDatabase
 from .mock_data import generate_mock_azure_devops_data as generate_mock_data
 from .models import FlowMetricsReport
@@ -155,9 +155,9 @@ def fetch(
             )
 
         client = AzureDevOpsClient(
-            settings.azure_devops.org_url,
-            settings.azure_devops.default_project,
-            settings.azure_devops.pat_token,
+            org_url=settings.azure_devops.org_url,
+            project=settings.azure_devops.default_project,
+            pat_token=settings.azure_devops.pat_token,
         )
 
         # Setup enhanced progress tracking
