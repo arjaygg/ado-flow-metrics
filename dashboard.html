@@ -95,6 +95,67 @@
                     </div>
                 </div>
             </div>
+            <!-- Work Item Type Filter -->
+            <div class="row align-items-center mb-3">
+                <div class="col-md-6">
+                    <h6 class="mb-0">Work Item Type Filter</h6>
+                    <small class="text-muted" id="workItemTypeInfo">All types included</small>
+                </div>
+                <div class="col-md-6">
+                    <div class="dropdown">
+                        <button class="btn btn-outline-info dropdown-toggle w-100" type="button" id="workItemTypeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-tags me-2"></i>All Types
+                        </button>
+                        <ul class="dropdown-menu w-100" aria-labelledby="workItemTypeDropdown" id="workItemTypeDropdownMenu">
+                            <li><a class="dropdown-item" href="#" data-work-item-type="All Types">
+                                <input type="checkbox" class="form-check-input me-2" checked> All Types
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="#" data-work-item-type="User Story">
+                                <input type="checkbox" class="form-check-input me-2"> User Story
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" data-work-item-type="Bug">
+                                <input type="checkbox" class="form-check-input me-2"> Bug
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" data-work-item-type="Task">
+                                <input type="checkbox" class="form-check-input me-2"> Task
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" data-work-item-type="Feature">
+                                <input type="checkbox" class="form-check-input me-2"> Feature
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" data-work-item-type="Epic">
+                                <input type="checkbox" class="form-check-input me-2"> Epic
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" data-work-item-type="Issue">
+                                <input type="checkbox" class="form-check-input me-2"> Issue
+                            </a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sprint Filter -->
+            <div class="row align-items-center mb-3">
+                <div class="col-md-6">
+                    <h6 class="mb-0">Sprint Filter</h6>
+                    <small class="text-muted" id="sprintInfo">All sprints included</small>
+                </div>
+                <div class="col-md-6">
+                    <div class="dropdown">
+                        <button class="btn btn-outline-warning dropdown-toggle w-100" type="button" id="sprintDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-running me-2"></i>All Sprints
+                        </button>
+                        <ul class="dropdown-menu w-100" aria-labelledby="sprintDropdown" id="sprintDropdownMenu">
+                            <li><a class="dropdown-item" href="#" data-sprint="All Sprints">
+                                <input type="checkbox" class="form-check-input me-2" checked> All Sprints
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <!-- Sprint options will be populated by JavaScript -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
             <!-- Workstream Filter -->
             <div class="row align-items-center">
                 <div class="col-md-6">
@@ -264,6 +325,9 @@
                 this.lastDataSource = null;
                 this.workstreamManager = new WorkstreamManager();
                 this.selectedWorkstreams = ['All Teams'];
+                this.selectedWorkItemTypes = ['All Types'];
+                this.selectedSprints = ['All Sprints'];
+                this.availableSprints = [];
                 this.init();
             }
 
@@ -376,6 +440,16 @@
                     this.handleWorkstreamFilter(e);
                 });
 
+                // Work Item Type filter
+                document.getElementById('workItemTypeDropdownMenu').addEventListener('click', (e) => {
+                    this.handleWorkItemTypeFilter(e);
+                });
+
+                // Sprint filter
+                document.getElementById('sprintDropdownMenu').addEventListener('click', (e) => {
+                    this.handleSprintFilter(e);
+                });
+
                 // Auto-refresh toggle
                 document.getElementById('autoRefreshToggle').addEventListener('change', (e) => {
                     this.toggleAutoRefresh(e.target.checked);
@@ -410,6 +484,7 @@
                     if (data) {
                         this.data = data;
                         this.lastDataSource = selectedSource;
+                        this.populateSprintFilter(data);
                         this.updateDashboard(data);
 
                         // Auto-save to IndexedDB for future use
@@ -797,7 +872,23 @@
                         "Bob Smith": { completed_items: 12, active_items: 2, completion_rate: 92.1, average_lead_time: 8.3 },
                         "Carol Davis": { completed_items: 10, active_items: 4, completion_rate: 72.4, average_lead_time: 13.2 },
                         "David Wilson": { completed_items: 8, active_items: 1, completion_rate: 88.9, average_lead_time: 9.7 }
-                    }
+                    },
+                    // Enhanced mock data with filtering information
+                    items_by_type: {
+                        "User Story": 85,
+                        "Bug": 32,
+                        "Task": 58,
+                        "Feature": 18,
+                        "Epic": 7
+                    },
+                    items_by_sprint: {
+                        "Sprint 24.1": 45,
+                        "Sprint 24.2": 52,
+                        "Sprint 24.3": 48,
+                        "Sprint 24.4": 38,
+                        "Backlog": 17
+                    },
+                    sprints: ["Sprint 24.1", "Sprint 24.2", "Sprint 24.3", "Sprint 24.4", "Backlog"]
                 };
             }
 
@@ -872,6 +963,154 @@
                 } else {
                     button.innerHTML = `<i class="fas fa-users me-2"></i>${this.selectedWorkstreams.length} Workstreams`;
                     info.textContent = `Filtered to ${this.selectedWorkstreams.length} workstreams: ${this.selectedWorkstreams.join(', ')}`;
+                }
+            }
+
+            populateSprintFilter(data) {
+                const menu = document.getElementById('sprintDropdownMenu');
+                const sprints = data.sprints || Object.keys(data.items_by_sprint || {});
+                
+                this.availableSprints = sprints;
+
+                // Clear existing sprint items (keep All Sprints)
+                const existingItems = menu.querySelectorAll('[data-sprint]:not([data-sprint="All Sprints"])');
+                existingItems.forEach(item => item.parentElement.remove());
+
+                // Add sprint options
+                sprints.forEach(sprint => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <a class="dropdown-item" href="#" data-sprint="${sprint}">
+                            <input type="checkbox" class="form-check-input me-2"> ${sprint}
+                        </a>
+                    `;
+                    menu.appendChild(li);
+                });
+            }
+
+            handleWorkItemTypeFilter(event) {
+                event.preventDefault();
+                const target = event.target.closest('[data-work-item-type]');
+                if (!target) return;
+
+                const workItemType = target.getAttribute('data-work-item-type');
+                const checkbox = target.querySelector('input[type="checkbox"]');
+
+                if (workItemType === 'All Types') {
+                    // Toggle all types
+                    if (checkbox.checked) {
+                        this.selectedWorkItemTypes = ['All Types'];
+                        // Uncheck all other checkboxes
+                        document.querySelectorAll('#workItemTypeDropdownMenu input[type="checkbox"]').forEach(cb => {
+                            cb.checked = cb.closest('[data-work-item-type]').getAttribute('data-work-item-type') === 'All Types';
+                        });
+                    } else {
+                        checkbox.checked = true; // Keep All Types checked if trying to uncheck
+                        return;
+                    }
+                } else {
+                    // Toggle specific work item type
+                    const allTypesCheckbox = document.querySelector('[data-work-item-type="All Types"] input');
+
+                    if (checkbox.checked) {
+                        // Add to selection
+                        if (this.selectedWorkItemTypes.includes('All Types')) {
+                            this.selectedWorkItemTypes = [workItemType];
+                            allTypesCheckbox.checked = false;
+                        } else if (!this.selectedWorkItemTypes.includes(workItemType)) {
+                            this.selectedWorkItemTypes.push(workItemType);
+                        }
+                    } else {
+                        // Remove from selection
+                        this.selectedWorkItemTypes = this.selectedWorkItemTypes.filter(w => w !== workItemType);
+                        if (this.selectedWorkItemTypes.length === 0) {
+                            // If no types selected, default to All Types
+                            this.selectedWorkItemTypes = ['All Types'];
+                            allTypesCheckbox.checked = true;
+                        }
+                    }
+                }
+
+                this.updateWorkItemTypeDisplay();
+                this.updateDashboard(this.data);
+            }
+
+            handleSprintFilter(event) {
+                event.preventDefault();
+                const target = event.target.closest('[data-sprint]');
+                if (!target) return;
+
+                const sprint = target.getAttribute('data-sprint');
+                const checkbox = target.querySelector('input[type="checkbox"]');
+
+                if (sprint === 'All Sprints') {
+                    // Toggle all sprints
+                    if (checkbox.checked) {
+                        this.selectedSprints = ['All Sprints'];
+                        // Uncheck all other checkboxes
+                        document.querySelectorAll('#sprintDropdownMenu input[type="checkbox"]').forEach(cb => {
+                            cb.checked = cb.closest('[data-sprint]').getAttribute('data-sprint') === 'All Sprints';
+                        });
+                    } else {
+                        checkbox.checked = true; // Keep All Sprints checked if trying to uncheck
+                        return;
+                    }
+                } else {
+                    // Toggle specific sprint
+                    const allSprintsCheckbox = document.querySelector('[data-sprint="All Sprints"] input');
+
+                    if (checkbox.checked) {
+                        // Add to selection
+                        if (this.selectedSprints.includes('All Sprints')) {
+                            this.selectedSprints = [sprint];
+                            allSprintsCheckbox.checked = false;
+                        } else if (!this.selectedSprints.includes(sprint)) {
+                            this.selectedSprints.push(sprint);
+                        }
+                    } else {
+                        // Remove from selection
+                        this.selectedSprints = this.selectedSprints.filter(s => s !== sprint);
+                        if (this.selectedSprints.length === 0) {
+                            // If no sprints selected, default to All Sprints
+                            this.selectedSprints = ['All Sprints'];
+                            allSprintsCheckbox.checked = true;
+                        }
+                    }
+                }
+
+                this.updateSprintDisplay();
+                this.updateDashboard(this.data);
+            }
+
+            updateWorkItemTypeDisplay() {
+                const button = document.getElementById('workItemTypeDropdown');
+                const info = document.getElementById('workItemTypeInfo');
+
+                if (this.selectedWorkItemTypes.includes('All Types')) {
+                    button.innerHTML = '<i class="fas fa-tags me-2"></i>All Types';
+                    info.textContent = 'All types included';
+                } else if (this.selectedWorkItemTypes.length === 1) {
+                    button.innerHTML = `<i class="fas fa-tags me-2"></i>${this.selectedWorkItemTypes[0]}`;
+                    info.textContent = `Filtered to ${this.selectedWorkItemTypes[0]} items`;
+                } else {
+                    button.innerHTML = `<i class="fas fa-tags me-2"></i>${this.selectedWorkItemTypes.length} Types`;
+                    info.textContent = `Filtered to ${this.selectedWorkItemTypes.length} types: ${this.selectedWorkItemTypes.join(', ')}`;
+                }
+            }
+
+            updateSprintDisplay() {
+                const button = document.getElementById('sprintDropdown');
+                const info = document.getElementById('sprintInfo');
+
+                if (this.selectedSprints.includes('All Sprints')) {
+                    button.innerHTML = '<i class="fas fa-running me-2"></i>All Sprints';
+                    info.textContent = 'All sprints included';
+                } else if (this.selectedSprints.length === 1) {
+                    button.innerHTML = `<i class="fas fa-running me-2"></i>${this.selectedSprints[0]}`;
+                    info.textContent = `Filtered to ${this.selectedSprints[0]}`;
+                } else {
+                    button.innerHTML = `<i class="fas fa-running me-2"></i>${this.selectedSprints.length} Sprints`;
+                    info.textContent = `Filtered to ${this.selectedSprints.length} sprints: ${this.selectedSprints.join(', ')}`;
                 }
             }
 
