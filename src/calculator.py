@@ -593,10 +593,95 @@ class FlowMetricsCalculator:
         report["trend_analysis"] = {}
         report["bottlenecks"] = {"state_transitions": {}}
         report["cycle_time_distribution"] = {}
+        
+        # Add historical data for dashboard charts
+        logger.info("Preparing historical data for dashboard charts...")
+        report["historical_data"] = self._prepare_historical_data()
 
         logger.info("Flow metrics report generation completed.")
 
         return report
+
+    def _prepare_historical_data(self) -> List[Dict]:
+        """Prepare historical data for dashboard charts"""
+        historical_data = []
+        
+        for item in self.parsed_items:
+            # Only include completed items with resolution dates
+            if item["current_state"] in self.done_states:
+                # Find the resolution date
+                resolved_date = None
+                for state in self.done_states:
+                    state_key = f"{state.lower().replace(' ', '_')}_date"
+                    if state_key in item:
+                        resolved_date = item[state_key].isoformat() if hasattr(item[state_key], 'isoformat') else str(item[state_key])
+                        break
+                
+                if resolved_date:
+                    # Calculate lead time and cycle time for this item
+                    lead_time = self._calculate_item_lead_time(item)
+                    cycle_time = self._calculate_item_cycle_time(item)
+                    
+                    historical_data.append({
+                        "id": item.get("id", ""),
+                        "title": item.get("title", ""),
+                        "type": item.get("type", ""),
+                        "assignee": item.get("assignee", ""),
+                        "resolvedDate": resolved_date,
+                        "leadTime": lead_time,
+                        "cycleTime": cycle_time,
+                        "state": item.get("current_state", "")
+                    })
+        
+        return historical_data
+
+    def _calculate_item_lead_time(self, item: Dict) -> float:
+        """Calculate lead time for a single item"""
+        created_date = item.get("created_date")
+        if not created_date:
+            return 0
+            
+        # Find completion date
+        completion_date = None
+        for state in self.done_states:
+            state_key = f"{state.lower().replace(' ', '_')}_date"
+            if state_key in item:
+                completion_date = item[state_key]
+                break
+        
+        if completion_date and created_date:
+            delta = completion_date - created_date
+            return round(delta.days + delta.seconds / 86400, 2)
+        
+        return 0
+
+    def _calculate_item_cycle_time(self, item: Dict) -> float:
+        """Calculate cycle time for a single item"""
+        # Find first active state date
+        start_date = None
+        for state in self.active_states:
+            state_key = f"{state.lower().replace(' ', '_')}_date"
+            if state_key in item:
+                start_date = item[state_key]
+                break
+        
+        # If no active state date, use created date
+        if not start_date:
+            start_date = item.get("created_date")
+            
+        # Find completion date
+        completion_date = None
+        for state in self.done_states:
+            state_key = f"{state.lower().replace(' ', '_')}_date"
+            if state_key in item:
+                completion_date = item[state_key]
+                break
+        
+        if completion_date and start_date:
+            delta = completion_date - start_date
+            return round(delta.days + delta.seconds / 86400, 2)
+        
+        return 0
 
 
 def main():

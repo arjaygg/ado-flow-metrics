@@ -2255,6 +2255,11 @@
             updateVelocityTrendChart(prediction) {
                 // Create velocity trend visualization
                 const velocityHistory = this.predictiveAnalytics.velocityHistory;
+                if (!velocityHistory || velocityHistory.length === 0) {
+                    console.warn('No velocity history available');
+                    this.showPlaceholderChart('velocityTrendChart', 'Velocity trend data not available');
+                    return;
+                }
                 const weeks = velocityHistory.map((_, i) => `Week ${i + 1}`);
 
                 const trace = {
@@ -2278,6 +2283,25 @@
                 };
 
                 Plotly.newPlot('velocityTrendChart', [trace], layout, { responsive: true });
+            }
+
+            showPlaceholderChart(chartId, message) {
+                // Show a placeholder chart when data is not available
+                const layout = {
+                    title: { text: message },
+                    xaxis: { visible: false },
+                    yaxis: { visible: false },
+                    annotations: [{
+                        text: 'Data will be available after more work items are completed',
+                        showarrow: false,
+                        x: 0.5,
+                        y: 0.5,
+                        font: { size: 14, color: '#858796' }
+                    }],
+                    margin: { t: 60, b: 20, l: 20, r: 20 }
+                };
+                
+                Plotly.newPlot(chartId, [], layout, { responsive: true });
             }
 
             updateTimeSeriesAnalysis(data = null) {
@@ -2346,7 +2370,12 @@
 
             updateMovingAverages(metric) {
                 const analysis = this.timeSeriesAnalyzer.getAnalysis(metric);
-                if (!analysis) return;
+                if (!analysis) {
+                    console.warn('No analysis data available for moving averages');
+                    // Show placeholder chart
+                    this.showPlaceholderChart('movingAveragesChart', 'Moving averages data not available');
+                    return;
+                }
 
                 const movingAverages = analysis.movingAverages;
                 const traces = [];
@@ -2391,7 +2420,11 @@
             updatePeriodComparison(timeSeriesData) {
                 // Get period comparisons from analyzer
                 const leadTimeData = timeSeriesData.filter(d => d.metric === 'leadTime');
-                if (leadTimeData.length < 14) return;
+                if (leadTimeData.length < 14) {
+                    console.warn('Insufficient data for period comparison');
+                    this.showPlaceholderChart('periodComparisonChart', 'Insufficient data for period comparison');
+                    return;
+                }
 
                 // Simple period comparison - last 7 days vs previous 7 days
                 const now = new Date();
