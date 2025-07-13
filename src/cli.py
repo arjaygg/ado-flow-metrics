@@ -764,10 +764,32 @@ def data_fresh(days_back: int, use_mock: bool, history_limit: Optional[int]):
             )
             try:
                 ctx.invoke(fetch, days_back=days_back, save_last_run=True, history_limit=history_limit)
-                ctx.invoke(calculate)
+                
+                # Check if fetch was successful by looking at the work items file
+                data_dir = Path("data")
+                work_items_file = data_dir / "work_items.json"
+                
+                if work_items_file.exists():
+                    with open(work_items_file) as f:
+                        work_items_data = json.load(f)
+                    
+                    if not work_items_data or len(work_items_data) == 0:
+                        # Fetch completed but got no data - likely auth/policy issue
+                        safe_print(f"[yellow]{SYMBOLS['warning']} Azure DevOps fetch completed but returned no work items[/yellow]")
+                        safe_print(f"[cyan]{SYMBOLS['info']} This may be due to conditional access policies or insufficient permissions[/cyan]")
+                        safe_print(f"[cyan]{SYMBOLS['info']} Falling back to mock data for testing...[/cyan]")
+                        ctx.invoke(calculate, use_mock_data=True)
+                    else:
+                        # Success - proceed with normal calculation
+                        ctx.invoke(calculate)
+                else:
+                    # No file created - fetch failed
+                    safe_print(f"[yellow]{SYMBOLS['warning']} No work items file created - falling back to mock data[/yellow]")
+                    ctx.invoke(calculate, use_mock_data=True)
+                    
             except Exception as e:
                 error_msg = str(e).lower()
-                if any(keyword in error_msg for keyword in ['json', 'conditional access', 'authentication', 'invalid']):
+                if any(keyword in error_msg for keyword in ['json', 'conditional access', 'authentication', 'invalid', 'no work items']):
                     safe_print(f"[red]{SYMBOLS['error']} Azure DevOps connection failed: {e}[/red]")
                     safe_print(f"[yellow]{SYMBOLS['warning']} This is likely due to conditional access policies or authentication issues[/yellow]")
                     safe_print(f"[cyan]{SYMBOLS['info']} Falling back to mock data for testing...[/cyan]")
