@@ -93,8 +93,11 @@ def fetch(
                 settings.azure_devops.org_url, settings.azure_devops.default_project
             )
 
+        # Use organization from environment variable if available, fallback to org_url
+        org_url = settings.azure_devops.organization or settings.azure_devops.org_url
+        
         client = AzureDevOpsClient(
-            settings.azure_devops.org_url,
+            org_url,
             settings.azure_devops.default_project,
             settings.azure_devops.pat_token,
         )
