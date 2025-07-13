@@ -43,12 +43,20 @@ class AzureDevOpsConfig(BaseModel):
     )
 
     def __init__(self, **data):
-        # Map environment variables and handle empty strings
+        # Always prioritize environment variables over config file
         import os
 
-        if "pat_token" not in data or data["pat_token"] is None:
-            data["pat_token"] = os.getenv("AZURE_DEVOPS_PAT")
-        if (
+        # Always use environment variables if available, regardless of config values
+        env_pat = os.getenv("AZURE_DEVOPS_PAT")
+        if env_pat:
+            data["pat_token"] = env_pat
+        elif "pat_token" not in data or data["pat_token"] is None:
+            data["pat_token"] = None
+
+        env_org = os.getenv("AZURE_DEVOPS_ORGANIZATION")
+        if env_org:
+            data["organization"] = env_org
+        elif (
             "organization" not in data
             or data["organization"] is None
             or (
@@ -56,9 +64,13 @@ class AzureDevOpsConfig(BaseModel):
                 and data["organization"].strip() == ""
             )
         ):
-            data["organization"] = os.getenv("AZURE_DEVOPS_ORGANIZATION") or None
-        if "project" not in data or data["project"] is None:
-            data["project"] = os.getenv("AZURE_DEVOPS_PROJECT")
+            data["organization"] = None
+
+        env_project = os.getenv("AZURE_DEVOPS_PROJECT")
+        if env_project:
+            data["project"] = env_project
+        elif "project" not in data or data["project"] is None:
+            data["project"] = None
         if data.get("project") and data["project"].strip() == "":
             data["project"] = None
         super().__init__(**data)
