@@ -7,7 +7,7 @@ import pytest
 import requests
 
 from src.azure_devops_client import AzureDevOpsClient
-from src.config_manager import DashboardConfig
+from src.config_manager import FlowMetricsSettings
 from src.data_storage import FlowMetricsDatabase
 
 
