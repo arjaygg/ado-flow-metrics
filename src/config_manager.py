@@ -50,7 +50,10 @@ class AzureDevOpsConfig(BaseModel):
         env_pat = os.getenv("AZURE_DEVOPS_PAT")
         if env_pat:
             data["pat_token"] = env_pat
-        elif "pat_token" not in data or data["pat_token"] is None:
+        elif "pat_token" not in data or data["pat_token"] is None or (
+            isinstance(data.get("pat_token"), str) 
+            and data["pat_token"].startswith("${")
+        ):
             data["pat_token"] = None
 
         env_org = os.getenv("AZURE_DEVOPS_ORGANIZATION")
