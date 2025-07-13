@@ -9,6 +9,11 @@
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script src="js/workstream_config.js"></script>
     <script src="js/workstream-manager.js"></script>
+    <script src="js/predictive-analytics.js"></script>
+    <script src="js/time-series-analysis.js"></script>
+    <script src="js/enhanced-ux.js"></script>
+    <script src="js/advanced-filtering.js"></script>
+    <script src="js/export-collaboration.js"></script>
     <style>
         :root {
             --primary-color: #4e73df;
@@ -45,6 +50,420 @@
             padding: 1rem;
             margin-bottom: 1rem;
             box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        }
+        
+        .advanced-filtering-panel {
+            background: white;
+            border-radius: 0.35rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        }
+        
+        .filter-section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .filter-presets {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .preset-btn {
+            padding: 0.375rem 0.75rem;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+        }
+        
+        .preset-btn:hover {
+            background: #f8f9fa;
+            border-color: #adb5bd;
+        }
+        
+        .preset-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .filter-summary {
+            background: #f8f9fa;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--info-color);
+        }
+        
+        .filter-summary.active {
+            border-left-color: var(--success-color);
+        }
+        
+        .filter-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.375rem;
+            margin-top: 0.5rem;
+        }
+        
+        .filter-chip {
+            background: var(--info-color);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .filter-chip .remove-chip {
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        
+        .filter-chip .remove-chip:hover {
+            opacity: 1;
+        }
+        
+        .drill-down-breadcrumb {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 0.375rem;
+            padding: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .breadcrumb-item {
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+        
+        .breadcrumb-item:not(:last-child)::after {
+            content: '>';
+            margin-left: 0.5rem;
+            color: #6c757d;
+        }
+        
+        .breadcrumb-link {
+            color: var(--primary-color);
+            text-decoration: none;
+            cursor: pointer;
+        }
+        
+        .breadcrumb-link:hover {
+            text-decoration: underline;
+        }
+        
+        .filter-controls {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .filter-history-nav {
+            display: flex;
+            gap: 0.25rem;
+        }
+        
+        .filter-history-nav button {
+            padding: 0.25rem 0.5rem;
+            border: 1px solid #dee2e6;
+            background: white;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .filter-history-nav button:hover:not(:disabled) {
+            background: #f8f9fa;
+        }
+        
+        .filter-history-nav button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .filter-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+        }
+        
+        .filter-panel-collapsed .filter-content {
+            display: none;
+        }
+        
+        .multi-select {
+            position: relative;
+        }
+        
+        .multi-select-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .multi-select-option {
+            padding: 0.5rem 0.75rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .multi-select-option:hover {
+            background: #f8f9fa;
+        }
+        
+        .multi-select-option.selected {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .date-range-picker {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        
+        @media (max-width: 768px) {
+            .filter-presets {
+                flex-direction: column;
+            }
+            
+            .filter-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .date-range-picker {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+        
+        /* Export & Collaboration Styles */
+        .export-collaboration-panel {
+            background: white;
+            border-radius: 0.35rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        }
+        
+        .export-format-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .export-format-card {
+            border: 2px solid #dee2e6;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .export-format-card:hover {
+            border-color: var(--primary-color);
+            background: #f8f9fc;
+        }
+        
+        .export-format-card.selected {
+            border-color: var(--primary-color);
+            background: #e3f0ff;
+        }
+        
+        .export-format-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary-color);
+        }
+        
+        .export-format-name {
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+        
+        .export-format-description {
+            font-size: 0.875rem;
+            color: #6c757d;
+        }
+        
+        .export-options {
+            background: #f8f9fa;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .share-link-container {
+            background: #e7f3ff;
+            border: 1px solid #b8daff;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .share-link-input {
+            background: white;
+            border: 1px solid #ced4da;
+            border-radius: 0.375rem;
+            padding: 0.5rem;
+            width: 100%;
+            font-family: monospace;
+            font-size: 0.875rem;
+        }
+        
+        .collaboration-room {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .participant-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .participant-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+        
+        .export-history-table {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .export-progress {
+            background: #f8f9fa;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--info-color);
+        }
+        
+        .export-progress.success {
+            border-left-color: var(--success-color);
+            background: #d4edda;
+        }
+        
+        .export-progress.error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        
+        .collaboration-message {
+            background: white;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border-left: 3px solid var(--info-color);
+        }
+        
+        .collaboration-message.filter-change {
+            border-left-color: var(--warning-color);
+        }
+        
+        .collaboration-message.annotation {
+            border-left-color: var(--success-color);
+        }
+        
+        .message-sender {
+            font-weight: bold;
+            font-size: 0.875rem;
+            color: var(--primary-color);
+        }
+        
+        .message-timestamp {
+            font-size: 0.75rem;
+            color: #6c757d;
+            float: right;
+        }
+        
+        .message-content {
+            margin-top: 0.25rem;
+            font-size: 0.875rem;
+        }
+        
+        .export-collaboration-tabs {
+            display: flex;
+            border-bottom: 1px solid #dee2e6;
+            margin-bottom: 1.5rem;
+        }
+        
+        .tab-button {
+            background: none;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        
+        .tab-button:hover {
+            background: #f8f9fa;
+        }
+        
+        .tab-button.active {
+            border-bottom-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @media (max-width: 768px) {
+            .export-format-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .export-collaboration-tabs {
+                flex-direction: column;
+            }
+            
+            .tab-button {
+                text-align: left;
+                border-bottom: 1px solid #dee2e6;
+                border-radius: 0;
+            }
         }
     </style>
 </head>
@@ -179,6 +598,429 @@
             </div>
         </div>
 
+        <!-- Advanced Filtering Panel -->
+        <div class="advanced-filtering-panel" id="advancedFilteringPanel">
+            <div class="filter-toggle" onclick="toggleFilterPanel()">
+                <h5 class="mb-0">
+                    <i class="fas fa-filter me-2"></i>
+                    Advanced Filtering & Drill-Down
+                </h5>
+                <i class="fas fa-chevron-down ms-auto" id="filterToggleIcon"></i>
+            </div>
+            
+            <div class="filter-content" id="filterContent">
+                <!-- Filter Summary -->
+                <div class="filter-summary" id="filterSummary">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>Active Filters:</strong>
+                            <span id="filterCount">None</span>
+                        </div>
+                        <div class="filter-controls">
+                            <div class="filter-history-nav">
+                                <button type="button" id="filterBackBtn" onclick="goBackFilter()" disabled>
+                                    <i class="fas fa-arrow-left"></i>
+                                </button>
+                                <button type="button" id="filterForwardBtn" onclick="goForwardFilter()" disabled>
+                                    <i class="fas fa-arrow-right"></i>
+                                </button>
+                            </div>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="clearAllFilters()">
+                                <i class="fas fa-times me-1"></i>Clear All
+                            </button>
+                            <button class="btn btn-sm btn-outline-primary" onclick="shareFilters()">
+                                <i class="fas fa-share me-1"></i>Share
+                            </button>
+                        </div>
+                    </div>
+                    <div class="filter-chips" id="filterChips"></div>
+                </div>
+
+                <!-- Drill-down Breadcrumb -->
+                <div class="drill-down-breadcrumb" id="drillDownBreadcrumb" style="display: none;">
+                    <i class="fas fa-sitemap me-2"></i>
+                    <span class="text-muted">Drill-down Path:</span>
+                    <div class="breadcrumb-items" id="breadcrumbItems"></div>
+                </div>
+
+                <!-- Filter Presets -->
+                <div class="filter-section">
+                    <h6 class="mb-2">Quick Presets</h6>
+                    <div class="filter-presets" id="filterPresets">
+                        <button class="preset-btn" data-preset="last7days">Last 7 Days</button>
+                        <button class="preset-btn" data-preset="last30days">Last 30 Days</button>
+                        <button class="preset-btn" data-preset="current-sprint">Current Sprint</button>
+                        <button class="preset-btn" data-preset="high-priority">High Priority</button>
+                        <button class="preset-btn" data-preset="bugs-only">Bugs Only</button>
+                        <button class="preset-btn" data-preset="completed-items">Completed Items</button>
+                    </div>
+                </div>
+
+                <!-- Filter Controls -->
+                <div class="row">
+                    <!-- Date Range Filter -->
+                    <div class="col-md-6 filter-section">
+                        <h6 class="mb-2">Date Range</h6>
+                        <div class="date-range-picker">
+                            <input type="date" class="form-control" id="startDateFilter" placeholder="Start Date">
+                            <span class="align-self-center">to</span>
+                            <input type="date" class="form-control" id="endDateFilter" placeholder="End Date">
+                        </div>
+                    </div>
+
+                    <!-- Work Item Types Filter -->
+                    <div class="col-md-6 filter-section">
+                        <h6 class="mb-2">Work Item Types</h6>
+                        <div class="multi-select" id="workItemTypesFilter">
+                            <input type="text" class="form-control" placeholder="Select work item types..." readonly onclick="toggleMultiSelect('workItemTypes')">
+                            <div class="multi-select-dropdown" id="workItemTypesDropdown" style="display: none;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Priorities Filter -->
+                    <div class="col-md-6 filter-section">
+                        <h6 class="mb-2">Priorities</h6>
+                        <div class="multi-select" id="prioritiesFilter">
+                            <input type="text" class="form-control" placeholder="Select priorities..." readonly onclick="toggleMultiSelect('priorities')">
+                            <div class="multi-select-dropdown" id="prioritiesDropdown" style="display: none;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Assignees Filter -->
+                    <div class="col-md-6 filter-section">
+                        <h6 class="mb-2">Assignees</h6>
+                        <div class="multi-select" id="assigneesFilter">
+                            <input type="text" class="form-control" placeholder="Select assignees..." readonly onclick="toggleMultiSelect('assignees')">
+                            <div class="multi-select-dropdown" id="assigneesDropdown" style="display: none;"></div>
+                        </div>
+                    </div>
+
+                    <!-- States Filter -->
+                    <div class="col-md-6 filter-section">
+                        <h6 class="mb-2">States</h6>
+                        <div class="multi-select" id="statesFilter">
+                            <input type="text" class="form-control" placeholder="Select states..." readonly onclick="toggleMultiSelect('states')">
+                            <div class="multi-select-dropdown" id="statesDropdown" style="display: none;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Tags Filter -->
+                    <div class="col-md-6 filter-section">
+                        <h6 class="mb-2">Tags</h6>
+                        <div class="multi-select" id="tagsFilter">
+                            <input type="text" class="form-control" placeholder="Select tags..." readonly onclick="toggleMultiSelect('tags')">
+                            <div class="multi-select-dropdown" id="tagsDropdown" style="display: none;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Save Custom Preset -->
+                <div class="filter-section">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <input type="text" class="form-control" id="customPresetName" placeholder="Save current filters as preset...">
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-outline-success w-100" onclick="saveCustomPreset()">
+                                <i class="fas fa-save me-1"></i>Save Preset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export & Collaboration Panel -->
+        <div class="export-collaboration-panel" id="exportCollaborationPanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">
+                    <i class="fas fa-download me-2"></i>
+                    Export & Collaboration
+                </h5>
+                <button class="btn btn-sm btn-outline-primary" onclick="toggleExportPanel()">
+                    <i class="fas fa-chevron-down" id="exportToggleIcon"></i>
+                </button>
+            </div>
+            
+            <div class="export-content" id="exportContent">
+                <!-- Tabs -->
+                <div class="export-collaboration-tabs">
+                    <button class="tab-button active" onclick="switchExportTab('export')">
+                        <i class="fas fa-file-export me-1"></i>Export
+                    </button>
+                    <button class="tab-button" onclick="switchExportTab('share')">
+                        <i class="fas fa-share-alt me-1"></i>Share
+                    </button>
+                    <button class="tab-button" onclick="switchExportTab('collaborate')">
+                        <i class="fas fa-users me-1"></i>Collaborate
+                    </button>
+                    <button class="tab-button" onclick="switchExportTab('history')">
+                        <i class="fas fa-history me-1"></i>History
+                    </button>
+                </div>
+
+                <!-- Export Tab -->
+                <div class="tab-content active" id="exportTab">
+                    <div class="export-progress" id="exportProgress" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Preparing export...</span>
+                            <div class="spinner-border spinner-border-sm" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                        <div class="progress mt-2" style="height: 6px;">
+                            <div class="progress-bar" id="exportProgressBar" role="progressbar" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div class="export-format-grid" id="exportFormatGrid">
+                        <div class="export-format-card" data-format="pdf" onclick="selectExportFormat('pdf')">
+                            <div class="export-format-icon">
+                                <i class="fas fa-file-pdf"></i>
+                            </div>
+                            <div class="export-format-name">PDF Report</div>
+                            <div class="export-format-description">Comprehensive report with charts and metrics</div>
+                        </div>
+
+                        <div class="export-format-card" data-format="excel" onclick="selectExportFormat('excel')">
+                            <div class="export-format-icon">
+                                <i class="fas fa-file-excel"></i>
+                            </div>
+                            <div class="export-format-name">Excel Spreadsheet</div>
+                            <div class="export-format-description">Raw data and metrics for analysis</div>
+                        </div>
+
+                        <div class="export-format-card" data-format="csv" onclick="selectExportFormat('csv')">
+                            <div class="export-format-icon">
+                                <i class="fas fa-file-csv"></i>
+                            </div>
+                            <div class="export-format-name">CSV Data</div>
+                            <div class="export-format-description">Comma-separated values for import</div>
+                        </div>
+
+                        <div class="export-format-card" data-format="json" onclick="selectExportFormat('json')">
+                            <div class="export-format-icon">
+                                <i class="fas fa-file-code"></i>
+                            </div>
+                            <div class="export-format-name">JSON Data</div>
+                            <div class="export-format-description">Structured data in JSON format</div>
+                        </div>
+
+                        <div class="export-format-card" data-format="png" onclick="selectExportFormat('png')">
+                            <div class="export-format-icon">
+                                <i class="fas fa-image"></i>
+                            </div>
+                            <div class="export-format-name">PNG Image</div>
+                            <div class="export-format-description">Dashboard screenshot</div>
+                        </div>
+                    </div>
+
+                    <div class="export-options" id="exportOptions" style="display: none;">
+                        <h6>Export Options</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="exportTitle" class="form-label">Report Title</label>
+                                    <input type="text" class="form-control" id="exportTitle" value="Flow Metrics Dashboard Report">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="exportSubtitle" class="form-label">Subtitle</label>
+                                    <input type="text" class="form-control" id="exportSubtitle" value="">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="includeCharts" checked>
+                                    <label class="form-check-label" for="includeCharts">Include Charts</label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="includeData" checked>
+                                    <label class="form-check-label" for="includeData">Include Raw Data</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="includeMetrics" checked>
+                                    <label class="form-check-label" for="includeMetrics">Include Metrics Summary</label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="includeInsights" checked>
+                                    <label class="form-check-label" for="includeInsights">Include Insights</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <button class="btn btn-secondary me-2" onclick="cancelExport()">Cancel</button>
+                            <button class="btn btn-primary" onclick="performExport()">
+                                <i class="fas fa-download me-1"></i>Export Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Share Tab -->
+                <div class="tab-content" id="shareTab">
+                    <div class="mb-3">
+                        <h6>Dashboard Sharing</h6>
+                        <p class="text-muted">Generate a shareable link for this dashboard view.</p>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="shareTitle" class="form-label">Share Title</label>
+                            <input type="text" class="form-control" id="shareTitle" value="Flow Metrics Dashboard">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="shareExpiry" class="form-label">Expires In</label>
+                            <select class="form-select" id="shareExpiry">
+                                <option value="1">1 Day</option>
+                                <option value="7" selected>7 Days</option>
+                                <option value="30">30 Days</option>
+                                <option value="never">Never</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="allowEdit">
+                                <label class="form-check-label" for="allowEdit">Allow editing</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="requirePassword">
+                                <label class="form-check-label" for="requirePassword">Require password</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3" id="passwordSection" style="display: none;">
+                        <label for="sharePassword" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="sharePassword" placeholder="Enter password">
+                    </div>
+
+                    <div class="text-end mb-3">
+                        <button class="btn btn-primary" onclick="generateShareLink()">
+                            <i class="fas fa-link me-1"></i>Generate Share Link
+                        </button>
+                    </div>
+
+                    <div class="share-link-container" id="shareLinkContainer" style="display: none;">
+                        <h6><i class="fas fa-link me-2"></i>Shareable Link</h6>
+                        <div class="input-group">
+                            <input type="text" class="share-link-input" id="shareLinkInput" readonly>
+                            <button class="btn btn-outline-secondary" onclick="copyShareLink()">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted mt-1 d-block">Anyone with this link can view your dashboard</small>
+                    </div>
+                </div>
+
+                <!-- Collaborate Tab -->
+                <div class="tab-content" id="collaborateTab">
+                    <div class="mb-3">
+                        <h6>Team Collaboration</h6>
+                        <p class="text-muted">Create or join collaboration rooms for real-time team insights.</p>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <input type="text" class="form-control" id="collaborationRoomName" placeholder="Enter room name or ID">
+                        </div>
+                        <div class="col-md-4">
+                            <div class="btn-group w-100">
+                                <button class="btn btn-primary" onclick="createCollaborationRoom()">
+                                    <i class="fas fa-plus me-1"></i>Create
+                                </button>
+                                <button class="btn btn-outline-primary" onclick="joinCollaborationRoom()">
+                                    <i class="fas fa-sign-in-alt me-1"></i>Join
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="collaboration-room" id="activeRoom" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0">
+                                <i class="fas fa-users me-2"></i>
+                                <span id="roomName">Collaboration Room</span>
+                            </h6>
+                            <button class="btn btn-sm btn-outline-danger" onclick="leaveCollaborationRoom()">
+                                <i class="fas fa-sign-out-alt me-1"></i>Leave
+                            </button>
+                        </div>
+                        
+                        <div class="mb-2">
+                            <small class="text-muted">Room ID: <span id="roomId"></span></small>
+                        </div>
+                        
+                        <div class="mb-2">
+                            <strong>Participants (<span id="participantCount">0</span>):</strong>
+                            <div class="participant-list" id="participantList"></div>
+                        </div>
+                    </div>
+
+                    <div class="collaboration-messages" id="collaborationMessages" style="display: none;">
+                        <h6>Recent Activity</h6>
+                        <div class="collaboration-message-list" id="messageList" style="max-height: 200px; overflow-y: auto;">
+                            <!-- Messages will be populated here -->
+                        </div>
+                        
+                        <div class="mt-2">
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="messageInput" placeholder="Send a message...">
+                                <button class="btn btn-outline-primary" onclick="sendCollaborationMessage()">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- History Tab -->
+                <div class="tab-content" id="historyTab">
+                    <div class="mb-3">
+                        <h6>Export History</h6>
+                        <p class="text-muted">Recent exports and downloads</p>
+                    </div>
+
+                    <div class="export-history-table">
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Format</th>
+                                        <th>Title</th>
+                                        <th>Size</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="exportHistoryTableBody">
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">No exports yet</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="text-end">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="clearExportHistory()">
+                            <i class="fas fa-trash me-1"></i>Clear History
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Key Metrics Cards -->
         <div class="row mb-4">
             <div class="col-xl-3 col-md-6 mb-4">
@@ -282,6 +1124,133 @@
             </div>
         </div>
 
+        <!-- Predictive Analytics Section -->
+        <div class="row mb-4">
+            <div class="col-lg-8">
+                <div class="chart-container">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="text-primary mb-0">Delivery Forecast</h6>
+                        <div class="d-flex gap-2">
+                            <select id="forecastItems" class="form-select form-select-sm" style="width: auto;">
+                                <option value="10">10 items</option>
+                                <option value="20" selected>20 items</option>
+                                <option value="50">50 items</option>
+                                <option value="100">100 items</option>
+                            </select>
+                            <button id="updateForecast" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-sync"></i> Update
+                            </button>
+                        </div>
+                    </div>
+                    <div id="forecastChart" style="height: 300px;"></div>
+                    <div class="row mt-3">
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <div class="text-success fw-bold" id="optimisticDate">--</div>
+                                <small class="text-muted">Optimistic (10%)</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <div class="text-primary fw-bold" id="realisticDate">--</div>
+                                <small class="text-muted">Realistic (50%)</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <div class="text-warning fw-bold" id="pessimisticDate">--</div>
+                                <small class="text-muted">Pessimistic (90%)</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="chart-container">
+                    <h6 class="text-primary mb-3">Velocity Trend</h6>
+                    <div id="velocityTrendChart" style="height: 200px;"></div>
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">Trend Direction</span>
+                            <span id="trendDirection" class="badge bg-secondary">--</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">Risk Level</span>
+                            <span id="riskLevel" class="badge bg-secondary">--</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Confidence</span>
+                            <span id="forecastConfidence" class="fw-bold">--%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Insights and Recommendations -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="chart-container">
+                    <h6 class="text-primary mb-3">
+                        <i class="fas fa-lightbulb me-2"></i>Insights & Recommendations
+                    </h6>
+                    <div id="insightsContainer">
+                        <div class="row" id="insightCards">
+                            <!-- Insight cards will be populated dynamically -->
+                        </div>
+                        <div class="mt-3">
+                            <h6 class="text-secondary mb-2">Recommendations</h6>
+                            <ul id="recommendationsList" class="list-unstyled">
+                                <!-- Recommendations will be populated dynamically -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Time Series Analysis -->
+        <div class="row mb-4">
+            <div class="col-lg-6">
+                <div class="chart-container">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="text-primary mb-0">Moving Averages</h6>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <input type="radio" class="btn-check" name="maMetric" id="ma-leadtime" value="leadTime" checked>
+                            <label class="btn btn-outline-primary" for="ma-leadtime">Lead Time</label>
+                            <input type="radio" class="btn-check" name="maMetric" id="ma-cycletime" value="cycleTime">
+                            <label class="btn btn-outline-primary" for="ma-cycletime">Cycle Time</label>
+                            <input type="radio" class="btn-check" name="maMetric" id="ma-throughput" value="throughput">
+                            <label class="btn btn-outline-primary" for="ma-throughput">Throughput</label>
+                        </div>
+                    </div>
+                    <div id="movingAveragesChart" style="height: 300px;"></div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="chart-container">
+                    <h6 class="text-primary mb-3">Period Comparison</h6>
+                    <div id="periodComparisonChart" style="height: 300px;"></div>
+                    <div class="mt-3">
+                        <div class="row text-center">
+                            <div class="col">
+                                <div class="text-primary fw-bold" id="currentPeriodValue">--</div>
+                                <small class="text-muted">Current Period</small>
+                            </div>
+                            <div class="col">
+                                <div class="text-secondary fw-bold" id="previousPeriodValue">--</div>
+                                <small class="text-muted">Previous Period</small>
+                            </div>
+                            <div class="col">
+                                <div id="periodChange" class="fw-bold">--%</div>
+                                <small class="text-muted">Change</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Team Table -->
         <div class="row">
             <div class="col-12">
@@ -313,7 +1282,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Simple Flow Metrics Dashboard
+        // Enhanced Flow Metrics Dashboard with Predictive Analytics
         class FlowDashboard {
             constructor() {
                 this.data = null;
@@ -328,6 +1297,13 @@
                 this.selectedWorkItemTypes = ['All Types'];
                 this.selectedSprints = ['All Sprints'];
                 this.availableSprints = [];
+                
+                // Initialize new feature modules
+                this.predictiveAnalytics = new PredictiveAnalytics();
+                this.timeSeriesAnalyzer = new TimeSeriesAnalyzer();
+                this.enhancedUX = new EnhancedUX();
+                this.advancedFiltering = new AdvancedFiltering();
+                this.exportCollaboration = new ExportCollaboration();
                 this.init();
             }
 
@@ -335,6 +1311,7 @@
                 await this.initIndexedDB();
                 await this.initWorkstreams();
                 this.setupEventListeners();
+                this.setupEnhancedFeatures();
                 this.loadData();
             }
 
@@ -456,6 +1433,37 @@
                 });
             }
 
+            setupEnhancedFeatures() {
+                // Predictive analytics controls
+                document.getElementById('updateForecast').addEventListener('click', () => {
+                    this.updatePredictiveAnalytics();
+                });
+
+                document.getElementById('forecastItems').addEventListener('change', () => {
+                    this.updatePredictiveAnalytics();
+                });
+
+                // Time series analysis controls
+                document.querySelectorAll('input[name="maMetric"]').forEach(radio => {
+                    radio.addEventListener('change', () => {
+                        this.updateMovingAverages(radio.value);
+                    });
+                });
+
+                // Initialize skeleton loading for new components
+                this.enhancedUX.showSkeleton('forecastChart', 'chart');
+                this.enhancedUX.showSkeleton('velocityTrendChart', 'chart');
+                this.enhancedUX.showSkeleton('movingAveragesChart', 'chart');
+                this.enhancedUX.showSkeleton('periodComparisonChart', 'chart');
+                this.enhancedUX.showSkeleton('insightCards', 'predictiveCard');
+                
+                // Initialize advanced filtering
+                this.setupAdvancedFiltering();
+                
+                // Initialize export & collaboration
+                this.setupExportCollaboration();
+            }
+
             async loadData() {
                 const selectedSource = document.querySelector('input[name="dataSource"]:checked').id;
 
@@ -568,6 +1576,14 @@
                 this.updateMetricsCards(data);
                 this.updateCharts(data);
                 this.updateTeamTable(data);
+                
+                // Update enhanced features
+                this.updatePredictiveAnalytics(data);
+                this.updateTimeSeriesAnalysis(data);
+                this.updateInsightsAndRecommendations(data);
+                
+                // Update advanced filtering dropdowns with new data
+                this.updateFilteringDropdowns(data);
             }
 
             updateMetricsCards(data) {
@@ -1131,11 +2147,1354 @@
                     console.log('Auto-refresh disabled');
                 }
             }
+
+            // Enhanced Features Implementation
+
+            updatePredictiveAnalytics(data = null) {
+                const currentData = data || this.data;
+                if (!currentData || !currentData.historical_data) {
+                    console.warn('No historical data available for predictive analytics');
+                    return;
+                }
+
+                try {
+                    // Initialize predictive analytics with historical data
+                    this.predictiveAnalytics.initialize(currentData.historical_data);
+
+                    // Get forecast parameters
+                    const remainingItems = parseInt(document.getElementById('forecastItems').value) || 20;
+
+                    // Generate prediction
+                    const prediction = this.predictiveAnalytics.predictDeliveryDate(remainingItems, {
+                        confidenceLevel: 0.85
+                    });
+
+                    // Update forecast display
+                    this.updateForecastDisplay(prediction);
+
+                    // Update velocity trend chart
+                    this.updateVelocityTrendChart(prediction);
+
+                    // Hide skeleton loading
+                    this.enhancedUX.hideSkeleton('forecastChart');
+                    this.enhancedUX.hideSkeleton('velocityTrendChart');
+
+                } catch (error) {
+                    console.error('Error updating predictive analytics:', error);
+                    this.enhancedUX.hideSkeleton('forecastChart');
+                    this.enhancedUX.hideSkeleton('velocityTrendChart');
+                }
+            }
+
+            updateForecastDisplay(prediction) {
+                // Update date displays
+                const options = { month: 'short', day: 'numeric', year: 'numeric' };
+                document.getElementById('optimisticDate').textContent = 
+                    prediction.range.optimistic.toLocaleDateString('en-US', options);
+                document.getElementById('realisticDate').textContent = 
+                    prediction.range.realistic.toLocaleDateString('en-US', options);
+                document.getElementById('pessimisticDate').textContent = 
+                    prediction.range.pessimistic.toLocaleDateString('en-US', options);
+
+                // Update trend indicators
+                document.getElementById('trendDirection').textContent = prediction.velocityTrend.direction;
+                document.getElementById('trendDirection').className = 
+                    `badge ${this.getTrendBadgeClass(prediction.velocityTrend.direction)}`;
+
+                document.getElementById('riskLevel').textContent = prediction.riskLevel;
+                document.getElementById('riskLevel').className = 
+                    `badge ${this.getRiskBadgeClass(prediction.riskLevel)}`;
+
+                document.getElementById('forecastConfidence').textContent = 
+                    `${(prediction.confidence * 100).toFixed(0)}%`;
+
+                // Create forecast chart
+                this.createForecastChart(prediction);
+            }
+
+            createForecastChart(prediction) {
+                const trace1 = {
+                    x: ['Optimistic', 'Realistic', 'Pessimistic'],
+                    y: [
+                        prediction.weeksToComplete.optimistic,
+                        prediction.weeksToComplete.realistic,
+                        prediction.weeksToComplete.pessimistic
+                    ],
+                    type: 'bar',
+                    marker: {
+                        color: ['#1cc88a', '#4e73df', '#f6c23e']
+                    },
+                    text: [
+                        `${prediction.weeksToComplete.optimistic.toFixed(1)} weeks`,
+                        `${prediction.weeksToComplete.realistic.toFixed(1)} weeks`,
+                        `${prediction.weeksToComplete.pessimistic.toFixed(1)} weeks`
+                    ],
+                    textposition: 'auto'
+                };
+
+                const layout = {
+                    title: {
+                        text: 'Delivery Timeline Forecast',
+                        font: { size: 14 }
+                    },
+                    xaxis: { title: 'Confidence Level' },
+                    yaxis: { title: 'Weeks to Complete' },
+                    margin: { t: 40, b: 40, l: 60, r: 20 },
+                    showlegend: false
+                };
+
+                Plotly.newPlot('forecastChart', [trace1], layout, { responsive: true });
+            }
+
+            updateVelocityTrendChart(prediction) {
+                // Create velocity trend visualization
+                const velocityHistory = this.predictiveAnalytics.velocityHistory;
+                const weeks = velocityHistory.map((_, i) => `Week ${i + 1}`);
+
+                const trace = {
+                    x: weeks,
+                    y: velocityHistory,
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    line: { color: '#4e73df', width: 2 },
+                    marker: { size: 6 }
+                };
+
+                const layout = {
+                    title: {
+                        text: 'Velocity Trend',
+                        font: { size: 14 }
+                    },
+                    xaxis: { title: 'Time Period' },
+                    yaxis: { title: 'Items/Week' },
+                    margin: { t: 40, b: 40, l: 60, r: 20 },
+                    showlegend: false
+                };
+
+                Plotly.newPlot('velocityTrendChart', [trace], layout, { responsive: true });
+            }
+
+            updateTimeSeriesAnalysis(data = null) {
+                const currentData = data || this.data;
+                if (!currentData) return;
+
+                try {
+                    // Prepare time series data
+                    const timeSeriesData = this.prepareTimeSeriesData(currentData);
+                    
+                    // Initialize analyzer
+                    this.timeSeriesAnalyzer.initialize(timeSeriesData);
+
+                    // Update moving averages chart
+                    this.updateMovingAverages('leadTime');
+
+                    // Update period comparison chart
+                    this.updatePeriodComparison(timeSeriesData);
+
+                    // Hide skeleton loading
+                    this.enhancedUX.hideSkeleton('movingAveragesChart');
+                    this.enhancedUX.hideSkeleton('periodComparisonChart');
+
+                } catch (error) {
+                    console.error('Error updating time series analysis:', error);
+                    this.enhancedUX.hideSkeleton('movingAveragesChart');
+                    this.enhancedUX.hideSkeleton('periodComparisonChart');
+                }
+            }
+
+            prepareTimeSeriesData(data) {
+                const timeSeriesData = [];
+                
+                // Extract historical data points
+                if (data.historical_data) {
+                    data.historical_data.forEach(item => {
+                        if (item.resolvedDate) {
+                            timeSeriesData.push({
+                                date: item.resolvedDate,
+                                value: item.leadTime || 0,
+                                metric: 'leadTime'
+                            });
+                            timeSeriesData.push({
+                                date: item.resolvedDate,
+                                value: item.cycleTime || 0,
+                                metric: 'cycleTime'
+                            });
+                        }
+                    });
+                }
+
+                // Add current metrics as latest data points
+                const today = new Date().toISOString().split('T')[0];
+                const leadTime = data.lead_time?.average_days || 0;
+                const cycleTime = data.cycle_time?.average_days || 0;
+                const throughput = data.throughput?.items_per_period || 0;
+
+                timeSeriesData.push(
+                    { date: today, value: leadTime, metric: 'leadTime' },
+                    { date: today, value: cycleTime, metric: 'cycleTime' },
+                    { date: today, value: throughput, metric: 'throughput' }
+                );
+
+                return timeSeriesData;
+            }
+
+            updateMovingAverages(metric) {
+                const analysis = this.timeSeriesAnalyzer.getAnalysis(metric);
+                if (!analysis) return;
+
+                const movingAverages = analysis.movingAverages;
+                const traces = [];
+
+                // Add raw data
+                traces.push({
+                    x: analysis.rawData.map(d => d.date),
+                    y: analysis.rawData.map(d => d.value),
+                    type: 'scatter',
+                    mode: 'markers',
+                    name: 'Raw Data',
+                    marker: { color: '#e3e6f0', size: 4 }
+                });
+
+                // Add moving averages
+                const colors = ['#4e73df', '#1cc88a', '#f6c23e'];
+                movingAverages.forEach((ma, index) => {
+                    traces.push({
+                        x: ma.data.map(d => d.date),
+                        y: ma.data.map(d => d.value),
+                        type: 'scatter',
+                        mode: 'lines',
+                        name: `${ma.window}-day MA`,
+                        line: { color: colors[index], width: 2 }
+                    });
+                });
+
+                const layout = {
+                    title: {
+                        text: `${metric} Moving Averages`,
+                        font: { size: 14 }
+                    },
+                    xaxis: { title: 'Date' },
+                    yaxis: { title: 'Value' },
+                    margin: { t: 40, b: 40, l: 60, r: 20 },
+                    legend: { x: 0, y: 1 }
+                };
+
+                Plotly.newPlot('movingAveragesChart', traces, layout, { responsive: true });
+            }
+
+            updatePeriodComparison(timeSeriesData) {
+                // Get period comparisons from analyzer
+                const leadTimeData = timeSeriesData.filter(d => d.metric === 'leadTime');
+                if (leadTimeData.length < 14) return;
+
+                // Simple period comparison - last 7 days vs previous 7 days
+                const now = new Date();
+                const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+                const currentPeriod = leadTimeData.filter(d => new Date(d.date) >= sevenDaysAgo);
+                const previousPeriod = leadTimeData.filter(d => 
+                    new Date(d.date) >= fourteenDaysAgo && new Date(d.date) < sevenDaysAgo
+                );
+
+                const currentAvg = currentPeriod.length > 0 ? 
+                    currentPeriod.reduce((sum, d) => sum + d.value, 0) / currentPeriod.length : 0;
+                const previousAvg = previousPeriod.length > 0 ? 
+                    previousPeriod.reduce((sum, d) => sum + d.value, 0) / previousPeriod.length : 0;
+
+                // Update display
+                document.getElementById('currentPeriodValue').textContent = currentAvg.toFixed(1);
+                document.getElementById('previousPeriodValue').textContent = previousAvg.toFixed(1);
+                
+                const change = previousAvg > 0 ? ((currentAvg - previousAvg) / previousAvg * 100) : 0;
+                const changeElement = document.getElementById('periodChange');
+                changeElement.textContent = `${change.toFixed(1)}%`;
+                changeElement.className = `fw-bold ${change >= 0 ? 'text-warning' : 'text-success'}`;
+
+                // Create comparison chart
+                const trace = {
+                    x: ['Previous Period', 'Current Period'],
+                    y: [previousAvg, currentAvg],
+                    type: 'bar',
+                    marker: {
+                        color: [currentAvg >= previousAvg ? '#f6c23e' : '#1cc88a', '#4e73df']
+                    }
+                };
+
+                const layout = {
+                    title: {
+                        text: 'Period Comparison',
+                        font: { size: 14 }
+                    },
+                    yaxis: { title: 'Average Lead Time (days)' },
+                    margin: { t: 40, b: 40, l: 60, r: 20 },
+                    showlegend: false
+                };
+
+                Plotly.newPlot('periodComparisonChart', [trace], layout, { responsive: true });
+            }
+
+            updateInsightsAndRecommendations(data = null) {
+                const currentData = data || this.data;
+                if (!currentData) return;
+
+                try {
+                    // Generate insights based on current metrics and trends
+                    const insights = this.generateInsights(currentData);
+                    const recommendations = this.generateRecommendations(currentData);
+
+                    // Update insights cards
+                    this.updateInsightCards(insights);
+
+                    // Update recommendations list
+                    this.updateRecommendationsList(recommendations);
+
+                    // Hide skeleton loading
+                    this.enhancedUX.hideSkeleton('insightCards');
+
+                } catch (error) {
+                    console.error('Error updating insights:', error);
+                    this.enhancedUX.hideSkeleton('insightCards');
+                }
+            }
+
+            generateInsights(data) {
+                const insights = [];
+                
+                // Lead time insights
+                const leadTime = data.lead_time?.average_days || 0;
+                if (leadTime > 30) {
+                    insights.push({
+                        type: 'warning',
+                        title: 'High Lead Time',
+                        description: `Average lead time of ${leadTime.toFixed(1)} days is concerning`,
+                        icon: 'exclamation-triangle'
+                    });
+                } else if (leadTime < 5) {
+                    insights.push({
+                        type: 'success',
+                        title: 'Excellent Lead Time',
+                        description: `Very good lead time of ${leadTime.toFixed(1)} days`,
+                        icon: 'check-circle'
+                    });
+                }
+
+                // Throughput insights
+                const throughput = data.throughput?.items_per_period || 0;
+                if (throughput < 5) {
+                    insights.push({
+                        type: 'info',
+                        title: 'Low Throughput',
+                        description: `Consider ways to increase throughput (${throughput} items/period)`,
+                        icon: 'info-circle'
+                    });
+                }
+
+                // WIP insights
+                const wip = data.work_in_progress?.total_wip || 0;
+                if (wip > 20) {
+                    insights.push({
+                        type: 'warning',
+                        title: 'High WIP',
+                        description: `${wip} items in progress may cause bottlenecks`,
+                        icon: 'exclamation-triangle'
+                    });
+                }
+
+                return insights;
+            }
+
+            generateRecommendations(data) {
+                const recommendations = [];
+
+                const leadTime = data.lead_time?.average_days || 0;
+                const cycleTime = data.cycle_time?.average_days || 0;
+                const wip = data.work_in_progress?.total_wip || 0;
+
+                if (leadTime > cycleTime * 2) {
+                    recommendations.push('Focus on reducing waiting time between work stages');
+                }
+
+                if (wip > 15) {
+                    recommendations.push('Consider implementing WIP limits to improve flow');
+                }
+
+                if (leadTime > 20) {
+                    recommendations.push('Break down large work items into smaller, deliverable pieces');
+                }
+
+                if (recommendations.length === 0) {
+                    recommendations.push('Flow metrics look healthy. Continue monitoring for changes.');
+                }
+
+                return recommendations;
+            }
+
+            updateInsightCards(insights) {
+                const container = document.getElementById('insightCards');
+                
+                if (insights.length === 0) {
+                    container.innerHTML = '<div class="col-12"><p class="text-muted">No specific insights available.</p></div>';
+                    return;
+                }
+
+                container.innerHTML = insights.map(insight => `
+                    <div class="col-md-4 mb-3">
+                        <div class="card border-${this.getInsightBorderClass(insight.type)}">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center">
+                                    <div class="me-3">
+                                        <i class="fas fa-${insight.icon} fa-2x text-${insight.type}"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="card-title mb-1">${insight.title}</h6>
+                                        <p class="card-text small">${insight.description}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            updateRecommendationsList(recommendations) {
+                const container = document.getElementById('recommendationsList');
+                
+                container.innerHTML = recommendations.map(rec => `
+                    <li class="d-flex align-items-start mb-2">
+                        <i class="fas fa-arrow-right text-primary me-2 mt-1"></i>
+                        <span>${rec}</span>
+                    </li>
+                `).join('');
+            }
+
+            // Utility methods for styling
+            getTrendBadgeClass(direction) {
+                switch (direction) {
+                    case 'IMPROVING': return 'bg-success';
+                    case 'DECLINING': return 'bg-danger';
+                    default: return 'bg-secondary';
+                }
+            }
+
+            getRiskBadgeClass(risk) {
+                switch (risk) {
+                    case 'LOW': return 'bg-success';
+                    case 'MEDIUM': return 'bg-warning';
+                    case 'HIGH': return 'bg-danger';
+                    default: return 'bg-secondary';
+                }
+            }
+
+            getInsightBorderClass(type) {
+                switch (type) {
+                    case 'success': return 'success';
+                    case 'warning': return 'warning';
+                    case 'danger': return 'danger';
+                    default: return 'info';
+                }
+            }
+
+            // Advanced Filtering Methods
+            setupAdvancedFiltering() {
+                // Initialize the advanced filtering module
+                this.advancedFiltering.init();
+                
+                // Set up filter change callback
+                this.advancedFiltering.setOnFilterChange((filters) => {
+                    this.applyAdvancedFilters(filters);
+                });
+                
+                // Set up drill-down callback
+                this.advancedFiltering.setOnDrillDown((drillDownInfo) => {
+                    this.handleDrillDown(drillDownInfo);
+                });
+                
+                // Set up preset buttons
+                this.setupFilterPresets();
+                
+                // Set up multi-select dropdowns
+                this.setupMultiSelectDropdowns();
+                
+                // Set up date range inputs
+                this.setupDateRangeInputs();
+                
+                // Initialize filter panel state
+                this.filterPanelExpanded = false;
+                
+                console.log('Advanced filtering initialized');
+            }
+
+            setupFilterPresets() {
+                const presetButtons = document.querySelectorAll('.preset-btn');
+                presetButtons.forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const preset = btn.dataset.preset;
+                        this.advancedFiltering.applyPreset(preset);
+                        
+                        // Update UI
+                        presetButtons.forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                    });
+                });
+            }
+
+            setupMultiSelectDropdowns() {
+                // This will be called after data is loaded
+                // The actual population happens in updateFilteringDropdowns
+            }
+
+            populateMultiSelectDropdowns(availableValues) {
+                const dropdowns = {
+                    workItemTypes: availableValues.workItemTypes || ['User Story', 'Bug', 'Task', 'Feature'],
+                    priorities: availableValues.priorities || ['Critical', 'High', 'Medium', 'Low'],
+                    assignees: availableValues.assignees || ['John Doe', 'Jane Smith', 'Bob Johnson'],
+                    states: availableValues.states || ['New', 'In Progress', 'Review', 'Testing', 'Done'],
+                    tags: availableValues.tags || ['urgent', 'bug-fix', 'feature', 'refactor']
+                };
+
+                Object.entries(dropdowns).forEach(([key, values]) => {
+                    const dropdown = document.getElementById(`${key}Dropdown`);
+                    if (dropdown) {
+                        dropdown.innerHTML = values.map(value => `
+                            <div class="multi-select-option" data-value="${value}" onclick="toggleFilterOption('${key}', '${value}')">
+                                <input type="checkbox" class="form-check-input me-2" id="${key}_${value}">
+                                <label for="${key}_${value}">${value}</label>
+                            </div>
+                        `).join('');
+                    }
+                });
+            }
+
+            setupDateRangeInputs() {
+                const startDate = document.getElementById('startDateFilter');
+                const endDate = document.getElementById('endDateFilter');
+
+                if (startDate && endDate) {
+                    startDate.addEventListener('change', () => {
+                        this.advancedFiltering.setDateRange(startDate.value, endDate.value);
+                    });
+
+                    endDate.addEventListener('change', () => {
+                        this.advancedFiltering.setDateRange(startDate.value, endDate.value);
+                    });
+                }
+            }
+
+            applyAdvancedFilters(filters) {
+                if (!this.data || !this.data.historical_data) {
+                    return;
+                }
+
+                // Apply filters to the data
+                const filteredData = this.advancedFiltering.applyFilters(this.data.historical_data);
+                
+                // Update the current data with filtered results
+                const filteredDataset = { 
+                    ...this.data, 
+                    historical_data: filteredData 
+                };
+                
+                // Recalculate metrics based on filtered data
+                this.updateDisplayWithFilteredData(filteredDataset);
+                
+                // Update filter summary UI
+                this.updateFilterSummaryUI();
+                
+                // Update filter history navigation
+                this.updateFilterHistoryNav();
+            }
+
+            updateDisplayWithFilteredData(filteredData) {
+                // Update metrics cards
+                this.updateMetricsCards(filteredData);
+                
+                // Update charts
+                this.updateCharts(filteredData);
+                
+                // Update insights and recommendations
+                this.updateInsightsAndRecommendations(filteredData);
+                
+                // Update predictive analytics
+                if (filteredData.historical_data && filteredData.historical_data.length > 0) {
+                    this.predictiveAnalytics.initialize(filteredData.historical_data);
+                    this.updatePredictiveAnalytics();
+                }
+                
+                // Update time series analysis
+                this.updateTimeSeriesAnalysis(filteredData);
+            }
+
+            updateFilterSummaryUI() {
+                const summary = this.advancedFiltering.getFilterSummary();
+                const filterCount = document.getElementById('filterCount');
+                const filterChips = document.getElementById('filterChips');
+                const filterSummaryDiv = document.getElementById('filterSummary');
+
+                // Update filter count
+                if (filterCount) {
+                    filterCount.textContent = summary.active ? `${summary.count} active` : 'None';
+                }
+
+                // Update filter chips
+                if (filterChips) {
+                    filterChips.innerHTML = summary.descriptions.map(desc => `
+                        <div class="filter-chip">
+                            ${desc}
+                            <i class="fas fa-times remove-chip" onclick="removeFilterChip('${desc}')"></i>
+                        </div>
+                    `).join('');
+                }
+
+                // Update summary styling
+                if (filterSummaryDiv) {
+                    if (summary.active) {
+                        filterSummaryDiv.classList.add('active');
+                    } else {
+                        filterSummaryDiv.classList.remove('active');
+                    }
+                }
+            }
+
+            updateFilterHistoryNav() {
+                const backBtn = document.getElementById('filterBackBtn');
+                const forwardBtn = document.getElementById('filterForwardBtn');
+
+                if (backBtn) {
+                    backBtn.disabled = !this.advancedFiltering.canGoBack();
+                }
+
+                if (forwardBtn) {
+                    forwardBtn.disabled = !this.advancedFiltering.canGoForward();
+                }
+            }
+
+            handleDrillDown(drillDownInfo) {
+                // Update breadcrumb
+                this.updateDrillDownBreadcrumb(drillDownInfo);
+                
+                // Show drill-down UI
+                const breadcrumb = document.getElementById('drillDownBreadcrumb');
+                if (breadcrumb) {
+                    breadcrumb.style.display = 'block';
+                }
+                
+                console.log('Drill-down applied:', drillDownInfo);
+            }
+
+            updateDrillDownBreadcrumb(drillDownInfo) {
+                const breadcrumbItems = document.getElementById('breadcrumbItems');
+                if (breadcrumbItems) {
+                    const item = document.createElement('div');
+                    item.className = 'breadcrumb-item';
+                    item.innerHTML = `
+                        <span class="breadcrumb-link" onclick="clearDrillDown('${drillDownInfo.dimension}', '${drillDownInfo.value}')">
+                            ${drillDownInfo.dimension}: ${drillDownInfo.value}
+                        </span>
+                    `;
+                    breadcrumbItems.appendChild(item);
+                }
+            }
+
+            updateTimeSeriesAnalysis(data) {
+                if (!data.historical_data || data.historical_data.length === 0) {
+                    return;
+                }
+
+                // Prepare time series data
+                const timeSeriesData = [];
+                data.historical_data.forEach(item => {
+                    if (item.resolvedDate) {
+                        timeSeriesData.push({
+                            date: item.resolvedDate,
+                            value: item.leadTime || 0,
+                            metric: 'leadTime'
+                        });
+                        timeSeriesData.push({
+                            date: item.resolvedDate,
+                            value: item.cycleTime || 0,
+                            metric: 'cycleTime'
+                        });
+                    }
+                });
+
+                // Update time series analyzer
+                this.timeSeriesAnalyzer.initialize(timeSeriesData);
+                
+                // Update the selected metric's moving averages
+                const selectedMetric = document.querySelector('input[name="maMetric"]:checked');
+                if (selectedMetric) {
+                    this.updateMovingAverages(selectedMetric.value);
+                }
+            }
+
+            updateFilteringDropdowns(data) {
+                if (!data.historical_data || data.historical_data.length === 0) {
+                    return;
+                }
+
+                // Get available filter values from the data
+                const availableValues = this.advancedFiltering.getAvailableFilterValues(data.historical_data);
+                
+                // Update multi-select dropdowns
+                this.populateMultiSelectDropdowns(availableValues);
+                
+                console.log('Filtering dropdowns updated with data:', availableValues);
+            }
+
+            // Export & Collaboration Methods
+            setupExportCollaboration() {
+                // Initialize the module
+                this.exportCollaboration.init();
+                
+                // Set up event listeners for password toggle
+                const requirePasswordCheckbox = document.getElementById('requirePassword');
+                if (requirePasswordCheckbox) {
+                    requirePasswordCheckbox.addEventListener('change', () => {
+                        const passwordSection = document.getElementById('passwordSection');
+                        if (passwordSection) {
+                            passwordSection.style.display = requirePasswordCheckbox.checked ? 'block' : 'none';
+                        }
+                    });
+                }
+                
+                // Set up message input enter key
+                const messageInput = document.getElementById('messageInput');
+                if (messageInput) {
+                    messageInput.addEventListener('keypress', (e) => {
+                        if (e.key === 'Enter') {
+                            this.sendCollaborationMessage();
+                        }
+                    });
+                }
+                
+                // Initialize export history display
+                this.updateExportHistoryDisplay();
+                
+                console.log('Export & Collaboration initialized');
+            }
+
+            async performExport() {
+                const selectedFormat = document.querySelector('.export-format-card.selected');
+                if (!selectedFormat) {
+                    alert('Please select an export format');
+                    return;
+                }
+
+                const format = selectedFormat.dataset.format;
+                const options = this.getExportOptions();
+                
+                // Show progress
+                this.showExportProgress();
+                
+                try {
+                    // Simulate progress
+                    this.updateExportProgress(25, 'Preparing data...');
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    this.updateExportProgress(50, 'Generating export...');
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    
+                    this.updateExportProgress(75, 'Finalizing...');
+                    
+                    // Perform the actual export
+                    const blob = await this.exportCollaboration.exportData(format, this.data, options);
+                    
+                    this.updateExportProgress(100, 'Complete!');
+                    
+                    // Download the file
+                    const filename = this.generateExportFilename(format, options);
+                    this.exportCollaboration.downloadFile(blob, filename);
+                    
+                    // Hide progress and show success
+                    setTimeout(() => {
+                        this.hideExportProgress();
+                        this.showExportSuccess();
+                        this.updateExportHistoryDisplay();
+                    }, 1000);
+                    
+                } catch (error) {
+                    console.error('Export failed:', error);
+                    this.hideExportProgress();
+                    this.showExportError(error.message);
+                }
+            }
+
+            getExportOptions() {
+                return {
+                    title: document.getElementById('exportTitle')?.value || 'Flow Metrics Dashboard Report',
+                    subtitle: document.getElementById('exportSubtitle')?.value || `Generated on ${new Date().toLocaleDateString()}`,
+                    includeCharts: document.getElementById('includeCharts')?.checked !== false,
+                    includeData: document.getElementById('includeData')?.checked !== false,
+                    includeMetrics: document.getElementById('includeMetrics')?.checked !== false,
+                    includeInsights: document.getElementById('includeInsights')?.checked !== false,
+                    dateRange: this.getActiveDateRange()
+                };
+            }
+
+            getActiveDateRange() {
+                // Get current filter date range or default
+                const filters = this.advancedFiltering.getFilters();
+                if (filters.dateRange.start || filters.dateRange.end) {
+                    const start = filters.dateRange.start ? filters.dateRange.start.toLocaleDateString() : 'Beginning';
+                    const end = filters.dateRange.end ? filters.dateRange.end.toLocaleDateString() : 'Now';
+                    return `${start} - ${end}`;
+                }
+                return 'All time';
+            }
+
+            generateExportFilename(format, options) {
+                const date = new Date().toISOString().split('T')[0];
+                const title = options.title.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+                const extension = this.exportCollaboration.exportFormats.get(format).extension;
+                return `${title}_${date}${extension}`;
+            }
+
+            showExportProgress() {
+                const progress = document.getElementById('exportProgress');
+                if (progress) {
+                    progress.style.display = 'block';
+                    progress.className = 'export-progress';
+                }
+            }
+
+            updateExportProgress(percent, message) {
+                const progressBar = document.getElementById('exportProgressBar');
+                const progressMessage = document.querySelector('#exportProgress span');
+                
+                if (progressBar) {
+                    progressBar.style.width = `${percent}%`;
+                }
+                
+                if (progressMessage) {
+                    progressMessage.textContent = message;
+                }
+            }
+
+            hideExportProgress() {
+                const progress = document.getElementById('exportProgress');
+                if (progress) {
+                    progress.style.display = 'none';
+                }
+            }
+
+            showExportSuccess() {
+                const progress = document.getElementById('exportProgress');
+                if (progress) {
+                    progress.style.display = 'block';
+                    progress.className = 'export-progress success';
+                    progress.querySelector('span').textContent = 'Export completed successfully!';
+                    progress.querySelector('.spinner-border').style.display = 'none';
+                    
+                    setTimeout(() => {
+                        this.hideExportProgress();
+                    }, 3000);
+                }
+            }
+
+            showExportError(message) {
+                const progress = document.getElementById('exportProgress');
+                if (progress) {
+                    progress.style.display = 'block';
+                    progress.className = 'export-progress error';
+                    progress.querySelector('span').textContent = `Export failed: ${message}`;
+                    progress.querySelector('.spinner-border').style.display = 'none';
+                    
+                    setTimeout(() => {
+                        this.hideExportProgress();
+                    }, 5000);
+                }
+            }
+
+            generateShareLink() {
+                const shareOptions = {
+                    title: document.getElementById('shareTitle')?.value || 'Flow Metrics Dashboard',
+                    allowEdit: document.getElementById('allowEdit')?.checked || false,
+                    password: document.getElementById('requirePassword')?.checked ? 
+                        document.getElementById('sharePassword')?.value : null
+                };
+
+                const expirySelect = document.getElementById('shareExpiry');
+                if (expirySelect && expirySelect.value !== 'never') {
+                    const days = parseInt(expirySelect.value);
+                    const expiry = new Date();
+                    expiry.setDate(expiry.getDate() + days);
+                    shareOptions.expiresAt = expiry.toISOString();
+                }
+
+                // Get current dashboard state
+                const dashboardState = {
+                    filters: this.advancedFiltering.getFilters(),
+                    dataSource: document.querySelector('input[name="dataSource"]:checked')?.id,
+                    workstreams: this.selectedWorkstreams,
+                    timestamp: new Date().toISOString()
+                };
+
+                const shareUrl = this.exportCollaboration.generateShareableLink(dashboardState, shareOptions);
+                
+                // Display the share link
+                const container = document.getElementById('shareLinkContainer');
+                const input = document.getElementById('shareLinkInput');
+                
+                if (container && input) {
+                    input.value = shareUrl;
+                    container.style.display = 'block';
+                }
+            }
+
+            createCollaborationRoom() {
+                const roomNameInput = document.getElementById('collaborationRoomName');
+                const roomName = roomNameInput?.value.trim() || 'Flow Metrics Room';
+                
+                const roomOptions = {
+                    name: roomName,
+                    description: 'Flow Metrics collaboration space',
+                    createdBy: 'Current User', // Would be actual user in real implementation
+                    allowEdit: true,
+                    allowExport: true,
+                    autoSync: true
+                };
+
+                const room = this.exportCollaboration.createCollaborationRoom(roomOptions);
+                this.joinedRoom = room;
+                
+                // Update UI
+                this.displayActiveRoom(room);
+                
+                // Clear input
+                if (roomNameInput) {
+                    roomNameInput.value = '';
+                }
+            }
+
+            joinCollaborationRoom() {
+                const roomInput = document.getElementById('collaborationRoomName');
+                const roomId = roomInput?.value.trim();
+                
+                if (!roomId) {
+                    alert('Please enter a room ID');
+                    return;
+                }
+
+                const participant = {
+                    name: 'Current User', // Would be actual user in real implementation
+                    role: 'editor'
+                };
+
+                try {
+                    const room = this.exportCollaboration.joinCollaborationRoom(roomId, participant);
+                    if (room) {
+                        this.joinedRoom = room;
+                        this.displayActiveRoom(room);
+                        roomInput.value = '';
+                    } else {
+                        alert('Room not found or access denied');
+                    }
+                } catch (error) {
+                    alert(`Failed to join room: ${error.message}`);
+                }
+            }
+
+            displayActiveRoom(room) {
+                const activeRoom = document.getElementById('activeRoom');
+                const collaborationMessages = document.getElementById('collaborationMessages');
+                const roomName = document.getElementById('roomName');
+                const roomId = document.getElementById('roomId');
+                const participantCount = document.getElementById('participantCount');
+                const participantList = document.getElementById('participantList');
+
+                if (activeRoom) {
+                    activeRoom.style.display = 'block';
+                }
+                
+                if (collaborationMessages) {
+                    collaborationMessages.style.display = 'block';
+                }
+
+                if (roomName) {
+                    roomName.textContent = room.name;
+                }
+
+                if (roomId) {
+                    roomId.textContent = room.id;
+                }
+
+                if (participantCount) {
+                    participantCount.textContent = room.participants.length;
+                }
+
+                if (participantList) {
+                    participantList.innerHTML = room.participants.map(participant => {
+                        const initials = participant.name.split(' ').map(n => n[0]).join('').toUpperCase();
+                        return `
+                            <div class="participant-avatar" title="${participant.name} (${participant.role})">
+                                ${initials}
+                            </div>
+                        `;
+                    }).join('');
+                }
+            }
+
+            sendCollaborationMessage() {
+                if (!this.joinedRoom) {
+                    return;
+                }
+
+                const messageInput = document.getElementById('messageInput');
+                const messageText = messageInput?.value.trim();
+                
+                if (!messageText) {
+                    return;
+                }
+
+                const message = {
+                    senderId: 'current_user', // Would be actual user ID
+                    senderName: 'Current User', // Would be actual user name
+                    type: 'text',
+                    content: messageText
+                };
+
+                this.exportCollaboration.sendCollaborationMessage(this.joinedRoom.id, message);
+                
+                // Add to local message display
+                this.addMessageToDisplay(message);
+                
+                // Clear input
+                if (messageInput) {
+                    messageInput.value = '';
+                }
+            }
+
+            addMessageToDisplay(message) {
+                const messageList = document.getElementById('messageList');
+                if (!messageList) {
+                    return;
+                }
+
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `collaboration-message ${message.type}`;
+                messageDiv.innerHTML = `
+                    <div class="message-sender">${message.senderName}</div>
+                    <div class="message-timestamp">${new Date().toLocaleTimeString()}</div>
+                    <div class="message-content">${message.content}</div>
+                `;
+
+                messageList.appendChild(messageDiv);
+                messageList.scrollTop = messageList.scrollHeight;
+            }
+
+            leaveCollaborationRoom() {
+                this.joinedRoom = null;
+                
+                const activeRoom = document.getElementById('activeRoom');
+                const collaborationMessages = document.getElementById('collaborationMessages');
+                
+                if (activeRoom) {
+                    activeRoom.style.display = 'none';
+                }
+                
+                if (collaborationMessages) {
+                    collaborationMessages.style.display = 'none';
+                }
+            }
+
+            updateExportHistoryDisplay() {
+                const tableBody = document.getElementById('exportHistoryTableBody');
+                if (!tableBody) {
+                    return;
+                }
+
+                const history = this.exportCollaboration.getExportHistory();
+                
+                if (history.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No exports yet</td></tr>';
+                    return;
+                }
+
+                tableBody.innerHTML = history.map(entry => `
+                    <tr>
+                        <td>${new Date(entry.timestamp).toLocaleDateString()}</td>
+                        <td><span class="badge bg-secondary">${entry.format.toUpperCase()}</span></td>
+                        <td>${entry.title}</td>
+                        <td>${entry.size}</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary" onclick="redownloadExport('${entry.id}')" disabled>
+                                <i class="fas fa-download"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            clearExportHistory() {
+                if (confirm('Are you sure you want to clear the export history?')) {
+                    this.exportCollaboration.exportHistory = [];
+                    this.exportCollaboration.storeExportHistory();
+                    this.updateExportHistoryDisplay();
+                }
+            }
+        }
+
+        // Global utility functions for filtering UI
+        let dashboardInstance = null;
+
+        function toggleFilterPanel() {
+            const content = document.getElementById('filterContent');
+            const icon = document.getElementById('filterToggleIcon');
+            
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+            } else {
+                content.style.display = 'none';
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+            }
+        }
+
+        function toggleMultiSelect(filterType) {
+            const dropdown = document.getElementById(`${filterType}Dropdown`);
+            if (dropdown) {
+                dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+            }
+        }
+
+        function toggleFilterOption(filterType, value) {
+            const checkbox = document.getElementById(`${filterType}_${value}`);
+            if (checkbox) {
+                checkbox.checked = !checkbox.checked;
+                
+                // Update the filter
+                const selectedValues = Array.from(document.querySelectorAll(`#${filterType}Dropdown input:checked`))
+                    .map(cb => cb.parentElement.dataset.value);
+                
+                if (dashboardInstance && dashboardInstance.advancedFiltering) {
+                    switch (filterType) {
+                        case 'workItemTypes':
+                            dashboardInstance.advancedFiltering.setWorkItemTypes(selectedValues);
+                            break;
+                        case 'priorities':
+                            dashboardInstance.advancedFiltering.setPriorities(selectedValues);
+                            break;
+                        case 'assignees':
+                            dashboardInstance.advancedFiltering.setAssignees(selectedValues);
+                            break;
+                        case 'states':
+                            dashboardInstance.advancedFiltering.setStates(selectedValues);
+                            break;
+                        case 'tags':
+                            dashboardInstance.advancedFiltering.setTags(selectedValues);
+                            break;
+                    }
+                }
+            }
+        }
+
+        function clearAllFilters() {
+            if (dashboardInstance && dashboardInstance.advancedFiltering) {
+                dashboardInstance.advancedFiltering.clearAllFilters();
+            }
+        }
+
+        function shareFilters() {
+            if (dashboardInstance && dashboardInstance.advancedFiltering) {
+                const url = dashboardInstance.advancedFiltering.getShareableUrl();
+                navigator.clipboard.writeText(url).then(() => {
+                    alert('Filter URL copied to clipboard!');
+                }).catch(() => {
+                    // Fallback for browsers that don't support clipboard API
+                    const textarea = document.createElement('textarea');
+                    textarea.value = url;
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                    alert('Filter URL copied to clipboard!');
+                });
+            }
+        }
+
+        function goBackFilter() {
+            if (dashboardInstance && dashboardInstance.advancedFiltering) {
+                dashboardInstance.advancedFiltering.goBack();
+            }
+        }
+
+        function goForwardFilter() {
+            if (dashboardInstance && dashboardInstance.advancedFiltering) {
+                dashboardInstance.advancedFiltering.goForward();
+            }
+        }
+
+        function removeFilterChip(description) {
+            // This is a simplified implementation - in a real app you'd parse the description
+            // and remove the specific filter
+            console.log('Remove filter chip:', description);
+        }
+
+        function saveCustomPreset() {
+            const nameInput = document.getElementById('customPresetName');
+            if (nameInput && nameInput.value.trim()) {
+                if (dashboardInstance && dashboardInstance.advancedFiltering) {
+                    dashboardInstance.advancedFiltering.savePreset(
+                        nameInput.value.trim(),
+                        'Custom filter preset'
+                    );
+                    nameInput.value = '';
+                    alert('Preset saved successfully!');
+                }
+            }
+        }
+
+        function clearDrillDown(dimension, value) {
+            if (dashboardInstance && dashboardInstance.advancedFiltering) {
+                dashboardInstance.advancedFiltering.clearAllFilters();
+                
+                // Hide drill-down breadcrumb
+                const breadcrumb = document.getElementById('drillDownBreadcrumb');
+                if (breadcrumb) {
+                    breadcrumb.style.display = 'none';
+                }
+                
+                // Clear breadcrumb items
+                const breadcrumbItems = document.getElementById('breadcrumbItems');
+                if (breadcrumbItems) {
+                    breadcrumbItems.innerHTML = '';
+                }
+            }
+        }
+
+        // Global utility functions for Export & Collaboration UI
+        function toggleExportPanel() {
+            const content = document.getElementById('exportContent');
+            const icon = document.getElementById('exportToggleIcon');
+            
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                icon.classList.remove('fa-chevron-down');
+                icon.classList.add('fa-chevron-up');
+            } else {
+                content.style.display = 'none';
+                icon.classList.remove('fa-chevron-up');
+                icon.classList.add('fa-chevron-down');
+            }
+        }
+
+        function switchExportTab(tabName) {
+            // Remove active class from all tabs and content
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            // Add active class to selected tab and content
+            event.target.classList.add('active');
+            document.getElementById(tabName + 'Tab').classList.add('active');
+        }
+
+        function selectExportFormat(format) {
+            // Remove selection from all format cards
+            document.querySelectorAll('.export-format-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Select the clicked format
+            const selectedCard = document.querySelector(`[data-format="${format}"]`);
+            if (selectedCard) {
+                selectedCard.classList.add('selected');
+                
+                // Show export options
+                const exportOptions = document.getElementById('exportOptions');
+                if (exportOptions) {
+                    exportOptions.style.display = 'block';
+                }
+            }
+        }
+
+        function cancelExport() {
+            // Clear format selection
+            document.querySelectorAll('.export-format-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Hide export options
+            const exportOptions = document.getElementById('exportOptions');
+            if (exportOptions) {
+                exportOptions.style.display = 'none';
+            }
+        }
+
+        function performExport() {
+            if (dashboardInstance) {
+                dashboardInstance.performExport();
+            }
+        }
+
+        function generateShareLink() {
+            if (dashboardInstance) {
+                dashboardInstance.generateShareLink();
+            }
+        }
+
+        function copyShareLink() {
+            const input = document.getElementById('shareLinkInput');
+            if (input) {
+                input.select();
+                document.execCommand('copy');
+                
+                // Show feedback
+                const btn = event.target;
+                const originalHTML = btn.innerHTML;
+                btn.innerHTML = '<i class="fas fa-check"></i>';
+                btn.classList.add('btn-success');
+                btn.classList.remove('btn-outline-secondary');
+                
+                setTimeout(() => {
+                    btn.innerHTML = originalHTML;
+                    btn.classList.remove('btn-success');
+                    btn.classList.add('btn-outline-secondary');
+                }, 2000);
+            }
+        }
+
+        function createCollaborationRoom() {
+            if (dashboardInstance) {
+                dashboardInstance.createCollaborationRoom();
+            }
+        }
+
+        function joinCollaborationRoom() {
+            if (dashboardInstance) {
+                dashboardInstance.joinCollaborationRoom();
+            }
+        }
+
+        function leaveCollaborationRoom() {
+            if (dashboardInstance) {
+                dashboardInstance.leaveCollaborationRoom();
+            }
+        }
+
+        function sendCollaborationMessage() {
+            if (dashboardInstance) {
+                dashboardInstance.sendCollaborationMessage();
+            }
+        }
+
+        function clearExportHistory() {
+            if (dashboardInstance) {
+                dashboardInstance.clearExportHistory();
+            }
+        }
+
+        function redownloadExport(exportId) {
+            // This would redownload a previous export
+            console.log('Redownload export:', exportId);
+            alert('Redownload functionality would be implemented here');
         }
 
         // Initialize dashboard when page loads
         document.addEventListener('DOMContentLoaded', () => {
-            new FlowDashboard();
+            dashboardInstance = new FlowDashboard();
         });
     </script>
 </body>

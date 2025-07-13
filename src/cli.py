@@ -1,6 +1,7 @@
 """Command-line interface for Flow Metrics."""
 
 import json
+import os
 import signal
 import sys
 from datetime import datetime, timedelta
@@ -27,7 +28,63 @@ from .data_storage import FlowMetricsDatabase
 from .mock_data import generate_mock_azure_devops_data as generate_mock_data
 from .models import FlowMetricsReport
 
-console = Console()
+
+# Windows-compatible console setup
+def create_console():
+    """Create a Rich console with Windows compatibility"""
+    try:
+        if os.name == 'nt':  # Windows
+            try:
+                # Try to enable UTF-8 support
+                import subprocess
+                subprocess.run("chcp 65001", shell=True, capture_output=True)
+                return Console(legacy_windows=False, force_terminal=True)
+            except:
+                # Fallback to safe mode for Windows
+                return Console(legacy_windows=True, no_color=True, force_terminal=True)
+        else:
+            return Console()
+    except:
+        # Ultimate fallback
+        return Console(no_color=True, force_terminal=True)
+
+
+console = create_console()
+
+# Define cross-platform symbols
+if os.name == 'nt':  # Windows
+    SYMBOLS = {
+        'check': 'OK',
+        'error': 'ERROR', 
+        'info': 'INFO',
+        'warning': 'WARN',
+        'arrow': '->',
+        'bullet': '*'
+    }
+else:  # Unix/Linux/Mac
+    SYMBOLS = {
+        'check': '✓',
+        'error': '✗',
+        'info': 'ℹ',
+        'warning': '⚠',
+        'arrow': '→',
+        'bullet': '•'
+    }
+
+
+def safe_print(message, style=None):
+    """Print with Windows-safe encoding"""
+    try:
+        if style:
+            console.print(message, style=style)
+        else:
+            console.print(message)
+    except UnicodeEncodeError:
+        # Fallback to plain print for Windows encoding issues
+        plain_message = message
+        if hasattr(message, 'plain'):
+            plain_message = message.plain
+        print(str(plain_message).encode('ascii', 'replace').decode('ascii'))
 
 
 @click.group()
@@ -59,11 +116,15 @@ def fetch(
     save_last_run: bool,
     history_limit: Optional[int],
 ):
-    """Fetch work items from Azure DevOps."""
+    """Fetch work items from Azure DevOps.
+    
+    Note: If you encounter authentication or conditional access policy errors,
+    use 'python -m src.cli data fresh --use-mock' to generate test data instead.
+    """
 
     # Set up signal handler for graceful cancellation
     def signal_handler(signum, frame):
-        console.print("\n[yellow]⚠️  Operation cancelled by user. Exiting...[/yellow]")
+        safe_print(f"\n[yellow]{SYMBOLS['warning']} Operation cancelled by user. Exiting...[/yellow]")
         sys.exit(130)  # Standard exit code for Ctrl+C
 
     signal.signal(signal.SIGINT, signal_handler)
@@ -189,8 +250,8 @@ def fetch(
         with open(output_path, "w") as f:
             json.dump(items, f, indent=2, default=str)
 
-        console.print(f"[green]✓ Fetched {len(items)} work items[/green]")
-        console.print(f"[green]✓ Saved to {output_path}[/green]")
+        safe_print(f"[green]{SYMBOLS['check']} Fetched {len(items)} work items[/green]")
+        safe_print(f"[green]{SYMBOLS['check']} Saved to {output_path}[/green]")
 
         # Complete execution tracking
         if save_last_run and execution_id:
@@ -216,7 +277,7 @@ def fetch(
             execution_duration = (datetime.now() - execution_start_time).total_seconds()
             db.complete_execution(execution_id, 0, 0, execution_duration, str(e))
 
-        console.print(f"[red]Error: {e}[/red]")
+        safe_print(f"[red]{SYMBOLS['error']} Error: {e}[/red]")
         sys.exit(1)
 
 
@@ -270,9 +331,9 @@ def calculate(
         # Validate work items
         try:
             work_items = _validate_work_items(work_items)
-            console.print(f"[green]✓ Validated {len(work_items)} work items[/green]")
+            safe_print(f"[green]{SYMBOLS['check']} Validated {len(work_items)} work items[/green]")
         except ValueError as e:
-            console.print(f"[red]Validation Error: {e}[/red]")
+            safe_print(f"[red]{SYMBOLS['error']} Validation Error: {e}[/red]")
             sys.exit(1)
 
         # Calculate metrics
@@ -294,7 +355,7 @@ def calculate(
             )
             with open(output_path, "w") as f:
                 json.dump(report, f, indent=2, default=str)
-            console.print(f"[green]✓ Report saved to {output_path}[/green]")
+            safe_print(f"[green]{SYMBOLS['check']} Report saved to {output_path}[/green]")
 
             # Also save dashboard-compatible format for browser integration
             dashboard_data = {
@@ -307,14 +368,14 @@ def calculate(
             )
             with open(dashboard_path, "w") as f:
                 json.dump(dashboard_data, f, indent=2, default=str)
-            console.print(f"[green]✓ Dashboard data updated: {dashboard_path}[/green]")
+            safe_print(f"[green]{SYMBOLS['check']} Dashboard data updated: {dashboard_path}[/green]")
         else:
             console.print(
                 f"[yellow]{output_format} format not yet implemented[/yellow]"
             )
 
     except Exception as e:
-        console.print(f"[red]Error: {e}[/red]")
+        safe_print(f"[red]{SYMBOLS['error']} Error: {e}[/red]")
         sys.exit(1)
 
 
@@ -366,7 +427,7 @@ def sync(
         )
 
     except Exception as e:
-        console.print(f"[red]Error: {e}[/red]")
+        safe_print(f"[red]{SYMBOLS['error']} Error: {e}[/red]")
         sys.exit(1)
 
 
@@ -395,11 +456,11 @@ def mock(items: int, output: Optional[str]):
         with open(output_path, "w") as f:
             json.dump(mock_items, f, indent=2, default=str)
 
-        console.print(f"[green]✓ Generated {len(mock_items)} mock work items[/green]")
-        console.print(f"[green]✓ Saved to {output_path}[/green]")
+        safe_print(f"[green]{SYMBOLS['check']} Generated {len(mock_items)} mock work items[/green]")
+        safe_print(f"[green]{SYMBOLS['check']} Saved to {output_path}[/green]")
 
     except Exception as e:
-        console.print(f"[red]Error: {e}[/red]")
+        safe_print(f"[red]{SYMBOLS['error']} Error: {e}[/red]")
         sys.exit(1)
 
 
@@ -455,7 +516,7 @@ def config_show():
         rprint(config_dict)
 
     except Exception as e:
-        console.print(f"[red]Error: {e}[/red]")
+        safe_print(f"[red]{SYMBOLS['error']} Error: {e}[/red]")
         sys.exit(1)
 
 
@@ -488,13 +549,13 @@ def config_init():
 
         shutil.copy(sample_path, config_path)
 
-        console.print("[green]✓ Created config.json from sample[/green]")
+        safe_print(f"[green]{SYMBOLS['check']} Created config.json from sample[/green]")
         console.print(
             "[yellow]Remember to set AZURE_DEVOPS_PAT environment variable[/yellow]"
         )
 
     except Exception as e:
-        console.print(f"[red]Error: {e}[/red]")
+        safe_print(f"[red]{SYMBOLS['error']} Error: {e}[/red]")
         sys.exit(1)
 
 
@@ -553,7 +614,7 @@ def history(limit: int, detailed: bool):
                 console.print(f"[red]Error: {latest['error_message']}[/red]")
 
     except Exception as e:
-        console.print(f"[red]Error: {e}[/red]")
+        safe_print(f"[red]{SYMBOLS['error']} Error: {e}[/red]")
         sys.exit(1)
 
 
@@ -586,7 +647,7 @@ def demo(port: int, open_browser: bool, use_mock_data: bool, executive: bool):
         )
 
     except Exception as e:
-        console.print(f"[red]Error: {e}[/red]")
+        safe_print(f"[red]{SYMBOLS['error']} Error: {e}[/red]")
         sys.exit(1)
 
 
@@ -622,10 +683,10 @@ def data_cleanup(days_to_keep: int, dry_run: bool):
         console.print(
             f"[green]✓ Cleaned up {deleted_count} old execution records[/green]"
         )
-        console.print(f"[green]✓ Kept data from last {days_to_keep} days[/green]")
+        safe_print(f"[green]{SYMBOLS['check']} Kept data from last {days_to_keep} days[/green]")
 
     except Exception as e:
-        console.print(f"[red]Error: {e}[/red]")
+        safe_print(f"[red]{SYMBOLS['error']} Error: {e}[/red]")
         sys.exit(1)
 
 
@@ -661,7 +722,7 @@ def data_reset(keep_config: bool):
                 config_file.unlink()
                 console.print("[cyan]Removed: config.json[/cyan]")
 
-        console.print("[green]✓ Data reset complete - ready for fresh start[/green]")
+        safe_print(f"[green]{SYMBOLS['check']} Data reset complete - ready for fresh start[/green]")
 
         if keep_config:
             console.print("[yellow]Configuration preserved[/yellow]")
@@ -671,7 +732,119 @@ def data_reset(keep_config: bool):
             )
 
     except Exception as e:
-        console.print(f"[red]Error: {e}[/red]")
+        safe_print(f"[red]{SYMBOLS['error']} Error: {e}[/red]")
+        sys.exit(1)
+
+
+@data.command("validate")
+def data_validate():
+    """Validate Azure DevOps configuration and connection."""
+    try:
+        console.print("[bold cyan]Flow Metrics - Azure DevOps Validation[/bold cyan]")
+        console.print("=" * 50)
+        
+        from .config_manager import get_settings
+        from .azure_devops_client import AzureDevOpsClient
+        import os
+        
+        validation_errors = []
+        warnings = []
+        
+        # Step 1: Validate configuration file
+        console.print("\n[cyan]1. Checking configuration file...[/cyan]")
+        try:
+            settings = get_settings()
+            safe_print(f"[green]{SYMBOLS['check']} Configuration loaded successfully[/green]")
+            
+            # Validate Azure DevOps config
+            if not hasattr(settings, 'azure_devops'):
+                validation_errors.append("Missing 'azure_devops' section in config")
+            else:
+                if not settings.azure_devops.org_url:
+                    validation_errors.append("Missing 'org_url' in azure_devops config")
+                elif not settings.azure_devops.org_url.startswith('https://dev.azure.com/'):
+                    warnings.append(f"Unusual org_url format: {settings.azure_devops.org_url}")
+                else:
+                    safe_print(f"[green]{SYMBOLS['check']} Organization URL: {settings.azure_devops.org_url}[/green]")
+                
+                if not settings.azure_devops.default_project:
+                    validation_errors.append("Missing 'default_project' in azure_devops config")
+                else:
+                    safe_print(f"[green]{SYMBOLS['check']} Project: {settings.azure_devops.default_project}[/green]")
+                    
+        except Exception as config_error:
+            validation_errors.append(f"Configuration error: {config_error}")
+            
+        # Step 2: Validate PAT token
+        console.print("\n[cyan]2. Checking PAT token...[/cyan]")
+        pat_token = os.getenv("AZURE_DEVOPS_PAT")
+        
+        if not pat_token:
+            validation_errors.append("AZURE_DEVOPS_PAT environment variable not set")
+            console.print("[yellow]To set PAT token:[/yellow]")
+            console.print("  Windows: set AZURE_DEVOPS_PAT=your_token_here")
+            console.print("  Unix/Mac: export AZURE_DEVOPS_PAT=your_token_here")
+        else:
+            if len(pat_token) < 20:
+                warnings.append(f"PAT token seems short (length: {len(pat_token)})")
+            safe_print(f"[green]{SYMBOLS['check']} PAT Token: {'*' * (len(pat_token) - 4)}{pat_token[-4:]} (length: {len(pat_token)})[/green]")
+        
+        # Step 3: Check data directory
+        console.print("\n[cyan]3. Checking data directory...[/cyan]")
+        data_dir = Path("data")
+        if not data_dir.exists():
+            data_dir.mkdir()
+            safe_print(f"[green]{SYMBOLS['check']} Created data directory[/green]")
+        else:
+            safe_print(f"[green]{SYMBOLS['check']} Data directory exists[/green]")
+        
+        # Step 4: Test Azure DevOps connection (only if config and token are valid)
+        if not validation_errors:
+            console.print("\n[cyan]4. Testing Azure DevOps connection...[/cyan]")
+            
+            client = AzureDevOpsClient(
+                org_url=settings.azure_devops.org_url,
+                project=settings.azure_devops.default_project,
+                pat_token=pat_token
+            )
+            
+            if client.verify_connection():
+                safe_print(f"[green]{SYMBOLS['check']} Azure DevOps connection successful![/green]")
+            else:
+                validation_errors.append("Azure DevOps connection verification failed")
+        
+        # Display results
+        console.print("\n" + "=" * 50)
+        console.print("[bold]Validation Summary[/bold]")
+        console.print("=" * 50)
+        
+        if warnings:
+            console.print(f"\n[yellow]{SYMBOLS['warning']} Warnings ({len(warnings)}):[/yellow]")
+            for warning in warnings:
+                console.print(f"  • {warning}")
+        
+        if validation_errors:
+            console.print(f"\n[red]{SYMBOLS['error']} Errors ({len(validation_errors)}):[/red]")
+            for error in validation_errors:
+                console.print(f"  • {error}")
+            
+            console.print("\n[yellow]Recommended actions:[/yellow]")
+            console.print("1. Fix configuration errors above")
+            console.print("2. Ensure AZURE_DEVOPS_PAT is set correctly")
+            console.print("3. Check network connectivity to Azure DevOps")
+            console.print("\n[cyan]For immediate testing, use mock data:[/cyan]")
+            console.print("  python -m src.cli data fresh --use-mock")
+            sys.exit(1)
+        else:
+            safe_print(f"\n[green]{SYMBOLS['check']} All validation checks passed![/green]")
+            console.print("\n[green]You can now fetch real data:[/green]")
+            console.print("  python -m src.cli data fresh --days-back 7")
+            console.print("  python -m src.cli serve --open-browser")
+            
+    except Exception as e:
+        safe_print(f"[red]{SYMBOLS['error']} Validation failed: {e}[/red]")
+        console.print("\n[cyan]For immediate testing, use mock data:[/cyan]")
+        console.print("  python -m src.cli data fresh --use-mock")
         sys.exit(1)
 
 
@@ -684,36 +857,128 @@ def data_reset(keep_config: bool):
     type=int,
     help="Limit number of state history entries per work item for faster testing",
 )
-def data_fresh(days_back: int, use_mock: bool, history_limit: Optional[int]):
+@click.option(
+    "--force-mock",
+    is_flag=True,
+    help="Skip Azure DevOps validation and use mock data directly",
+)
+def data_fresh(days_back: int, use_mock: bool, history_limit: Optional[int], force_mock: bool):
     """Start fresh: reset data and fetch new."""
     try:
-        console.print("[cyan]🔄 Starting fresh data load...[/cyan]")
+        safe_print(f"[cyan]{SYMBOLS['arrow']} Starting fresh data load...[/cyan]")
 
         # Reset data (but keep config)
         ctx = click.get_current_context()
         ctx.invoke(data_reset, keep_config=True)
 
         # Generate fresh data
-        if use_mock:
+        if use_mock or force_mock:
             console.print("[yellow]Generating fresh mock data...[/yellow]")
             ctx.invoke(calculate, use_mock_data=True)
         else:
             console.print(
                 f"[yellow]Fetching fresh data for last {days_back} days...[/yellow]"
             )
-            ctx.invoke(fetch, days_back=days_back, save_last_run=True, history_limit=history_limit)
-            ctx.invoke(calculate)
+            
+            # Pre-validate Azure DevOps connection
+            console.print("[cyan]Validating Azure DevOps connection...[/cyan]")
+            try:
+                from .config_manager import get_settings
+                from .azure_devops_client import AzureDevOpsClient
+                import os
+                
+                settings = get_settings()
+                pat_token = os.getenv("AZURE_DEVOPS_PAT")
+                
+                # Debug: Print what config is being loaded
+                console.print(f"[dim]Debug: Organization: {settings.azure_devops.org_url}[/dim]")
+                console.print(f"[dim]Debug: Project: {settings.azure_devops.default_project}[/dim]")
+                
+                if not pat_token:
+                    safe_print(f"[yellow]{SYMBOLS['warning']} AZURE_DEVOPS_PAT environment variable not set[/yellow]")
+                    safe_print(f"[cyan]{SYMBOLS['info']} Falling back to mock data for testing...[/cyan]")
+                    ctx.invoke(calculate, use_mock_data=True)
+                    return
+                
+                client = AzureDevOpsClient(
+                    org_url=settings.azure_devops.org_url,
+                    project=settings.azure_devops.default_project,
+                    pat_token=pat_token
+                )
+                
+                if not client.verify_connection():
+                    safe_print(f"[yellow]{SYMBOLS['warning']} Azure DevOps connection verification failed[/yellow]")
+                    safe_print(f"[cyan]{SYMBOLS['info']} This may be due to conditional access policies or authentication issues[/cyan]")
+                    safe_print(f"[cyan]{SYMBOLS['info']} Falling back to mock data for testing...[/cyan]")
+                    ctx.invoke(calculate, use_mock_data=True)
+                    return
+                
+                safe_print(f"[green]{SYMBOLS['check']} Azure DevOps connection verified[/green]")
+                
+            except Exception as conn_error:
+                error_msg = str(conn_error)
+                safe_print(f"[yellow]{SYMBOLS['warning']} Connection validation failed: {conn_error}[/yellow]")
+                
+                # Provide specific guidance for common errors
+                if "not found" in error_msg and "project" in error_msg.lower():
+                    console.print("[yellow]This usually means:[/yellow]")
+                    console.print("• Project name is incorrect in config/config.json")
+                    console.print("• You don't have access to this project")
+                    console.print("• The project has been renamed or moved")
+                    console.print(f"[cyan]Check that '{settings.azure_devops.default_project}' is the correct project name[/cyan]")
+                
+                safe_print(f"[cyan]{SYMBOLS['info']} Falling back to mock data for testing...[/cyan]")
+                ctx.invoke(calculate, use_mock_data=True)
+                return
+            
+            # Connection is valid, proceed with fetch
+            try:
+                ctx.invoke(fetch, days_back=days_back, save_last_run=True, history_limit=history_limit)
+                
+                # Check if fetch was successful by looking at the work items file
+                data_dir = Path("data")
+                work_items_file = data_dir / "work_items.json"
+                
+                if work_items_file.exists():
+                    with open(work_items_file) as f:
+                        work_items_data = json.load(f)
+                    
+                    if not work_items_data or len(work_items_data) == 0:
+                        # Fetch completed but got no data - likely auth/policy issue
+                        safe_print(f"[yellow]{SYMBOLS['warning']} Azure DevOps fetch completed but returned no work items[/yellow]")
+                        safe_print(f"[cyan]{SYMBOLS['info']} This may be due to conditional access policies or insufficient permissions[/cyan]")
+                        safe_print(f"[cyan]{SYMBOLS['info']} Falling back to mock data for testing...[/cyan]")
+                        ctx.invoke(calculate, use_mock_data=True)
+                    else:
+                        # Success - proceed with normal calculation
+                        ctx.invoke(calculate)
+                else:
+                    # No file created - fetch failed
+                    safe_print(f"[yellow]{SYMBOLS['warning']} No work items file created - falling back to mock data[/yellow]")
+                    ctx.invoke(calculate, use_mock_data=True)
+                    
+            except Exception as e:
+                error_msg = str(e).lower()
+                if any(keyword in error_msg for keyword in ['json', 'conditional access', 'authentication', 'invalid', 'no work items']):
+                    safe_print(f"[red]{SYMBOLS['error']} Azure DevOps connection failed: {e}[/red]")
+                    safe_print(f"[yellow]{SYMBOLS['warning']} This is likely due to conditional access policies or authentication issues[/yellow]")
+                    safe_print(f"[cyan]{SYMBOLS['info']} Falling back to mock data for testing...[/cyan]")
+                    # Fallback to mock data
+                    ctx.invoke(calculate, use_mock_data=True)
+                else:
+                    # Re-raise other errors
+                    raise
 
-        console.print("[green]✓ Fresh data load complete![/green]")
-        console.print(
-            "[cyan]💡 Run 'python3 -m src.cli serve --open-browser' to view dashboard[/cyan]"
+        safe_print(f"[green]{SYMBOLS['check']} Fresh data load complete![/green]")
+        safe_print(
+            f"[cyan]{SYMBOLS['info']} Run 'python3 -m src.cli serve --open-browser' to view dashboard[/cyan]"
         )
-        console.print(
-            "[cyan]💡 Run 'python3 -m src.cli serve --open-browser --executive' to view executive dashboard[/cyan]"
+        safe_print(
+            f"[cyan]{SYMBOLS['info']} Run 'python3 -m src.cli serve --open-browser --executive' to view executive dashboard[/cyan]"
         )
 
     except Exception as e:
-        console.print(f"[red]Error: {e}[/red]")
+        safe_print(f"[red]{SYMBOLS['error']} Error: {e}[/red]")
         sys.exit(1)
 
 
@@ -779,16 +1044,16 @@ def serve(port: int, open_browser: bool, auto_generate: bool, executive: bool):
         dashboard_url = f"http://localhost:{port}/{dashboard_filename}"
         dashboard_type = "Executive Dashboard" if executive else "Dashboard"
         console.print(f"[green]{dashboard_type} available at: {dashboard_url}[/green]")
-        console.print(
-            "[cyan]💡 Select 'CLI Data' in the dashboard to load generated metrics[/cyan]"
+        safe_print(
+            f"[cyan]{SYMBOLS['info']} Select 'CLI Data' in the dashboard to load generated metrics[/cyan]"
         )
-        console.print(
-            "[cyan]💡 Enable 'Auto-refresh' to automatically update when data changes[/cyan]"
+        safe_print(
+            f"[cyan]{SYMBOLS['info']} Enable 'Auto-refresh' to automatically update when data changes[/cyan]"
         )
 
         if open_browser:
             webbrowser.open(dashboard_url)
-            console.print("[green]✓ Opened dashboard in browser[/green]")
+            safe_print(f"[green]{SYMBOLS['check']} Opened dashboard in browser[/green]")
 
         # Keep the main thread alive
         try:
@@ -798,7 +1063,7 @@ def serve(port: int, open_browser: bool, auto_generate: bool, executive: bool):
             console.print("[yellow]Dashboard stopped[/yellow]")
 
     except Exception as e:
-        console.print(f"[red]Error: {e}[/red]")
+        safe_print(f"[red]{SYMBOLS['error']} Error: {e}[/red]")
         sys.exit(1)
 
 
