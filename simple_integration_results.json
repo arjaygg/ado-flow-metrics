@@ -1,0 +1,43 @@
+{
+  "timestamp": "2025-07-14 05:52:31",
+  "test_suite": "simple_integration",
+  "total_tests": 7,
+  "passed_tests": 3,
+  "failed_tests": 4,
+  "success_rate": "42.9%",
+  "test_results": [
+    {
+      "test": "Mock Data Generation",
+      "passed": false
+    },
+    {
+      "test": "Basic Metrics Calculation",
+      "passed": false
+    },
+    {
+      "test": "Dashboard Data Creation",
+      "passed": false
+    },
+    {
+      "test": "Web Server Functionality",
+      "passed": true
+    },
+    {
+      "test": "Dashboard Files Integrity",
+      "passed": true
+    },
+    {
+      "test": "CLI Integration",
+      "passed": true
+    },
+    {
+      "test": "End-to-End Validation",
+      "passed": false
+    }
+  ],
+  "artifacts_created": [
+    "mock_integration_data.json",
+    "basic_metrics.json",
+    "data/dashboard_integration_test.json"
+  ]
+}
