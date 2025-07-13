@@ -17,4 +17,4 @@ echo "  Local:    http://localhost:8080/executive-dashboard.html"
 echo "  From Windows: http://$WSL_IP:8080/executive-dashboard.html"
 echo ""
 echo "Press Ctrl+C to stop the server"
-python -m src.cli serve --executive --port 8080
+python -m src.cli serve --executive --port 8080 --host 0.0.0.0

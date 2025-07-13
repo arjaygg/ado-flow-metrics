@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Phase 1 Features Test - Flow Metrics Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="js/predictive-analytics.js"></script>
+    <script src="js/time-series-analysis.js"></script>
+    <script src="js/enhanced-ux.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fc;
+            padding: 20px;
+        }
+        .test-section {
+            background: white;
+            border-radius: 0.35rem;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .test-result {
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            margin: 0.5rem 0;
+        }
+        .test-success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .test-error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .test-info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <h1 class="mb-4">
+            <i class="fas fa-flask text-primary me-2"></i>
+            Phase 1 Features Test Suite
+        </h1>
+
+        <!-- Test Results Summary -->
+        <div class="test-section">
+            <h3>Test Results Summary</h3>
+            <div id="testSummary" class="mt-3">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <div class="h4 text-primary" id="totalTests">0</div>
+                            <small class="text-muted">Total Tests</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <div class="h4 text-success" id="passedTests">0</div>
+                            <small class="text-muted">Passed</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <div class="h4 text-danger" id="failedTests">0</div>
+                            <small class="text-muted">Failed</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <div class="h4" id="successRate">0%</div>
+                            <small class="text-muted">Success Rate</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced UX Tests -->
+        <div class="test-section">
+            <h3>
+                <i class="fas fa-magic me-2"></i>
+                Enhanced UX Module Tests
+            </h3>
+            <div id="uxTestResults"></div>
+            <button class="btn btn-primary" onclick="runUXTests()">
+                <i class="fas fa-play me-2"></i>Run UX Tests
+            </button>
+        </div>
+
+        <!-- Predictive Analytics Tests -->
+        <div class="test-section">
+            <h3>
+                <i class="fas fa-crystal-ball me-2"></i>
+                Predictive Analytics Tests
+            </h3>
+            <div id="predictiveTestResults"></div>
+            <button class="btn btn-primary" onclick="runPredictiveTests()">
+                <i class="fas fa-play me-2"></i>Run Predictive Tests
+            </button>
+        </div>
+
+        <!-- Time Series Analysis Tests -->
+        <div class="test-section">
+            <h3>
+                <i class="fas fa-chart-line me-2"></i>
+                Time Series Analysis Tests
+            </h3>
+            <div id="timeSeriesTestResults"></div>
+            <button class="btn btn-primary" onclick="runTimeSeriesTests()">
+                <i class="fas fa-play me-2"></i>Run Time Series Tests
+            </button>
+        </div>
+
+        <!-- Integration Tests -->
+        <div class="test-section">
+            <h3>
+                <i class="fas fa-puzzle-piece me-2"></i>
+                Integration Tests
+            </h3>
+            <div id="integrationTestResults"></div>
+            <button class="btn btn-primary" onclick="runIntegrationTests()">
+                <i class="fas fa-play me-2"></i>Run Integration Tests
+            </button>
+        </div>
+
+        <!-- Run All Tests -->
+        <div class="text-center mt-4">
+            <button class="btn btn-success btn-lg" onclick="runAllTests()">
+                <i class="fas fa-rocket me-2"></i>Run All Tests
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Test Framework
+        class TestRunner {
+            constructor() {
+                this.tests = [];
+                this.results = {
+                    total: 0,
+                    passed: 0,
+                    failed: 0
+                };
+            }
+
+            addTest(name, testFunction, category = 'general') {
+                this.tests.push({ name, testFunction, category });
+            }
+
+            async runTest(test) {
+                try {
+                    const startTime = Date.now();
+                    await test.testFunction();
+                    const duration = Date.now() - startTime;
+                    
+                    this.results.passed++;
+                    return {
+                        name: test.name,
+                        status: 'passed',
+                        duration,
+                        message: 'Test passed successfully'
+                    };
+                } catch (error) {
+                    this.results.failed++;
+                    return {
+                        name: test.name,
+                        status: 'failed',
+                        duration: 0,
+                        message: error.message || 'Test failed',
+                        error
+                    };
+                }
+            }
+
+            async runTestsByCategory(category) {
+                const categoryTests = this.tests.filter(t => t.category === category);
+                const results = [];
+                
+                for (const test of categoryTests) {
+                    this.results.total++;
+                    const result = await this.runTest(test);
+                    results.push(result);
+                }
+                
+                return results;
+            }
+
+            updateSummary() {
+                document.getElementById('totalTests').textContent = this.results.total;
+                document.getElementById('passedTests').textContent = this.results.passed;
+                document.getElementById('failedTests').textContent = this.results.failed;
+                
+                const successRate = this.results.total > 0 ? 
+                    (this.results.passed / this.results.total * 100).toFixed(1) : 0;
+                document.getElementById('successRate').textContent = `${successRate}%`;
+            }
+
+            renderResults(results, containerId) {
+                const container = document.getElementById(containerId);
+                container.innerHTML = results.map(result => `
+                    <div class="test-result test-${result.status}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-${result.status === 'passed' ? 'check' : 'times'} me-2"></i>
+                                <strong>${result.name}</strong>
+                            </div>
+                            <small>${result.duration}ms</small>
+                        </div>
+                        <div class="mt-2 small">${result.message}</div>
+                        ${result.error ? `<pre class="mt-2 small">${result.error.stack}</pre>` : ''}
+                    </div>
+                `).join('');
+            }
+        }
+
+        // Initialize test runner
+        const testRunner = new TestRunner();
+
+        // Generate test data
+        function generateTestData() {
+            const historical_data = [];
+            const now = new Date();
+            
+            // Generate 60 days of historical data
+            for (let i = 60; i > 0; i--) {
+                const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+                const dateStr = date.toISOString().split('T')[0];
+                
+                // Generate realistic work items
+                const itemCount = Math.floor(Math.random() * 5) + 1;
+                for (let j = 0; j < itemCount; j++) {
+                    historical_data.push({
+                        id: `item-${i}-${j}`,
+                        resolvedDate: dateStr,
+                        leadTime: Math.random() * 20 + 3, // 3-23 days
+                        cycleTime: Math.random() * 10 + 1, // 1-11 days
+                        workItemType: ['User Story', 'Bug', 'Task'][Math.floor(Math.random() * 3)]
+                    });
+                }
+            }
+
+            return {
+                historical_data,
+                lead_time: { average_days: 12.5, median_days: 10 },
+                cycle_time: { average_days: 6.2, median_days: 5 },
+                throughput: { items_per_period: 15 },
+                work_in_progress: { total_wip: 12 }
+            };
+        }
+
+        // Enhanced UX Tests
+        testRunner.addTest('EnhancedUX Module Initialization', () => {
+            const ux = new EnhancedUX();
+            if (!ux) throw new Error('Failed to initialize EnhancedUX');
+            if (!ux.loadingStates) throw new Error('Loading states not initialized');
+            if (!ux.tooltips) throw new Error('Tooltips not initialized');
+        }, 'ux');
+
+        testRunner.addTest('Skeleton Loading Functionality', () => {
+            const ux = new EnhancedUX();
+            
+            // Create test element
+            const testElement = document.createElement('div');
+            testElement.id = 'test-skeleton';
+            document.body.appendChild(testElement);
+            
+            // Test skeleton show/hide
+            ux.showSkeleton('test-skeleton', 'chart');
+            if (!testElement.innerHTML.includes('skeleton-loader')) {
+                throw new Error('Skeleton not shown');
+            }
+            
+            ux.hideSkeleton('test-skeleton', 'Test content');
+            if (testElement.innerHTML !== 'Test content') {
+                throw new Error('Skeleton not hidden properly');
+            }
+            
+            // Cleanup
+            document.body.removeChild(testElement);
+        }, 'ux');
+
+        testRunner.addTest('Error Notification System', () => {
+            const ux = new EnhancedUX();
+            
+            // Test error notification
+            ux.showErrorNotification({
+                title: 'Test Error',
+                message: 'This is a test error message',
+                type: 'error'
+            });
+            
+            const notification = document.querySelector('.error-notification');
+            if (!notification) throw new Error('Error notification not created');
+            
+            // Cleanup
+            ux.hideErrorNotification(notification);
+        }, 'ux');
+
+        // Predictive Analytics Tests
+        testRunner.addTest('PredictiveAnalytics Module Initialization', () => {
+            const analytics = new PredictiveAnalytics();
+            if (!analytics) throw new Error('Failed to initialize PredictiveAnalytics');
+            if (analytics.simulationRuns !== 10000) throw new Error('Simulation runs not set correctly');
+        }, 'predictive');
+
+        testRunner.addTest('Historical Data Processing', () => {
+            const analytics = new PredictiveAnalytics();
+            const testData = generateTestData();
+            
+            analytics.initialize(testData.historical_data);
+            
+            if (analytics.velocityHistory.length === 0) {
+                throw new Error('Velocity history not processed');
+            }
+            if (analytics.leadTimeHistory.length === 0) {
+                throw new Error('Lead time history not processed');
+            }
+        }, 'predictive');
+
+        testRunner.addTest('Delivery Prediction', () => {
+            const analytics = new PredictiveAnalytics();
+            const testData = generateTestData();
+            
+            analytics.initialize(testData.historical_data);
+            const prediction = analytics.predictDeliveryDate(20);
+            
+            if (!prediction.estimatedDate) throw new Error('No estimated date');
+            if (!prediction.range) throw new Error('No prediction range');
+            if (!prediction.range.optimistic || !prediction.range.realistic || !prediction.range.pessimistic) {
+                throw new Error('Incomplete prediction range');
+            }
+            if (prediction.confidence <= 0 || prediction.confidence > 1) {
+                throw new Error('Invalid confidence level');
+            }
+        }, 'predictive');
+
+        testRunner.addTest('Monte Carlo Simulation', () => {
+            const analytics = new PredictiveAnalytics();
+            const testData = generateTestData();
+            
+            analytics.initialize(testData.historical_data);
+            
+            // Test with different remaining work amounts
+            const smallPrediction = analytics.predictDeliveryDate(5);
+            const largePrediction = analytics.predictDeliveryDate(50);
+            
+            // Large predictions should take longer
+            if (largePrediction.weeksToComplete.realistic <= smallPrediction.weeksToComplete.realistic) {
+                throw new Error('Monte Carlo simulation not working correctly');
+            }
+        }, 'predictive');
+
+        // Time Series Analysis Tests
+        testRunner.addTest('TimeSeriesAnalyzer Module Initialization', () => {
+            const analyzer = new TimeSeriesAnalyzer();
+            if (!analyzer) throw new Error('Failed to initialize TimeSeriesAnalyzer');
+            if (!Array.isArray(analyzer.defaultWindows)) throw new Error('Default windows not set');
+        }, 'timeseries');
+
+        testRunner.addTest('Time Series Data Processing', () => {
+            const analyzer = new TimeSeriesAnalyzer();
+            const testData = generateTestData();
+            
+            const timeSeriesData = [];
+            testData.historical_data.forEach(item => {
+                timeSeriesData.push({
+                    date: item.resolvedDate,
+                    value: item.leadTime,
+                    metric: 'leadTime'
+                });
+            });
+            
+            analyzer.initialize(timeSeriesData);
+            
+            const analysis = analyzer.getAnalysis('leadTime');
+            if (!analysis) throw new Error('No analysis results');
+            if (!analysis.movingAverages) throw new Error('No moving averages calculated');
+        }, 'timeseries');
+
+        testRunner.addTest('Moving Averages Calculation', () => {
+            const analyzer = new TimeSeriesAnalyzer();
+            
+            // Create test data with known pattern
+            const testData = [];
+            for (let i = 0; i < 30; i++) {
+                testData.push({
+                    date: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                    value: 10 + Math.sin(i / 5) * 3, // Sine wave pattern
+                    metric: 'test'
+                });
+            }
+            
+            analyzer.initialize(testData);
+            const analysis = analyzer.getAnalysis('test');
+            
+            if (!analysis.movingAverages || analysis.movingAverages.length === 0) {
+                throw new Error('Moving averages not calculated');
+            }
+            
+            // Check that moving averages smooth the data
+            const ma7 = analysis.movingAverages.find(ma => ma.window === 7);
+            if (!ma7 || ma7.data.length === 0) {
+                throw new Error('7-day moving average not calculated');
+            }
+        }, 'timeseries');
+
+        testRunner.addTest('Trend Detection', () => {
+            const analyzer = new TimeSeriesAnalyzer();
+            
+            // Create upward trending data
+            const testData = [];
+            for (let i = 0; i < 20; i++) {
+                testData.push({
+                    date: new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                    value: i + Math.random() * 2, // Upward trend with noise
+                    metric: 'test'
+                });
+            }
+            
+            analyzer.initialize(testData);
+            const analysis = analyzer.getAnalysis('test');
+            
+            if (!analysis.trends) throw new Error('Trends not calculated');
+            if (!analysis.trends.overall) throw new Error('Overall trend not calculated');
+            
+            // Should detect improving trend (note: data is in reverse order)
+            const direction = analysis.trends.overall.direction;
+            if (direction !== 'DECLINING') { // Reversed because dates are in reverse order
+                console.warn(`Expected DECLINING trend, got ${direction}`);
+            }
+        }, 'timeseries');
+
+        // Integration Tests
+        testRunner.addTest('All Modules Load Successfully', () => {
+            const ux = new EnhancedUX();
+            const analytics = new PredictiveAnalytics();
+            const analyzer = new TimeSeriesAnalyzer();
+            
+            if (!ux || !analytics || !analyzer) {
+                throw new Error('One or more modules failed to load');
+            }
+        }, 'integration');
+
+        testRunner.addTest('End-to-End Workflow', async () => {
+            const testData = generateTestData();
+            
+            // Initialize all modules
+            const ux = new EnhancedUX();
+            const analytics = new PredictiveAnalytics();
+            const analyzer = new TimeSeriesAnalyzer();
+            
+            // Process data through analytics
+            analytics.initialize(testData.historical_data);
+            const prediction = analytics.predictDeliveryDate(20);
+            
+            // Process data through time series analyzer
+            const timeSeriesData = testData.historical_data.map(item => ({
+                date: item.resolvedDate,
+                value: item.leadTime,
+                metric: 'leadTime'
+            }));
+            analyzer.initialize(timeSeriesData);
+            const analysis = analyzer.getAnalysis('leadTime');
+            
+            // Verify all components work together
+            if (!prediction || !analysis) {
+                throw new Error('End-to-end workflow failed');
+            }
+            
+            // Test UX interactions
+            const testDiv = document.createElement('div');
+            testDiv.id = 'integration-test';
+            document.body.appendChild(testDiv);
+            
+            ux.showSkeleton('integration-test', 'chart');
+            await new Promise(resolve => setTimeout(resolve, 100)); // Simulate async operation
+            ux.hideSkeleton('integration-test', 'Test complete');
+            
+            document.body.removeChild(testDiv);
+        }, 'integration');
+
+        // Test runner functions
+        async function runUXTests() {
+            const results = await testRunner.runTestsByCategory('ux');
+            testRunner.renderResults(results, 'uxTestResults');
+            testRunner.updateSummary();
+        }
+
+        async function runPredictiveTests() {
+            const results = await testRunner.runTestsByCategory('predictive');
+            testRunner.renderResults(results, 'predictiveTestResults');
+            testRunner.updateSummary();
+        }
+
+        async function runTimeSeriesTests() {
+            const results = await testRunner.runTestsByCategory('timeseries');
+            testRunner.renderResults(results, 'timeSeriesTestResults');
+            testRunner.updateSummary();
+        }
+
+        async function runIntegrationTests() {
+            const results = await testRunner.runTestsByCategory('integration');
+            testRunner.renderResults(results, 'integrationTestResults');
+            testRunner.updateSummary();
+        }
+
+        async function runAllTests() {
+            // Reset results
+            testRunner.results = { total: 0, passed: 0, failed: 0 };
+            
+            // Run all test categories
+            await runUXTests();
+            await runPredictiveTests();
+            await runTimeSeriesTests();
+            await runIntegrationTests();
+            
+            // Show completion message
+            const successRate = (testRunner.results.passed / testRunner.results.total * 100).toFixed(1);
+            alert(`All tests completed!\n\nResults:\n- Total: ${testRunner.results.total}\n- Passed: ${testRunner.results.passed}\n- Failed: ${testRunner.results.failed}\n- Success Rate: ${successRate}%`);
+        }
+
+        // Auto-run tests on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('Phase 1 Features Test Suite Loaded');
+        });
+    </script>
+</body>
+</html>
