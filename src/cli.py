@@ -1043,7 +1043,16 @@ def serve(port: int, open_browser: bool, auto_generate: bool, executive: bool):
             
             def guess_type(self, path):
                 """Enhanced MIME type detection"""
-                mimetype, encoding = super().guess_type(path)
+                try:
+                    result = super().guess_type(path)
+                    if isinstance(result, tuple) and len(result) >= 2:
+                        mimetype, encoding = result[0], result[1]
+                    else:
+                        mimetype, encoding = result, None
+                except Exception:
+                    mimetype, encoding = None, None
+                
+                # Override with our specific types
                 if path.endswith('.js'):
                     return 'application/javascript', encoding
                 elif path.endswith('.json'):
@@ -1056,7 +1065,8 @@ def serve(port: int, open_browser: bool, auto_generate: bool, executive: bool):
                     return 'font/woff', encoding
                 elif path.endswith('.ico'):
                     return 'image/x-icon', encoding
-                return mimetype, encoding
+                
+                return mimetype or 'application/octet-stream', encoding
 
         # Start server in background thread
         def start_server():
