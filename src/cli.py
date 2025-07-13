@@ -1,6 +1,7 @@
 """Command-line interface for Flow Metrics."""
 
 import json
+import os
 import signal
 import sys
 from datetime import datetime, timedelta
@@ -27,7 +28,63 @@ from .data_storage import FlowMetricsDatabase
 from .mock_data import generate_mock_azure_devops_data as generate_mock_data
 from .models import FlowMetricsReport
 
-console = Console()
+
+# Windows-compatible console setup
+def create_console():
+    """Create a Rich console with Windows compatibility"""
+    try:
+        if os.name == 'nt':  # Windows
+            try:
+                # Try to enable UTF-8 support
+                import subprocess
+                subprocess.run("chcp 65001", shell=True, capture_output=True)
+                return Console(legacy_windows=False, force_terminal=True)
+            except:
+                # Fallback to safe mode for Windows
+                return Console(legacy_windows=True, no_color=True, force_terminal=True)
+        else:
+            return Console()
+    except:
+        # Ultimate fallback
+        return Console(no_color=True, force_terminal=True)
+
+
+console = create_console()
+
+# Define cross-platform symbols
+if os.name == 'nt':  # Windows
+    SYMBOLS = {
+        'check': 'OK',
+        'error': 'ERROR', 
+        'info': 'INFO',
+        'warning': 'WARN',
+        'arrow': '->',
+        'bullet': '*'
+    }
+else:  # Unix/Linux/Mac
+    SYMBOLS = {
+        'check': '✓',
+        'error': '✗',
+        'info': 'ℹ',
+        'warning': '⚠',
+        'arrow': '→',
+        'bullet': '•'
+    }
+
+
+def safe_print(message, style=None):
+    """Print with Windows-safe encoding"""
+    try:
+        if style:
+            console.print(message, style=style)
+        else:
+            console.print(message)
+    except UnicodeEncodeError:
+        # Fallback to plain print for Windows encoding issues
+        plain_message = message
+        if hasattr(message, 'plain'):
+            plain_message = message.plain
+        print(str(plain_message).encode('ascii', 'replace').decode('ascii'))
 
 
 @click.group()
@@ -63,7 +120,7 @@ def fetch(
 
     # Set up signal handler for graceful cancellation
     def signal_handler(signum, frame):
-        console.print("\n[yellow]⚠️  Operation cancelled by user. Exiting...[/yellow]")
+        safe_print(f"\n[yellow]{SYMBOLS['warning']} Operation cancelled by user. Exiting...[/yellow]")
         sys.exit(130)  # Standard exit code for Ctrl+C
 
     signal.signal(signal.SIGINT, signal_handler)
@@ -189,8 +246,8 @@ def fetch(
         with open(output_path, "w") as f:
             json.dump(items, f, indent=2, default=str)
 
-        console.print(f"[green]✓ Fetched {len(items)} work items[/green]")
-        console.print(f"[green]✓ Saved to {output_path}[/green]")
+        safe_print(f"[green]{SYMBOLS['check']} Fetched {len(items)} work items[/green]")
+        safe_print(f"[green]{SYMBOLS['check']} Saved to {output_path}[/green]")
 
         # Complete execution tracking
         if save_last_run and execution_id:
@@ -216,7 +273,7 @@ def fetch(
             execution_duration = (datetime.now() - execution_start_time).total_seconds()
             db.complete_execution(execution_id, 0, 0, execution_duration, str(e))
 
-        console.print(f"[red]Error: {e}[/red]")
+        safe_print(f"[red]{SYMBOLS['error']} Error: {e}[/red]")
         sys.exit(1)
 
 
@@ -270,9 +327,9 @@ def calculate(
         # Validate work items
         try:
             work_items = _validate_work_items(work_items)
-            console.print(f"[green]✓ Validated {len(work_items)} work items[/green]")
+            safe_print(f"[green]{SYMBOLS['check']} Validated {len(work_items)} work items[/green]")
         except ValueError as e:
-            console.print(f"[red]Validation Error: {e}[/red]")
+            safe_print(f"[red]{SYMBOLS['error']} Validation Error: {e}[/red]")
             sys.exit(1)
 
         # Calculate metrics
@@ -294,7 +351,7 @@ def calculate(
             )
             with open(output_path, "w") as f:
                 json.dump(report, f, indent=2, default=str)
-            console.print(f"[green]✓ Report saved to {output_path}[/green]")
+            safe_print(f"[green]{SYMBOLS['check']} Report saved to {output_path}[/green]")
 
             # Also save dashboard-compatible format for browser integration
             dashboard_data = {
@@ -307,14 +364,14 @@ def calculate(
             )
             with open(dashboard_path, "w") as f:
                 json.dump(dashboard_data, f, indent=2, default=str)
-            console.print(f"[green]✓ Dashboard data updated: {dashboard_path}[/green]")
+            safe_print(f"[green]{SYMBOLS['check']} Dashboard data updated: {dashboard_path}[/green]")
         else:
             console.print(
                 f"[yellow]{output_format} format not yet implemented[/yellow]"
             )
 
     except Exception as e:
-        console.print(f"[red]Error: {e}[/red]")
+        safe_print(f"[red]{SYMBOLS['error']} Error: {e}[/red]")
         sys.exit(1)
 
 
@@ -366,7 +423,7 @@ def sync(
         )
 
     except Exception as e:
-        console.print(f"[red]Error: {e}[/red]")
+        safe_print(f"[red]{SYMBOLS['error']} Error: {e}[/red]")
         sys.exit(1)
 
 
@@ -395,11 +452,11 @@ def mock(items: int, output: Optional[str]):
         with open(output_path, "w") as f:
             json.dump(mock_items, f, indent=2, default=str)
 
-        console.print(f"[green]✓ Generated {len(mock_items)} mock work items[/green]")
-        console.print(f"[green]✓ Saved to {output_path}[/green]")
+        safe_print(f"[green]{SYMBOLS['check']} Generated {len(mock_items)} mock work items[/green]")
+        safe_print(f"[green]{SYMBOLS['check']} Saved to {output_path}[/green]")
 
     except Exception as e:
-        console.print(f"[red]Error: {e}[/red]")
+        safe_print(f"[red]{SYMBOLS['error']} Error: {e}[/red]")
         sys.exit(1)
 
 
@@ -455,7 +512,7 @@ def config_show():
         rprint(config_dict)
 
     except Exception as e:
-        console.print(f"[red]Error: {e}[/red]")
+        safe_print(f"[red]{SYMBOLS['error']} Error: {e}[/red]")
         sys.exit(1)
 
 
@@ -488,13 +545,13 @@ def config_init():
 
         shutil.copy(sample_path, config_path)
 
-        console.print("[green]✓ Created config.json from sample[/green]")
+        safe_print(f"[green]{SYMBOLS['check']} Created config.json from sample[/green]")
         console.print(
             "[yellow]Remember to set AZURE_DEVOPS_PAT environment variable[/yellow]"
         )
 
     except Exception as e:
-        console.print(f"[red]Error: {e}[/red]")
+        safe_print(f"[red]{SYMBOLS['error']} Error: {e}[/red]")
         sys.exit(1)
 
 
@@ -553,7 +610,7 @@ def history(limit: int, detailed: bool):
                 console.print(f"[red]Error: {latest['error_message']}[/red]")
 
     except Exception as e:
-        console.print(f"[red]Error: {e}[/red]")
+        safe_print(f"[red]{SYMBOLS['error']} Error: {e}[/red]")
         sys.exit(1)
 
 
@@ -586,7 +643,7 @@ def demo(port: int, open_browser: bool, use_mock_data: bool, executive: bool):
         )
 
     except Exception as e:
-        console.print(f"[red]Error: {e}[/red]")
+        safe_print(f"[red]{SYMBOLS['error']} Error: {e}[/red]")
         sys.exit(1)
 
 
@@ -622,10 +679,10 @@ def data_cleanup(days_to_keep: int, dry_run: bool):
         console.print(
             f"[green]✓ Cleaned up {deleted_count} old execution records[/green]"
         )
-        console.print(f"[green]✓ Kept data from last {days_to_keep} days[/green]")
+        safe_print(f"[green]{SYMBOLS['check']} Kept data from last {days_to_keep} days[/green]")
 
     except Exception as e:
-        console.print(f"[red]Error: {e}[/red]")
+        safe_print(f"[red]{SYMBOLS['error']} Error: {e}[/red]")
         sys.exit(1)
 
 
@@ -661,7 +718,7 @@ def data_reset(keep_config: bool):
                 config_file.unlink()
                 console.print("[cyan]Removed: config.json[/cyan]")
 
-        console.print("[green]✓ Data reset complete - ready for fresh start[/green]")
+        safe_print(f"[green]{SYMBOLS['check']} Data reset complete - ready for fresh start[/green]")
 
         if keep_config:
             console.print("[yellow]Configuration preserved[/yellow]")
@@ -671,7 +728,7 @@ def data_reset(keep_config: bool):
             )
 
     except Exception as e:
-        console.print(f"[red]Error: {e}[/red]")
+        safe_print(f"[red]{SYMBOLS['error']} Error: {e}[/red]")
         sys.exit(1)
 
 
@@ -687,7 +744,7 @@ def data_reset(keep_config: bool):
 def data_fresh(days_back: int, use_mock: bool, history_limit: Optional[int]):
     """Start fresh: reset data and fetch new."""
     try:
-        console.print("[cyan]🔄 Starting fresh data load...[/cyan]")
+        safe_print(f"[cyan]{SYMBOLS['arrow']} Starting fresh data load...[/cyan]")
 
         # Reset data (but keep config)
         ctx = click.get_current_context()
@@ -704,16 +761,16 @@ def data_fresh(days_back: int, use_mock: bool, history_limit: Optional[int]):
             ctx.invoke(fetch, days_back=days_back, save_last_run=True, history_limit=history_limit)
             ctx.invoke(calculate)
 
-        console.print("[green]✓ Fresh data load complete![/green]")
-        console.print(
-            "[cyan]💡 Run 'python3 -m src.cli serve --open-browser' to view dashboard[/cyan]"
+        safe_print(f"[green]{SYMBOLS['check']} Fresh data load complete![/green]")
+        safe_print(
+            f"[cyan]{SYMBOLS['info']} Run 'python3 -m src.cli serve --open-browser' to view dashboard[/cyan]"
         )
-        console.print(
-            "[cyan]💡 Run 'python3 -m src.cli serve --open-browser --executive' to view executive dashboard[/cyan]"
+        safe_print(
+            f"[cyan]{SYMBOLS['info']} Run 'python3 -m src.cli serve --open-browser --executive' to view executive dashboard[/cyan]"
         )
 
     except Exception as e:
-        console.print(f"[red]Error: {e}[/red]")
+        safe_print(f"[red]{SYMBOLS['error']} Error: {e}[/red]")
         sys.exit(1)
 
 
@@ -779,16 +836,16 @@ def serve(port: int, open_browser: bool, auto_generate: bool, executive: bool):
         dashboard_url = f"http://localhost:{port}/{dashboard_filename}"
         dashboard_type = "Executive Dashboard" if executive else "Dashboard"
         console.print(f"[green]{dashboard_type} available at: {dashboard_url}[/green]")
-        console.print(
-            "[cyan]💡 Select 'CLI Data' in the dashboard to load generated metrics[/cyan]"
+        safe_print(
+            f"[cyan]{SYMBOLS['info']} Select 'CLI Data' in the dashboard to load generated metrics[/cyan]"
         )
-        console.print(
-            "[cyan]💡 Enable 'Auto-refresh' to automatically update when data changes[/cyan]"
+        safe_print(
+            f"[cyan]{SYMBOLS['info']} Enable 'Auto-refresh' to automatically update when data changes[/cyan]"
         )
 
         if open_browser:
             webbrowser.open(dashboard_url)
-            console.print("[green]✓ Opened dashboard in browser[/green]")
+            safe_print(f"[green]{SYMBOLS['check']} Opened dashboard in browser[/green]")
 
         # Keep the main thread alive
         try:
@@ -798,7 +855,7 @@ def serve(port: int, open_browser: bool, auto_generate: bool, executive: bool):
             console.print("[yellow]Dashboard stopped[/yellow]")
 
     except Exception as e:
-        console.print(f"[red]Error: {e}[/red]")
+        safe_print(f"[red]{SYMBOLS['error']} Error: {e}[/red]")
         sys.exit(1)
 
 
