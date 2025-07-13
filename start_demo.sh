@@ -8,4 +8,4 @@ WSL_IP=$(hostname -I | awk '{print $1}')
 echo "Demo URLs:"
 echo "  Local:    http://localhost:8080"
 echo "  From Windows: http://$WSL_IP:8080"
-python -m src.cli demo --use-mock-data
+python -m src.cli demo --use-mock-data --port 8080
