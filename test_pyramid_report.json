@@ -1,0 +1,56 @@
+{
+  "timestamp": "2025-07-14T12:19:29.788895",
+  "project": "ADO Flow Hive",
+  "test_pyramid_results": {
+    "unit": {
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "execution_time": 3.9376444816589355,
+      "coverage_percentage": 0.0,
+      "exit_code": 2
+    },
+    "integration": {
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "execution_time": 2.04115891456604,
+      "coverage_percentage": 0.0,
+      "exit_code": 4
+    },
+    "e2e": {
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "execution_time": 1.9210495948791504,
+      "coverage_percentage": 0.0,
+      "exit_code": 4
+    },
+    "performance": {
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "execution_time": 1.7110004425048828,
+      "coverage_percentage": 0.0,
+      "exit_code": 4
+    }
+  },
+  "quality_gates": {
+    "min_unit_test_coverage": 85.0,
+    "min_integration_test_coverage": 75.0,
+    "min_overall_coverage": 80.0,
+    "max_unit_test_time": 60.0,
+    "max_integration_test_time": 300.0,
+    "max_e2e_test_time": 600.0,
+    "max_performance_test_time": 900.0
+  },
+  "overall_execution_time": 10.744102478027344,
+  "summary": {
+    "total_tests": 0,
+    "total_passed": 0,
+    "total_failed": 0,
+    "total_skipped": 0,
+    "success_rate": 0,
+    "pyramid_distribution": {}
+  }
+}
