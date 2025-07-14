@@ -122,18 +122,48 @@ class FlowMetricsWebServer:
 
         @self.app.route("/js/<path:filename>")
         def serve_js(filename):
-            """Serve JavaScript files."""
+            """Serve JavaScript files with path validation."""
             from pathlib import Path
-            from flask import send_from_directory
+            from flask import send_from_directory, abort
+            import os
+            
+            # Validate filename to prevent path traversal
+            if '..' in filename or filename.startswith('/') or '~' in filename:
+                abort(403)
+            
             js_dir = Path(__file__).parent.parent / "js"
+            
+            # Ensure the resolved path is within the js directory
+            try:
+                requested_path = js_dir / filename
+                if not str(requested_path.resolve()).startswith(str(js_dir.resolve())):
+                    abort(403)
+            except (OSError, ValueError):
+                abort(403)
+            
             return send_from_directory(js_dir, filename)
 
         @self.app.route("/config/<path:filename>")
         def serve_config(filename):
-            """Serve config files."""
+            """Serve config files with path validation."""
             from pathlib import Path
-            from flask import send_from_directory
+            from flask import send_from_directory, abort
+            import os
+            
+            # Validate filename to prevent path traversal
+            if '..' in filename or filename.startswith('/') or '~' in filename:
+                abort(403)
+            
             config_dir = Path(__file__).parent.parent / "config"
+            
+            # Ensure the resolved path is within the config directory
+            try:
+                requested_path = config_dir / filename
+                if not str(requested_path.resolve()).startswith(str(config_dir.resolve())):
+                    abort(403)
+            except (OSError, ValueError):
+                abort(403)
+            
             return send_from_directory(config_dir, filename)
 
         @self.app.errorhandler(500)

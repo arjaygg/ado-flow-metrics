@@ -2013,11 +2013,20 @@
                 // Add sprint options
                 sprints.forEach(sprint => {
                     const li = document.createElement('li');
-                    li.innerHTML = `
-                        <a class="dropdown-item" href="#" data-sprint="${sprint}">
-                            <input type="checkbox" class="form-check-input me-2"> ${sprint}
-                        </a>
-                    `;
+                    const a = document.createElement('a');
+                    a.className = 'dropdown-item';
+                    a.href = '#';
+                    a.setAttribute('data-sprint', sprint);
+                    
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.className = 'form-check-input me-2';
+                    
+                    const text = document.createTextNode(' ' + sprint);
+                    
+                    a.appendChild(checkbox);
+                    a.appendChild(text);
+                    li.appendChild(a);
                     menu.appendChild(li);
                 });
             }
@@ -2120,14 +2129,22 @@
                 const button = document.getElementById('workItemTypeDropdown');
                 const info = document.getElementById('workItemTypeInfo');
 
+                // Clear existing content
+                button.innerHTML = '';
+                
+                // Create icon element
+                const icon = document.createElement('i');
+                icon.className = 'fas fa-tags me-2';
+                button.appendChild(icon);
+
                 if (this.selectedWorkItemTypes.includes('All Types')) {
-                    button.innerHTML = '<i class="fas fa-tags me-2"></i>All Types';
+                    button.appendChild(document.createTextNode('All Types'));
                     info.textContent = 'All types included';
                 } else if (this.selectedWorkItemTypes.length === 1) {
-                    button.innerHTML = `<i class="fas fa-tags me-2"></i>${this.selectedWorkItemTypes[0]}`;
+                    button.appendChild(document.createTextNode(this.selectedWorkItemTypes[0]));
                     info.textContent = `Filtered to ${this.selectedWorkItemTypes[0]} items`;
                 } else {
-                    button.innerHTML = `<i class="fas fa-tags me-2"></i>${this.selectedWorkItemTypes.length} Types`;
+                    button.appendChild(document.createTextNode(`${this.selectedWorkItemTypes.length} Types`));
                     info.textContent = `Filtered to ${this.selectedWorkItemTypes.length} types: ${this.selectedWorkItemTypes.join(', ')}`;
                 }
             }
@@ -2136,14 +2153,22 @@
                 const button = document.getElementById('sprintDropdown');
                 const info = document.getElementById('sprintInfo');
 
+                // Clear existing content
+                button.innerHTML = '';
+                
+                // Create icon element
+                const icon = document.createElement('i');
+                icon.className = 'fas fa-running me-2';
+                button.appendChild(icon);
+
                 if (this.selectedSprints.includes('All Sprints')) {
-                    button.innerHTML = '<i class="fas fa-running me-2"></i>All Sprints';
+                    button.appendChild(document.createTextNode('All Sprints'));
                     info.textContent = 'All sprints included';
                 } else if (this.selectedSprints.length === 1) {
-                    button.innerHTML = `<i class="fas fa-running me-2"></i>${this.selectedSprints[0]}`;
+                    button.appendChild(document.createTextNode(this.selectedSprints[0]));
                     info.textContent = `Filtered to ${this.selectedSprints[0]}`;
                 } else {
-                    button.innerHTML = `<i class="fas fa-running me-2"></i>${this.selectedSprints.length} Sprints`;
+                    button.appendChild(document.createTextNode(`${this.selectedSprints.length} Sprints`));
                     info.textContent = `Filtered to ${this.selectedSprints.length} sprints: ${this.selectedSprints.join(', ')}`;
                 }
             }

@@ -36,21 +36,30 @@ class TestCompleteWorkflows:
         # Create temporary files
         config_data = {
             "azure_devops": {
-                "organization": "e2e-test-org",
-                "project": "e2e-test-project",
+                "org_url": "https://dev.azure.com/e2e-test-org",
+                "default_project": "e2e-test-project",
                 "pat_token": "e2e-test-token-123456",
-                "base_url": "https://dev.azure.com",
                 "api_version": "7.0"
+            },
+            "flow_metrics": {
+                "throughput_period_days": 30,
+                "lead_time_percentiles": [50, 75, 85, 95],
+                "cycle_time_percentiles": [50, 75, 85, 95],
+                "wip_age_threshold_days": 14,
+                "blocked_threshold_days": 3,
+                "default_days_back": 90
             },
             "stage_definitions": {
                 "active_states": ["Active", "In Progress", "Code Review", "Testing"],
                 "completion_states": ["Done", "Closed", "Resolved", "Completed"],
                 "waiting_states": ["New", "Blocked", "Waiting", "On Hold"]
             },
-            "data_dir": "e2e_test_data",
-            "log_dir": "e2e_test_logs",
-            "cache_duration_hours": 24,
-            "web_server": {
+            "data_management": {
+                "data_directory": "e2e_test_data",
+                "backup_enabled": True,
+                "backup_frequency_hours": 24
+            },
+            "dashboard": {
                 "host": "127.0.0.1",
                 "port": 5555,
                 "debug": False
@@ -227,9 +236,12 @@ class TestCompleteWorkflows:
         mock_get.return_value = mock_get_response
         
         # Setup data storage with test data
-        storage = FlowMetricsDatabase(e2e_environment["db_file"])
+        from src.config_manager import FlowMetricsSettings
+        config_settings = FlowMetricsSettings(_config_file=e2e_environment["config_file"])
+        storage = FlowMetricsDatabase(config_settings)
         test_work_items = self._create_test_work_items()
-        storage.store_work_items(test_work_items)
+        execution_id = storage.start_execution("test-org", "test-project")
+        storage.store_work_items(execution_id, test_work_items)
         
         # Test web server endpoints
         app.config['TESTING'] = True
@@ -253,18 +265,18 @@ class TestCompleteWorkflows:
         config_file = e2e_environment["config_file"]
         
         # Load and validate configuration
-        settings = FlowMetricsSettings.from_file(Path(config_file))
+        settings = FlowMetricsSettings(_config_file=config_file)
         
         # Verify configuration loaded correctly
-        assert settings.azure_devops.organization == "e2e-test-org"
-        assert settings.azure_devops.project == "e2e-test-project"
-        assert len(settings.stage_definitions.active_states) == 4
+        assert settings.azure_devops.org_url == "https://dev.azure.com/e2e-test-org"
+        assert settings.azure_devops.default_project == "e2e-test-project"
+        assert len(settings.stage_definitions["active_states"]) == 4
         
         # Test storage initialization
-        storage = FlowMetricsDatabase(e2e_environment["db_file"])
+        storage = FlowMetricsDatabase(settings)
         
         # Verify database schema created
-        conn = sqlite3.connect(e2e_environment["db_file"])
+        conn = sqlite3.connect(str(settings.data_management.data_directory / "flow_metrics.db"))
         cursor = conn.cursor()
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
         tables = [row[0] for row in cursor.fetchall()]

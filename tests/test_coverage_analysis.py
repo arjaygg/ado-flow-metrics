@@ -36,12 +36,15 @@ class CoverageAnalyzer:
             functions = self._extract_functions(py_file)
             tested_functions = self._find_tested_functions(py_file.stem)
             
-            untested = [func for func in functions if func not in tested_functions]
+            # Only count tested functions that actually exist in the source
+            actual_tested_functions = tested_functions.intersection(set(functions))
+            untested = [func for func in functions if func not in actual_tested_functions]
+            
             coverage_report[py_file.name] = {
                 "total_functions": len(functions),
-                "tested_functions": len(tested_functions),
+                "tested_functions": len(actual_tested_functions),
                 "untested_functions": untested,
-                "coverage_percentage": (len(tested_functions) / len(functions) * 100) if functions else 100
+                "coverage_percentage": (len(actual_tested_functions) / len(functions) * 100) if functions else 100
             }
         
         return coverage_report

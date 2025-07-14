@@ -2,6 +2,7 @@ import base64
 import json
 import logging
 import signal
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
@@ -336,6 +337,11 @@ class AzureDevOpsClient:
 
         transformed_items = []
         
+        # Thread-safe counter for progress tracking
+        progress_lock = threading.Lock()
+        completed = 0
+        total = len(work_items_to_process)
+        
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             # Submit all state history requests
             future_to_item = {
@@ -345,10 +351,6 @@ class AzureDevOpsClient:
                 for item in work_items_to_process
             }
 
-            # Update progress as histories are fetched
-            completed = 0
-            total = len(work_items_to_process)
-
             # Collect results as they complete
             for future in as_completed(future_to_item):
                 item = future_to_item[future]
@@ -357,8 +359,9 @@ class AzureDevOpsClient:
                     item["state_transitions"] = state_transitions
                 except KeyboardInterrupt:
                     logger.info("Cancelling remaining state history requests...")
-                    # Cancel remaining futures
-                    for f in future_to_item:
+                    # Thread-safe cancellation
+                    remaining_futures = list(future_to_item.keys())
+                    for f in remaining_futures:
                         f.cancel()
                     raise
                 except Exception as e:
@@ -367,11 +370,13 @@ class AzureDevOpsClient:
                     )
                     item["state_transitions"] = []
 
-                completed += 1
-                if progress_callback and completed % 10 == 0:
-                    progress_callback(
-                        "items", f"Processed state history: {completed}/{total}"
-                    )
+                # Thread-safe progress update
+                with progress_lock:
+                    completed += 1
+                    if progress_callback and completed % 10 == 0:
+                        progress_callback(
+                            "items", f"Processed state history: {completed}/{total}"
+                        )
 
             # Remove raw_id field as it's no longer needed
             for item in work_items_to_process:
@@ -385,7 +390,9 @@ class AzureDevOpsClient:
     ) -> List[Dict]:
         """Fetch work item batches concurrently for improved performance"""
         work_items = []
+        work_items_lock = threading.Lock()
         completed_batches = 0
+        progress_lock = threading.Lock()
         total_batches = len(batches)
 
         def fetch_batch_with_retry(batch_ids: List[int], batch_num: int) -> List[Dict]:
@@ -427,11 +434,12 @@ class AzureDevOpsClient:
                     response.raise_for_status()
                     batch_work_items = response.json().get("value", [])
 
-                    # Update progress
+                    # Thread-safe progress update
                     nonlocal completed_batches
-                    completed_batches += 1
-                    if progress_callback:
-                        progress_callback("batch", completed_batches, total_batches)
+                    with progress_lock:
+                        completed_batches += 1
+                        if progress_callback:
+                            progress_callback("batch", completed_batches, total_batches)
 
                     return batch_work_items
 
@@ -466,11 +474,14 @@ class AzureDevOpsClient:
                 for future in as_completed(future_to_batch):
                     try:
                         batch_items = future.result(timeout=30)  # Add timeout
-                        work_items.extend(batch_items)
+                        # Thread-safe list extension
+                        with work_items_lock:
+                            work_items.extend(batch_items)
                     except KeyboardInterrupt:
                         logger.info("Cancelling remaining batch requests...")
-                        # Cancel remaining futures
-                        for f in future_to_batch:
+                        # Thread-safe cancellation
+                        remaining_futures = list(future_to_batch.keys())
+                        for f in remaining_futures:
                             f.cancel()
                         raise
                     except Exception as e:
