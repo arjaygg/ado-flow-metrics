@@ -518,10 +518,16 @@
                     </div>
                 </div>
             </div>
+            <!-- Quick Filters Note -->
+            <div class="alert alert-info mb-3">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Tip:</strong> For comprehensive filtering including work item types, priorities, assignees, states, and more, use the <strong>Advanced Filtering & Drill-Down</strong> section below.
+            </div>
+            
             <!-- Work Item Type Filter -->
             <div class="row align-items-center mb-3">
                 <div class="col-md-6">
-                    <h6 class="mb-0">Work Item Type Filter</h6>
+                    <h6 class="mb-0">Work Item Type Filter (Basic)</h6>
                     <small class="text-muted" id="workItemTypeInfo">All types included</small>
                 </div>
                 <div class="col-md-6">
@@ -560,7 +566,7 @@
             <!-- Sprint Filter -->
             <div class="row align-items-center mb-3">
                 <div class="col-md-6">
-                    <h6 class="mb-0">Sprint Filter</h6>
+                    <h6 class="mb-0">Sprint Filter (Basic)</h6>
                     <small class="text-muted" id="sprintInfo">All sprints included</small>
                 </div>
                 <div class="col-md-6">
@@ -582,7 +588,7 @@
             <!-- Workstream Filter -->
             <div class="row align-items-center">
                 <div class="col-md-6">
-                    <h6 class="mb-0">Workstream Filter</h6>
+                    <h6 class="mb-0">Workstream Filter (Basic)</h6>
                     <small class="text-muted" id="workstreamInfo">All teams included</small>
                 </div>
                 <div class="col-md-6">
@@ -609,10 +615,10 @@
                     <i class="fas fa-filter me-2"></i>
                     Advanced Filtering & Drill-Down
                 </h5>
-                <i class="fas fa-chevron-down ms-auto" id="filterToggleIcon"></i>
+                <i class="fas fa-chevron-up ms-auto" id="filterToggleIcon"></i>
             </div>
             
-            <div class="filter-content" id="filterContent">
+            <div class="filter-content" id="filterContent" style="display: block;">
                 <!-- Filter Summary -->
                 <div class="filter-summary" id="filterSummary">
                     <div class="d-flex justify-content-between align-items-center">
@@ -1310,6 +1316,12 @@
                 this.exportCollaboration = new ExportCollaboration();
                 this.insightsEngine = new ActionableInsightsEngine();
                 this.pwaManager = new PWAManager();
+                
+                // Performance optimizations
+                this.chartCache = new Map();
+                this.chartUpdateTimers = new Map();
+                this.lastDataHash = null;
+                
                 this.init();
             }
 
@@ -2249,40 +2261,59 @@
                     showlegend: false
                 };
 
-                Plotly.newPlot('forecastChart', [trace1], layout, { responsive: true });
+                // Use Plotly.react for better performance (updates existing chart if possible)
+                Plotly.react('forecastChart', [trace1], layout, { responsive: true });
             }
 
             updateVelocityTrendChart(prediction) {
-                // Create velocity trend visualization
-                const velocityHistory = this.predictiveAnalytics.velocityHistory;
-                if (!velocityHistory || velocityHistory.length === 0) {
-                    console.warn('No velocity history available');
-                    this.showPlaceholderChart('velocityTrendChart', 'Velocity trend data not available');
-                    return;
-                }
-                const weeks = velocityHistory.map((_, i) => `Week ${i + 1}`);
+                // Performance optimization: debounce chart updates
+                this.debouncedChartUpdate('velocityTrendChart', () => {
+                    const velocityHistory = this.predictiveAnalytics.velocityHistory;
+                    if (!velocityHistory || velocityHistory.length === 0) {
+                        console.warn('No velocity history available');
+                        this.showPlaceholderChart('velocityTrendChart', 'Velocity trend data not available');
+                        return;
+                    }
+                    
+                    // Create data hash for caching
+                    const dataHash = this.hashData(velocityHistory);
+                    const cacheKey = `velocityTrend_${dataHash}`;
+                    
+                    if (this.chartCache.has(cacheKey)) {
+                        // Use cached data
+                        const cachedData = this.chartCache.get(cacheKey);
+                        Plotly.react('velocityTrendChart', cachedData.traces, cachedData.layout, { responsive: true });
+                        return;
+                    }
+                    
+                    const weeks = velocityHistory.map((_, i) => `Week ${i + 1}`);
 
-                const trace = {
-                    x: weeks,
-                    y: velocityHistory,
-                    type: 'scatter',
-                    mode: 'lines+markers',
-                    line: { color: '#4e73df', width: 2 },
-                    marker: { size: 6 }
-                };
+                    const trace = {
+                        x: weeks,
+                        y: velocityHistory,
+                        type: 'scatter',
+                        mode: 'lines+markers',
+                        line: { color: '#4e73df', width: 2 },
+                        marker: { size: 6 }
+                    };
 
-                const layout = {
-                    title: {
-                        text: 'Velocity Trend',
-                        font: { size: 14 }
-                    },
-                    xaxis: { title: 'Time Period' },
-                    yaxis: { title: 'Items/Week' },
-                    margin: { t: 40, b: 40, l: 60, r: 20 },
-                    showlegend: false
-                };
+                    const layout = {
+                        title: {
+                            text: 'Velocity Trend',
+                            font: { size: 14 }
+                        },
+                        xaxis: { title: 'Time Period' },
+                        yaxis: { title: 'Items/Week' },
+                        margin: { t: 40, b: 40, l: 60, r: 20 },
+                        showlegend: false
+                    };
 
-                Plotly.newPlot('velocityTrendChart', [trace], layout, { responsive: true });
+                    // Cache the data
+                    this.chartCache.set(cacheKey, { traces: [trace], layout });
+                    
+                    // Use Plotly.react for better performance (updates existing chart if possible)
+                    Plotly.react('velocityTrendChart', [trace], layout, { responsive: true });
+                });
             }
 
             showPlaceholderChart(chartId, message) {
@@ -2414,7 +2445,8 @@
                     legend: { x: 0, y: 1 }
                 };
 
-                Plotly.newPlot('movingAveragesChart', traces, layout, { responsive: true });
+                // Use Plotly.react for better performance (updates existing chart if possible)
+                Plotly.react('movingAveragesChart', traces, layout, { responsive: true });
             }
 
             updatePeriodComparison(timeSeriesData) {
@@ -2470,9 +2502,34 @@
                     showlegend: false
                 };
 
-                Plotly.newPlot('periodComparisonChart', [trace], layout, { responsive: true });
+                // Use Plotly.react for better performance (updates existing chart if possible)
+                Plotly.react('periodComparisonChart', [trace], layout, { responsive: true });
             }
 
+            // Performance optimization helper methods
+            debouncedChartUpdate(chartId, updateFunction, delay = 300) {
+                // Clear existing timer for this chart
+                if (this.chartUpdateTimers.has(chartId)) {
+                    clearTimeout(this.chartUpdateTimers.get(chartId));
+                }
+                
+                // Set new timer
+                const timerId = setTimeout(() => {
+                    updateFunction();
+                    this.chartUpdateTimers.delete(chartId);
+                }, delay);
+                
+                this.chartUpdateTimers.set(chartId, timerId);
+            }
+            
+            hashData(data) {
+                // Simple hash function for data caching
+                return JSON.stringify(data).split('').reduce((hash, char) => {
+                    hash = ((hash << 5) - hash) + char.charCodeAt(0);
+                    return hash & hash; // Convert to 32-bit integer
+                }, 0);
+            }
+            
             updateInsightsAndRecommendations(data = null) {
                 const currentData = data || this.data;
                 if (!currentData) return;

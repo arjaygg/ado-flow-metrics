@@ -141,17 +141,18 @@ class AzureDevOpsClient:
         return True
 
     def _query_work_item_ids(self, days_back: int, progress_callback: Optional[Callable] = None) -> List[int]:
-        """Query work item IDs using WIQL."""
+        """Query work item IDs using WIQL with proper project scoping."""
         if progress_callback:
             progress_callback("phase", "Querying work item IDs...")
 
-        # Build WIQL query with validated inputs
+        # Build WIQL query with validated inputs and project scope
         cutoff_date = (datetime.now() - timedelta(days=days_back)).strftime("%Y-%m-%d")
         wiql_query = {
             "query": f"""
             SELECT [System.Id]
             FROM WorkItems
-            WHERE [System.ChangedDate] >= '{cutoff_date}'
+            WHERE [System.TeamProject] = '{self.project}'
+            AND [System.ChangedDate] >= '{cutoff_date}'
             ORDER BY [System.ChangedDate] DESC
             """
         }
