@@ -568,7 +568,28 @@
                 this.init();
             }
 
+            async loadConfig() {
+                try {
+                    const response = await fetch('./config/config.json');
+                    if (!response.ok) {
+                        throw new Error(`Failed to load config: ${response.status}`);
+                    }
+                    this.config = await response.json();
+                    console.log('Config loaded:', this.config);
+                } catch (error) {
+                    console.error('Failed to load configuration:', error);
+                    // Fallback to default config
+                    this.config = {
+                        azure_devops: {
+                            org_url: 'https://dev.azure.com/bofaz',
+                            default_project: 'Axos-Universal-Core'
+                        }
+                    };
+                }
+            }
+
             async init() {
+                await this.loadConfig();
                 await this.initIndexedDB();
                 await this.initWorkstreams();
                 this.setupEventListeners();
@@ -1395,13 +1416,14 @@
             }
 
             generateWorkItemLink(item) {
-                const baseUrl = 'https://dev.azure.com';
-                const orgName = 'your-organization';
-                const projectName = 'your-project';
+                // Use configuration values instead of hardcoded ones
+                const orgUrl = this.config?.azure_devops?.org_url || 'https://dev.azure.com/bofaz';
+                const projectName = this.config?.azure_devops?.default_project || 'Axos-Universal-Core';
                 
                 if (item.raw_id || item.id) {
+                    // Use raw_id directly (original Azure DevOps ID) instead of custom format
                     const workItemId = item.raw_id || item.id.toString().replace('WI-', '');
-                    return `${baseUrl}/${orgName}/${projectName}/_workitems/edit/${workItemId}`;
+                    return `${orgUrl}/${projectName}/_workitems/edit/${workItemId}`;
                 }
                 
                 return '#';

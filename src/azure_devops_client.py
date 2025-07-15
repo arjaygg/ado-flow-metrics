@@ -278,7 +278,7 @@ class AzureDevOpsClient:
 
             # Build transformed item without state history (will be fetched concurrently)
             transformed_item = {
-                "id": f"WI-{item['id']}",
+                "id": item["id"],  # Use original Azure DevOps ID
                 "raw_id": item["id"],  # Keep raw ID for state history fetching
                 "title": fields.get("System.Title") or "[No Title]",
                 "type": fields.get("System.WorkItemType") or "Unknown",
