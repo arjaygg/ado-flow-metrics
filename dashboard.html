@@ -1,1297 +1,1294 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flow Metrics Dashboard</title>
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#4e73df">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-    <script src="js/workstream_config.js"></script>
-    <script src="js/workstream-manager.js"></script>
-    <script src="js/predictive-analytics.js"></script>
-    <script src="js/time-series-analysis.js"></script>
-    <script src="js/enhanced-ux.js"></script>
-    <script src="js/advanced-filtering.js"></script>
-    <script src="js/export-collaboration.js"></script>
-    <script src="js/actionable-insights-engine.js"></script>
-    <script src="js/pwa-manager.js"></script>
-    <script src="js/dashboard.js"></script>
-    <style>
-        :root {
-            --primary-color: #4e73df;
-            --success-color: #1cc88a;
-            --info-color: #36b9cc;
-            --warning-color: #f6c23e;
-        }
+<!DOCTYPE·html>␊
+<html·lang="en">␊
+<head>␊
+····<meta·charset="UTF-8">␊
+····<meta·name="viewport"·content="width=device-width,·initial-scale=1.0">␊
+····<title>Flow·Metrics·Dashboard</title>␊
+····<link·href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css"·rel="stylesheet">␊
+····<link·href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"·rel="stylesheet">␊
+····<script·src="https://cdn.plot.ly/plotly-latest.min.js"></script>␊
+····<script·src="js/workstream_config.js"></script>␊
+····<script·src="js/workstream-manager.js"></script>␊
+····<script·src="js/predictive-analytics.js"></script>␊
+····<script·src="js/time-series-analysis.js"></script>␊
+····<script·src="js/enhanced-ux.js"></script>␊
+····<script·src="js/advanced-filtering.js"></script>␊
+····<script·src="js/export-collaboration.js"></script>␊
+····<script·src="js/dashboard.js"></script>␊
+····<style>␊
+········:root·{␊
+············--primary-color:·#4e73df;␊
+············--success-color:·#1cc88a;␊
+············--info-color:·#36b9cc;␊
+············--warning-color:·#f6c23e;␊
+········}␊
+␊
+········body·{␊
+············font-family:·'Segoe·UI',·Tahoma,·Geneva,·Verdana,·sans-serif;␊
+············background-color:·#f8f9fc;␊
+········}␊
+␊
+········.metric-card·{␊
+············border-left:·4px·solid·var(--primary-color);␊
+············box-shadow:·0·0.15rem·1.75rem·0·rgba(58,·59,·69,·0.15);␊
+········}␊
+␊
+········.metric-card.success·{·border-left-color:·var(--success-color);·}␊
+········.metric-card.info·{·border-left-color:·var(--info-color);·}␊
+········.metric-card.warning·{·border-left-color:·var(--warning-color);·}␊
+␊
+········.chart-container·{␊
+············background:·white;␊
+············border-radius:·0.35rem;␊
+············box-shadow:·0·0.15rem·1.75rem·0·rgba(58,·59,·69,·0.15);␊
+············padding:·1.5rem;␊
+············margin-bottom:·1.5rem;␊
+········}␊
+␊
+········.data-source-selector·{␊
+············background:·white;␊
+············border-radius:·0.35rem;␊
+············padding:·1rem;␊
+············margin-bottom:·1rem;␊
+············box-shadow:·0·0.15rem·1.75rem·0·rgba(58,·59,·69,·0.15);␊
+········}␊
+········␊
+········.advanced-filtering-panel·{␊
+············background:·white;␊
+············border-radius:·0.35rem;␊
+············padding:·1.5rem;␊
+············margin-bottom:·1.5rem;␊
+············box-shadow:·0·0.15rem·1.75rem·0·rgba(58,·59,·69,·0.15);␊
+········}␊
+········␊
+········.filter-section·{␊
+············margin-bottom:·1.5rem;␊
+········}␊
+········␊
+········.filter-presets·{␊
+············display:·flex;␊
+············flex-wrap:·wrap;␊
+············gap:·0.5rem;␊
+············margin-bottom:·1rem;␊
+········}␊
+········␊
+········.preset-btn·{␊
+············padding:·0.375rem·0.75rem;␊
+············border:·1px·solid·#dee2e6;␊
+············border-radius:·0.375rem;␊
+············background:·white;␊
+············cursor:·pointer;␊
+············transition:·all·0.2s;␊
+············font-size:·0.875rem;␊
+········}␊
+········␊
+········.preset-btn:hover·{␊
+············background:·#f8f9fa;␊
+············border-color:·#adb5bd;␊
+········}␊
+········␊
+········.preset-btn.active·{␊
+············background:·var(--primary-color);␊
+············color:·white;␊
+············border-color:·var(--primary-color);␊
+········}␊
+········␊
+········.filter-summary·{␊
+············background:·#f8f9fa;␊
+············border-radius:·0.375rem;␊
+············padding:·0.75rem;␊
+············margin-bottom:·1rem;␊
+············border-left:·4px·solid·var(--info-color);␊
+········}␊
+········␊
+········.filter-summary.active·{␊
+············border-left-color:·var(--success-color);␊
+········}␊
+········␊
+········.filter-chips·{␊
+············display:·flex;␊
+············flex-wrap:·wrap;␊
+············gap:·0.375rem;␊
+············margin-top:·0.5rem;␊
+········}␊
+········␊
+········.filter-chip·{␊
+············background:·var(--info-color);␊
+············color:·white;␊
+············padding:·0.25rem·0.5rem;␊
+············border-radius:·0.375rem;␊
+············font-size:·0.75rem;␊
+············display:·flex;␊
+············align-items:·center;␊
+············gap:·0.25rem;␊
+········}␊
+········␊
+········.filter-chip·.remove-chip·{␊
+············cursor:·pointer;␊
+············opacity:·0.7;␊
+············transition:·opacity·0.2s;␊
+········}␊
+········␊
+········.filter-chip·.remove-chip:hover·{␊
+············opacity:·1;␊
+········}␊
+········␊
+········.drill-down-breadcrumb·{␊
+············background:·#fff3cd;␊
+············border:·1px·solid·#ffeaa7;␊
+············border-radius:·0.375rem;␊
+············padding:·0.5rem;␊
+············margin-bottom:·1rem;␊
+········}␊
+········␊
+········.breadcrumb-item·{␊
+············display:·inline-block;␊
+············margin-right:·0.5rem;␊
+········}␊
+········␊
+········.breadcrumb-item:not(:last-child)::after·{␊
+············content:·'>';␊
+············margin-left:·0.5rem;␊
+············color:·#6c757d;␊
+········}␊
+········␊
+········.breadcrumb-link·{␊
+············color:·var(--primary-color);␊
+············text-decoration:·none;␊
+············cursor:·pointer;␊
+········}␊
+········␊
+········.breadcrumb-link:hover·{␊
+············text-decoration:·underline;␊
+········}␊
+········␊
+········.filter-controls·{␊
+············display:·flex;␊
+············gap:·0.5rem;␊
+············align-items:·center;␊
+············margin-bottom:·1rem;␊
+········}␊
+········␊
+········.filter-history-nav·{␊
+············display:·flex;␊
+············gap:·0.25rem;␊
+········}␊
+········␊
+········.filter-history-nav·button·{␊
+············padding:·0.25rem·0.5rem;␊
+············border:·1px·solid·#dee2e6;␊
+············background:·white;␊
+············border-radius:·0.25rem;␊
+············cursor:·pointer;␊
+············transition:·all·0.2s;␊
+········}␊
+········␊
+········.filter-history-nav·button:hover:not(:disabled)·{␊
+············background:·#f8f9fa;␊
+········}␊
+········␊
+········.filter-history-nav·button:disabled·{␊
+············opacity:·0.5;␊
+············cursor:·not-allowed;␊
+········}␊
+········␊
+········.filter-toggle·{␊
+············display:·flex;␊
+············align-items:·center;␊
+············gap:·0.5rem;␊
+············cursor:·pointer;␊
+········}␊
+········␊
+········.filter-panel-collapsed·.filter-content·{␊
+············display:·none;␊
+········}␊
+········␊
+········.multi-select·{␊
+············position:·relative;␊
+········}␊
+········␊
+········.multi-select-dropdown·{␊
+············position:·absolute;␊
+············top:·100%;␊
+············left:·0;␊
+············right:·0;␊
+············background:·white;␊
+············border:·1px·solid·#dee2e6;␊
+············border-radius:·0.375rem;␊
+············box-shadow:·0·0.5rem·1rem·rgba(0,·0,·0,·0.15);␊
+············z-index:·1000;␊
+············max-height:·200px;␊
+············overflow-y:·auto;␊
+········}␊
+········␊
+········.multi-select-option·{␊
+············padding:·0.5rem·0.75rem;␊
+············cursor:·pointer;␊
+············transition:·background-color·0.2s;␊
+········}␊
+········␊
+········.multi-select-option:hover·{␊
+············background:·#f8f9fa;␊
+········}␊
+········␊
+········.multi-select-option.selected·{␊
+············background:·var(--primary-color);␊
+············color:·white;␊
+········}␊
+········␊
+········.date-range-picker·{␊
+············display:·flex;␊
+············gap:·0.5rem;␊
+············align-items:·center;␊
+········}␊
+········␊
+········@media·(max-width:·768px)·{␊
+············.filter-presets·{␊
+················flex-direction:·column;␊
+············}␊
+············␊
+············.filter-controls·{␊
+················flex-direction:·column;␊
+················align-items:·stretch;␊
+············}␊
+············␊
+············.date-range-picker·{␊
+················flex-direction:·column;␊
+················align-items:·stretch;␊
+············}␊
+········}␊
+········␊
+········/*·Export·&·Collaboration·Styles·*/␊
+········.export-collaboration-panel·{␊
+············background:·white;␊
+············border-radius:·0.35rem;␊
+············padding:·1.5rem;␊
+············margin-bottom:·1.5rem;␊
+············box-shadow:·0·0.15rem·1.75rem·0·rgba(58,·59,·69,·0.15);␊
+········}␊
+········␊
+········.export-format-grid·{␊
+············display:·grid;␊
+············grid-template-columns:·repeat(auto-fit,·minmax(200px,·1fr));␊
+············gap:·1rem;␊
+············margin-bottom:·1.5rem;␊
+········}␊
+········␊
+········.export-format-card·{␊
+············border:·2px·solid·#dee2e6;␊
+············border-radius:·0.5rem;␊
+············padding:·1rem;␊
+············cursor:·pointer;␊
+············transition:·all·0.3s·ease;␊
+············text-align:·center;␊
+········}␊
+········␊
+········.export-format-card:hover·{␊
+············border-color:·var(--primary-color);␊
+············background:·#f8f9fc;␊
+········}␊
+········␊
+········.export-format-card.selected·{␊
+············border-color:·var(--primary-color);␊
+············background:·#e3f0ff;␊
+········}␊
+········␊
+········.export-format-icon·{␊
+············font-size:·2rem;␊
+············margin-bottom:·0.5rem;␊
+············color:·var(--primary-color);␊
+········}␊
+········␊
+········.export-format-name·{␊
+············font-weight:·bold;␊
+············margin-bottom:·0.25rem;␊
+········}␊
+········␊
+········.export-format-description·{␊
+············font-size:·0.875rem;␊
+············color:·#6c757d;␊
+········}␊
+········␊
+········.export-options·{␊
+············background:·#f8f9fa;␊
+············border-radius:·0.375rem;␊
+············padding:·1rem;␊
+············margin-bottom:·1rem;␊
+········}␊
+········␊
+········.share-link-container·{␊
+············background:·#e7f3ff;␊
+············border:·1px·solid·#b8daff;␊
+············border-radius:·0.375rem;␊
+············padding:·1rem;␊
+············margin-bottom:·1rem;␊
+········}␊
+········␊
+········.share-link-input·{␊
+············background:·white;␊
+············border:·1px·solid·#ced4da;␊
+············border-radius:·0.375rem;␊
+············padding:·0.5rem;␊
+············width:·100%;␊
+············font-family:·monospace;␊
+············font-size:·0.875rem;␊
+········}␊
+········␊
+········.collaboration-room·{␊
+············background:·#fff3cd;␊
+············border:·1px·solid·#ffeaa7;␊
+············border-radius:·0.375rem;␊
+············padding:·1rem;␊
+············margin-bottom:·1rem;␊
+········}␊
+········␊
+········.participant-list·{␊
+············display:·flex;␊
+············flex-wrap:·wrap;␊
+············gap:·0.5rem;␊
+············margin-top:·0.5rem;␊
+········}␊
+········␊
+········.participant-avatar·{␊
+············width:·32px;␊
+············height:·32px;␊
+············border-radius:·50%;␊
+············background:·var(--primary-color);␊
+············color:·white;␊
+············display:·flex;␊
+············align-items:·center;␊
+············justify-content:·center;␊
+············font-size:·0.75rem;␊
+············font-weight:·bold;␊
+········}␊
+········␊
+········.export-history-table·{␊
+············max-height:·300px;␊
+············overflow-y:·auto;␊
+········}␊
+········␊
+········.export-progress·{␊
+············background:·#f8f9fa;␊
+············border-radius:·0.375rem;␊
+············padding:·1rem;␊
+············margin-bottom:·1rem;␊
+············border-left:·4px·solid·var(--info-color);␊
+········}␊
+········␊
+········.export-progress.success·{␊
+············border-left-color:·var(--success-color);␊
+············background:·#d4edda;␊
+········}␊
+········␊
+········.export-progress.error·{␊
+············border-left-color:·#dc3545;␊
+············background:·#f8d7da;␊
+········}␊
+········␊
+········.collaboration-message·{␊
+············background:·white;␊
+············border-radius:·0.375rem;␊
+············padding:·0.75rem;␊
+············margin-bottom:·0.5rem;␊
+············border-left:·3px·solid·var(--info-color);␊
+········}␊
+········␊
+········.collaboration-message.filter-change·{␊
+············border-left-color:·var(--warning-color);␊
+········}␊
+········␊
+········.collaboration-message.annotation·{␊
+············border-left-color:·var(--success-color);␊
+········}␊
+········␊
+········.message-sender·{␊
+············font-weight:·bold;␊
+············font-size:·0.875rem;␊
+············color:·var(--primary-color);␊
+········}␊
+········␊
+········.message-timestamp·{␊
+············font-size:·0.75rem;␊
+············color:·#6c757d;␊
+············float:·right;␊
+········}␊
+········␊
+········.message-content·{␊
+············margin-top:·0.25rem;␊
+············font-size:·0.875rem;␊
+········}␊
+········␊
+········.export-collaboration-tabs·{␊
+············display:·flex;␊
+············border-bottom:·1px·solid·#dee2e6;␊
+············margin-bottom:·1.5rem;␊
+········}␊
+········␊
+········.tab-button·{␊
+············background:·none;␊
+············border:·none;␊
+············padding:·0.75rem·1.5rem;␊
+············cursor:·pointer;␊
+············border-bottom:·2px·solid·transparent;␊
+············transition:·all·0.2s;␊
+············font-weight:·500;␊
+········}␊
+········␊
+········.tab-button:hover·{␊
+············background:·#f8f9fa;␊
+········}␊
+········␊
+········.tab-button.active·{␊
+············border-bottom-color:·var(--primary-color);␊
+············color:·var(--primary-color);␊
+········}␊
+········␊
+········.tab-content·{␊
+············display:·none;␊
+········}␊
+········␊
+········.tab-content.active·{␊
+············display:·block;␊
+········}␊
+········␊
+········@media·(max-width:·768px)·{␊
+············.export-format-grid·{␊
+················grid-template-columns:·1fr;␊
+············}␊
+············␊
+············.export-collaboration-tabs·{␊
+················flex-direction:·column;␊
+············}␊
+············␊
+············.tab-button·{␊
+················text-align:·left;␊
+················border-bottom:·1px·solid·#dee2e6;␊
+················border-radius:·0;␊
+············}␊
+········}␊
+····</style>␊
+</head>␊
+<body>␊
+····<nav·class="navbar·navbar-expand-lg·navbar-dark·bg-dark">␊
+········<div·class="container-fluid">␊
+············<a·class="navbar-brand"·href="#">␊
+················<i·class="fas·fa-chart-line"></i>·Flow·Metrics·Dashboard␊
+············</a>␊
+············<div·class="navbar-nav·ms-auto">␊
+················<button·class="btn·btn-outline-light·btn-sm"·id="refreshBtn">␊
+····················<i·class="fas·fa-sync-alt"></i>·Refresh␊
+················</button>␊
+················<button·class="btn·btn-outline-light·btn-sm·ms-2"·id="loadFileBtn">␊
+····················<i·class="fas·fa-upload"></i>·Load·JSON␊
+················</button>␊
+················<div·class="form-check·form-switch·ms-3">␊
+····················<input·class="form-check-input"·type="checkbox"·id="autoRefreshToggle">␊
+····················<label·class="form-check-label·text-light"·for="autoRefreshToggle">␊
+························Auto-refresh·(30s)␊
+····················</label>␊
+················</div>␊
+············</div>␊
+········</div>␊
+····</nav>␊
+␊
+····<div·class="container-fluid·mt-4">␊
+········<!--·Data·Source·Selection·-->␊
+········<div·class="data-source-selector">␊
+············<div·class="row·align-items-center·mb-3">␊
+················<div·class="col-md-6">␊
+····················<h6·class="mb-0">Data·Source</h6>␊
+····················<small·class="text-muted"·id="dataSourceInfo">No·data·loaded</small>␊
+················</div>␊
+················<div·class="col-md-6">␊
+····················<div·class="btn-group·w-100"·role="group">␊
+························<input·type="radio"·class="btn-check"·name="dataSource"·id="mockData"·checked>␊
+························<label·class="btn·btn-outline-primary"·for="mockData">Mock·Data</label>␊
+␊
+························<input·type="radio"·class="btn-check"·name="dataSource"·id="jsonFile">␊
+························<label·class="btn·btn-outline-primary"·for="jsonFile">JSON·File</label>␊
+␊
+························<input·type="radio"·class="btn-check"·name="dataSource"·id="indexedDB">␊
+························<label·class="btn·btn-outline-primary"·for="indexedDB">IndexedDB</label>␊
+␊
+························<input·type="radio"·class="btn-check"·name="dataSource"·id="cliData">␊
+························<label·class="btn·btn-outline-primary"·for="cliData">CLI·Data</label>␊
+····················</div>␊
+················</div>␊
+············</div>␊
+············<!--·Work·Item·Type·Filter·-->␊
+············<div·class="row·align-items-center·mb-3">␊
+················<div·class="col-md-6">␊
+····················<h6·class="mb-0">Work·Item·Type·Filter</h6>␊
+····················<small·class="text-muted"·id="workItemTypeInfo">All·types·included</small>␊
+················</div>␊
+················<div·class="col-md-6">␊
+····················<div·class="dropdown">␊
+························<button·class="btn·btn-outline-info·dropdown-toggle·w-100"·type="button"·id="workItemTypeDropdown"·data-bs-toggle="dropdown"·aria-expanded="false">␊
+····························<i·class="fas·fa-tags·me-2"></i>All·Types␊
+························</button>␊
+························<ul·class="dropdown-menu·w-100"·aria-labelledby="workItemTypeDropdown"·id="workItemTypeDropdownMenu">␊
+····························<li><a·class="dropdown-item"·href="#"·data-work-item-type="All·Types">␊
+································<input·type="checkbox"·class="form-check-input·me-2"·checked>·All·Types␊
+····························</a></li>␊
+····························<li><hr·class="dropdown-divider"></li>␊
+····························<li><a·class="dropdown-item"·href="#"·data-work-item-type="User·Story">␊
+································<input·type="checkbox"·class="form-check-input·me-2">·User·Story␊
+····························</a></li>␊
+····························<li><a·class="dropdown-item"·href="#"·data-work-item-type="Bug">␊
+································<input·type="checkbox"·class="form-check-input·me-2">·Bug␊
+····························</a></li>␊
+····························<li><a·class="dropdown-item"·href="#"·data-work-item-type="Task">␊
+································<input·type="checkbox"·class="form-check-input·me-2">·Task␊
+····························</a></li>␊
+····························<li><a·class="dropdown-item"·href="#"·data-work-item-type="Feature">␊
+································<input·type="checkbox"·class="form-check-input·me-2">·Feature␊
+····························</a></li>␊
+····························<li><a·class="dropdown-item"·href="#"·data-work-item-type="Epic">␊
+································<input·type="checkbox"·class="form-check-input·me-2">·Epic␊
+····························</a></li>␊
+····························<li><a·class="dropdown-item"·href="#"·data-work-item-type="Issue">␊
+································<input·type="checkbox"·class="form-check-input·me-2">·Issue␊
+····························</a></li>␊
+························</ul>␊
+····················</div>␊
+················</div>␊
+············</div>␊
+␊
+············<!--·Sprint·Filter·-->␊
+············<div·class="row·align-items-center·mb-3">␊
+················<div·class="col-md-6">␊
+····················<h6·class="mb-0">Sprint·Filter</h6>␊
+····················<small·class="text-muted"·id="sprintInfo">All·sprints·included</small>␊
+················</div>␊
+················<div·class="col-md-6">␊
+····················<div·class="dropdown">␊
+························<button·class="btn·btn-outline-warning·dropdown-toggle·w-100"·type="button"·id="sprintDropdown"·data-bs-toggle="dropdown"·aria-expanded="false">␊
+····························<i·class="fas·fa-running·me-2"></i>All·Sprints␊
+························</button>␊
+························<ul·class="dropdown-menu·w-100"·aria-labelledby="sprintDropdown"·id="sprintDropdownMenu">␊
+····························<li><a·class="dropdown-item"·href="#"·data-sprint="All·Sprints">␊
+································<input·type="checkbox"·class="form-check-input·me-2"·checked>·All·Sprints␊
+····························</a></li>␊
+····························<li><hr·class="dropdown-divider"></li>␊
+····························<!--·Sprint·options·will·be·populated·by·JavaScript·-->␊
+························</ul>␊
+····················</div>␊
+················</div>␊
+············</div>␊
+␊
+············<!--·Workstream·Filter·-->␊
+············<div·class="row·align-items-center">␊
+················<div·class="col-md-6">␊
+····················<h6·class="mb-0">Workstream·Filter</h6>␊
+····················<small·class="text-muted"·id="workstreamInfo">All·teams·included</small>␊
+················</div>␊
+················<div·class="col-md-6">␊
+····················<div·class="dropdown">␊
+························<button·class="btn·btn-outline-secondary·dropdown-toggle·w-100"·type="button"·id="workstreamDropdown"·data-bs-toggle="dropdown"·aria-expanded="false">␊
+····························<i·class="fas·fa-users·me-2"></i>All·Teams␊
+························</button>␊
+························<ul·class="dropdown-menu·w-100"·aria-labelledby="workstreamDropdown"·id="workstreamDropdownMenu">␊
+····························<li><a·class="dropdown-item"·href="#"·data-workstream="All·Teams">␊
+································<input·type="checkbox"·class="form-check-input·me-2"·checked>·All·Teams␊
+····························</a></li>␊
+····························<li><hr·class="dropdown-divider"></li>␊
+····························<!--·Workstream·options·will·be·populated·by·JavaScript·-->␊
+························</ul>␊
+····················</div>␊
+················</div>␊
+············</div>␊
+········</div>␊
+␊
+········<!--·Advanced·Filtering·Panel·-->␊
+········<div·class="advanced-filtering-panel"·id="advancedFilteringPanel">␊
+············<div·class="filter-toggle"·onclick="toggleFilterPanel()">␊
+················<h5·class="mb-0">␊
+····················<i·class="fas·fa-filter·me-2"></i>␊
+····················Advanced·Filtering·&·Drill-Down␊
+················</h5>␊
+················<i·class="fas·fa-chevron-down·ms-auto"·id="filterToggleIcon"></i>␊
+············</div>␊
+············␊
+············<div·class="filter-content"·id="filterContent">␊
+················<!--·Filter·Summary·-->␊
+················<div·class="filter-summary"·id="filterSummary">␊
+····················<div·class="d-flex·justify-content-between·align-items-center">␊
+························<div>␊
+····························<strong>Active·Filters:</strong>␊
+····························<span·id="filterCount">None</span>␊
+························</div>␊
+························<div·class="filter-controls">␊
+····························<div·class="filter-history-nav">␊
+································<button·type="button"·id="filterBackBtn"·onclick="goBackFilter()"·disabled>␊
+····································<i·class="fas·fa-arrow-left"></i>␊
+································</button>␊
+································<button·type="button"·id="filterForwardBtn"·onclick="goForwardFilter()"·disabled>␊
+····································<i·class="fas·fa-arrow-right"></i>␊
+································</button>␊
+····························</div>␊
+····························<button·class="btn·btn-sm·btn-outline-secondary"·onclick="clearAllFilters()">␊
+································<i·class="fas·fa-times·me-1"></i>Clear·All␊
+····························</button>␊
+····························<button·class="btn·btn-sm·btn-outline-primary"·onclick="shareFilters()">␊
+································<i·class="fas·fa-share·me-1"></i>Share␊
+····························</button>␊
+························</div>␊
+····················</div>␊
+····················<div·class="filter-chips"·id="filterChips"></div>␊
+················</div>␊
+␊
+················<!--·Drill-down·Breadcrumb·-->␊
+················<div·class="drill-down-breadcrumb"·id="drillDownBreadcrumb"·style="display:·none;">␊
+····················<i·class="fas·fa-sitemap·me-2"></i>␊
+····················<span·class="text-muted">Drill-down·Path:</span>␊
+····················<div·class="breadcrumb-items"·id="breadcrumbItems"></div>␊
+················</div>␊
+␊
+················<!--·Filter·Presets·-->␊
+················<div·class="filter-section">␊
+····················<h6·class="mb-2">Quick·Presets</h6>␊
+····················<div·class="filter-presets"·id="filterPresets">␊
+························<button·class="preset-btn"·data-preset="last7days">Last·7·Days</button>␊
+························<button·class="preset-btn"·data-preset="last30days">Last·30·Days</button>␊
+························<button·class="preset-btn"·data-preset="current-sprint">Current·Sprint</button>␊
+························<button·class="preset-btn"·data-preset="high-priority">High·Priority</button>␊
+························<button·class="preset-btn"·data-preset="bugs-only">Bugs·Only</button>␊
+························<button·class="preset-btn"·data-preset="completed-items">Completed·Items</button>␊
+····················</div>␊
+················</div>␊
+␊
+················<!--·Filter·Controls·-->␊
+················<div·class="row">␊
+····················<!--·Date·Range·Filter·-->␊
+····················<div·class="col-md-6·filter-section">␊
+························<h6·class="mb-2">Date·Range</h6>␊
+························<div·class="date-range-picker">␊
+····························<input·type="date"·class="form-control"·id="startDateFilter"·placeholder="Start·Date">␊
+····························<span·class="align-self-center">to</span>␊
+····························<input·type="date"·class="form-control"·id="endDateFilter"·placeholder="End·Date">␊
+························</div>␊
+····················</div>␊
+␊
+····················<!--·Work·Item·Types·Filter·-->␊
+····················<div·class="col-md-6·filter-section">␊
+························<h6·class="mb-2">Work·Item·Types</h6>␊
+························<div·class="multi-select"·id="workItemTypesFilter">␊
+····························<input·type="text"·class="form-control"·placeholder="Select·work·item·types..."·readonly·onclick="toggleMultiSelect('workItemTypes')">␊
+····························<div·class="multi-select-dropdown"·id="workItemTypesDropdown"·style="display:·none;"></div>␊
+························</div>␊
+····················</div>␊
+␊
+····················<!--·Priorities·Filter·-->␊
+····················<div·class="col-md-6·filter-section">␊
+························<h6·class="mb-2">Priorities</h6>␊
+························<div·class="multi-select"·id="prioritiesFilter">␊
+····························<input·type="text"·class="form-control"·placeholder="Select·priorities..."·readonly·onclick="toggleMultiSelect('priorities')">␊
+····························<div·class="multi-select-dropdown"·id="prioritiesDropdown"·style="display:·none;"></div>␊
+························</div>␊
+····················</div>␊
+␊
+····················<!--·Assignees·Filter·-->␊
+····················<div·class="col-md-6·filter-section">␊
+························<h6·class="mb-2">Assignees</h6>␊
+························<div·class="multi-select"·id="assigneesFilter">␊
+····························<input·type="text"·class="form-control"·placeholder="Select·assignees..."·readonly·onclick="toggleMultiSelect('assignees')">␊
+····························<div·class="multi-select-dropdown"·id="assigneesDropdown"·style="display:·none;"></div>␊
+························</div>␊
+····················</div>␊
+␊
+····················<!--·States·Filter·-->␊
+····················<div·class="col-md-6·filter-section">␊
+························<h6·class="mb-2">States</h6>␊
+························<div·class="multi-select"·id="statesFilter">␊
+····························<input·type="text"·class="form-control"·placeholder="Select·states..."·readonly·onclick="toggleMultiSelect('states')">␊
+····························<div·class="multi-select-dropdown"·id="statesDropdown"·style="display:·none;"></div>␊
+························</div>␊
+····················</div>␊
+␊
+····················<!--·Tags·Filter·-->␊
+····················<div·class="col-md-6·filter-section">␊
+························<h6·class="mb-2">Tags</h6>␊
+························<div·class="multi-select"·id="tagsFilter">␊
+····························<input·type="text"·class="form-control"·placeholder="Select·tags..."·readonly·onclick="toggleMultiSelect('tags')">␊
+····························<div·class="multi-select-dropdown"·id="tagsDropdown"·style="display:·none;"></div>␊
+························</div>␊
+····················</div>␊
+················</div>␊
+␊
+················<!--·Save·Custom·Preset·-->␊
+················<div·class="filter-section">␊
+····················<div·class="row">␊
+························<div·class="col-md-8">␊
+····························<input·type="text"·class="form-control"·id="customPresetName"·placeholder="Save·current·filters·as·preset...">␊
+························</div>␊
+························<div·class="col-md-4">␊
+····························<button·class="btn·btn-outline-success·w-100"·onclick="saveCustomPreset()">␊
+································<i·class="fas·fa-save·me-1"></i>Save·Preset␊
+····························</button>␊
+························</div>␊
+····················</div>␊
+················</div>␊
+············</div>␊
+········</div>␊
+␊
+········<!--·Export·&·Collaboration·Panel·-->␊
+········<div·class="export-collaboration-panel"·id="exportCollaborationPanel">␊
+············<div·class="d-flex·justify-content-between·align-items-center·mb-3">␊
+················<h5·class="mb-0">␊
+····················<i·class="fas·fa-download·me-2"></i>␊
+····················Export·&·Collaboration␊
+················</h5>␊
+················<button·class="btn·btn-sm·btn-outline-primary"·onclick="toggleExportPanel()">␊
+····················<i·class="fas·fa-chevron-down"·id="exportToggleIcon"></i>␊
+················</button>␊
+············</div>␊
+············␊
+············<div·class="export-content"·id="exportContent">␊
+················<!--·Tabs·-->␊
+················<div·class="export-collaboration-tabs">␊
+····················<button·class="tab-button·active"·onclick="switchExportTab('export')">␊
+························<i·class="fas·fa-file-export·me-1"></i>Export␊
+····················</button>␊
+····················<button·class="tab-button"·onclick="switchExportTab('share')">␊
+························<i·class="fas·fa-share-alt·me-1"></i>Share␊
+····················</button>␊
+····················<button·class="tab-button"·onclick="switchExportTab('collaborate')">␊
+························<i·class="fas·fa-users·me-1"></i>Collaborate␊
+····················</button>␊
+····················<button·class="tab-button"·onclick="switchExportTab('history')">␊
+························<i·class="fas·fa-history·me-1"></i>History␊
+····················</button>␊
+················</div>␊
+␊
+················<!--·Export·Tab·-->␊
+················<div·class="tab-content·active"·id="exportTab">␊
+····················<div·class="export-progress"·id="exportProgress"·style="display:·none;">␊
+························<div·class="d-flex·justify-content-between·align-items-center">␊
+····························<span>Preparing·export...</span>␊
+····························<div·class="spinner-border·spinner-border-sm"·role="status">␊
+································<span·class="visually-hidden">Loading...</span>␊
+····························</div>␊
+························</div>␊
+························<div·class="progress·mt-2"·style="height:·6px;">␊
+····························<div·class="progress-bar"·id="exportProgressBar"·role="progressbar"·style="width:·0%"></div>␊
+························</div>␊
+····················</div>␊
+␊
+····················<div·class="export-format-grid"·id="exportFormatGrid">␊
+························<div·class="export-format-card"·data-format="pdf"·onclick="selectExportFormat('pdf')">␊
+····························<div·class="export-format-icon">␊
+································<i·class="fas·fa-file-pdf"></i>␊
+····························</div>␊
+····························<div·class="export-format-name">PDF·Report</div>␊
+····························<div·class="export-format-description">Comprehensive·report·with·charts·and·metrics</div>␊
+························</div>␊
+␊
+························<div·class="export-format-card"·data-format="excel"·onclick="selectExportFormat('excel')">␊
+····························<div·class="export-format-icon">␊
+································<i·class="fas·fa-file-excel"></i>␊
+····························</div>␊
+····························<div·class="export-format-name">Excel·Spreadsheet</div>␊
+····························<div·class="export-format-description">Raw·data·and·metrics·for·analysis</div>␊
+························</div>␊
+␊
+························<div·class="export-format-card"·data-format="csv"·onclick="selectExportFormat('csv')">␊
+····························<div·class="export-format-icon">␊
+································<i·class="fas·fa-file-csv"></i>␊
+····························</div>␊
+····························<div·class="export-format-name">CSV·Data</div>␊
+····························<div·class="export-format-description">Comma-separated·values·for·import</div>␊
+························</div>␊
+␊
+························<div·class="export-format-card"·data-format="json"·onclick="selectExportFormat('json')">␊
+····························<div·class="export-format-icon">␊
+································<i·class="fas·fa-file-code"></i>␊
+····························</div>␊
+····························<div·class="export-format-name">JSON·Data</div>␊
+····························<div·class="export-format-description">Structured·data·in·JSON·format</div>␊
+························</div>␊
+␊
+························<div·class="export-format-card"·data-format="png"·onclick="selectExportFormat('png')">␊
+····························<div·class="export-format-icon">␊
+································<i·class="fas·fa-image"></i>␊
+····························</div>␊
+····························<div·class="export-format-name">PNG·Image</div>␊
+····························<div·class="export-format-description">Dashboard·screenshot</div>␊
+························</div>␊
+····················</div>␊
+␊
+····················<div·class="export-options"·id="exportOptions"·style="display:·none;">␊
+························<h6>Export·Options</h6>␊
+························<div·class="row">␊
+····························<div·class="col-md-6">␊
+································<div·class="mb-3">␊
+····································<label·for="exportTitle"·class="form-label">Report·Title</label>␊
+····································<input·type="text"·class="form-control"·id="exportTitle"·value="Flow·Metrics·Dashboard·Report">␊
+································</div>␊
+····························</div>␊
+····························<div·class="col-md-6">␊
+································<div·class="mb-3">␊
+····································<label·for="exportSubtitle"·class="form-label">Subtitle</label>␊
+····································<input·type="text"·class="form-control"·id="exportSubtitle"·value="">␊
+································</div>␊
+····························</div>␊
+························</div>␊
+························<div·class="row">␊
+····························<div·class="col-md-6">␊
+································<div·class="form-check·mb-2">␊
+····································<input·class="form-check-input"·type="checkbox"·id="includeCharts"·checked>␊
+····································<label·class="form-check-label"·for="includeCharts">Include·Charts</label>␊
+································</div>␊
+································<div·class="form-check·mb-2">␊
+····································<input·class="form-check-input"·type="checkbox"·id="includeData"·checked>␊
+····································<label·class="form-check-label"·for="includeData">Include·Raw·Data</label>␊
+································</div>␊
+····························</div>␊
+····························<div·class="col-md-6">␊
+································<div·class="form-check·mb-2">␊
+····································<input·class="form-check-input"·type="checkbox"·id="includeMetrics"·checked>␊
+····································<label·class="form-check-label"·for="includeMetrics">Include·Metrics·Summary</label>␊
+································</div>␊
+································<div·class="form-check·mb-2">␊
+····································<input·class="form-check-input"·type="checkbox"·id="includeInsights"·checked>␊
+····································<label·class="form-check-label"·for="includeInsights">Include·Insights</label>␊
+································</div>␊
+····························</div>␊
+························</div>␊
+························<div·class="text-end">␊
+····························<button·class="btn·btn-secondary·me-2"·onclick="cancelExport()">Cancel</button>␊
+····························<button·class="btn·btn-primary"·onclick="performExport()">␊
+································<i·class="fas·fa-download·me-1"></i>Export·Now␊
+····························</button>␊
+························</div>␊
+····················</div>␊
+················</div>␊
+␊
+················<!--·Share·Tab·-->␊
+················<div·class="tab-content"·id="shareTab">␊
+····················<div·class="mb-3">␊
+························<h6>Dashboard·Sharing</h6>␊
+························<p·class="text-muted">Generate·a·shareable·link·for·this·dashboard·view.</p>␊
+····················</div>␊
+␊
+····················<div·class="row·mb-3">␊
+························<div·class="col-md-6">␊
+····························<label·for="shareTitle"·class="form-label">Share·Title</label>␊
+····························<input·type="text"·class="form-control"·id="shareTitle"·value="Flow·Metrics·Dashboard">␊
+························</div>␊
+························<div·class="col-md-6">␊
+····························<label·for="shareExpiry"·class="form-label">Expires·In</label>␊
+····························<select·class="form-select"·id="shareExpiry">␊
+································<option·value="1">1·Day</option>␊
+································<option·value="7"·selected>7·Days</option>␊
+································<option·value="30">30·Days</option>␊
+································<option·value="never">Never</option>␊
+····························</select>␊
+························</div>␊
+····················</div>␊
+␊
+····················<div·class="row·mb-3">␊
+························<div·class="col-md-6">␊
+····························<div·class="form-check">␊
+································<input·class="form-check-input"·type="checkbox"·id="allowEdit">␊
+································<label·class="form-check-label"·for="allowEdit">Allow·editing</label>␊
+····························</div>␊
+························</div>␊
+························<div·class="col-md-6">␊
+····························<div·class="form-check">␊
+································<input·class="form-check-input"·type="checkbox"·id="requirePassword">␊
+································<label·class="form-check-label"·for="requirePassword">Require·password</label>␊
+····························</div>␊
+························</div>␊
+····················</div>␊
+␊
+····················<div·class="mb-3"·id="passwordSection"·style="display:·none;">␊
+························<label·for="sharePassword"·class="form-label">Password</label>␊
+························<input·type="password"·class="form-control"·id="sharePassword"·placeholder="Enter·password">␊
+····················</div>␊
+␊
+····················<div·class="text-end·mb-3">␊
+························<button·class="btn·btn-primary"·onclick="generateShareLink()">␊
+····························<i·class="fas·fa-link·me-1"></i>Generate·Share·Link␊
+························</button>␊
+····················</div>␊
+␊
+····················<div·class="share-link-container"·id="shareLinkContainer"·style="display:·none;">␊
+························<h6><i·class="fas·fa-link·me-2"></i>Shareable·Link</h6>␊
+························<div·class="input-group">␊
+····························<input·type="text"·class="share-link-input"·id="shareLinkInput"·readonly>␊
+····························<button·class="btn·btn-outline-secondary"·onclick="copyShareLink()">␊
+································<i·class="fas·fa-copy"></i>␊
+····························</button>␊
+························</div>␊
+························<small·class="text-muted·mt-1·d-block">Anyone·with·this·link·can·view·your·dashboard</small>␊
+····················</div>␊
+················</div>␊
+␊
+················<!--·Collaborate·Tab·-->␊
+················<div·class="tab-content"·id="collaborateTab">␊
+····················<div·class="mb-3">␊
+························<h6>Team·Collaboration</h6>␊
+························<p·class="text-muted">Create·or·join·collaboration·rooms·for·real-time·team·insights.</p>␊
+····················</div>␊
+␊
+····················<div·class="row·mb-3">␊
+························<div·class="col-md-8">␊
+····························<input·type="text"·class="form-control"·id="collaborationRoomName"·placeholder="Enter·room·name·or·ID">␊
+························</div>␊
+························<div·class="col-md-4">␊
+····························<div·class="btn-group·w-100">␊
+································<button·class="btn·btn-primary"·onclick="createCollaborationRoom()">␊
+····································<i·class="fas·fa-plus·me-1"></i>Create␊
+································</button>␊
+································<button·class="btn·btn-outline-primary"·onclick="joinCollaborationRoom()">␊
+····································<i·class="fas·fa-sign-in-alt·me-1"></i>Join␊
+································</button>␊
+····························</div>␊
+························</div>␊
+····················</div>␊
+␊
+····················<div·class="collaboration-room"·id="activeRoom"·style="display:·none;">␊
+························<div·class="d-flex·justify-content-between·align-items-center·mb-2">␊
+····························<h6·class="mb-0">␊
+································<i·class="fas·fa-users·me-2"></i>␊
+································<span·id="roomName">Collaboration·Room</span>␊
+····························</h6>␊
+····························<button·class="btn·btn-sm·btn-outline-danger"·onclick="leaveCollaborationRoom()">␊
+································<i·class="fas·fa-sign-out-alt·me-1"></i>Leave␊
+····························</button>␊
+························</div>␊
+························␊
+························<div·class="mb-2">␊
+····························<small·class="text-muted">Room·ID:·<span·id="roomId"></span></small>␊
+························</div>␊
+························␊
+························<div·class="mb-2">␊
+····························<strong>Participants·(<span·id="participantCount">0</span>):</strong>␊
+····························<div·class="participant-list"·id="participantList"></div>␊
+························</div>␊
+····················</div>␊
+␊
+····················<div·class="collaboration-messages"·id="collaborationMessages"·style="display:·none;">␊
+························<h6>Recent·Activity</h6>␊
+························<div·class="collaboration-message-list"·id="messageList"·style="max-height:·200px;·overflow-y:·auto;">␊
+····························<!--·Messages·will·be·populated·here·-->␊
+························</div>␊
+························␊
+························<div·class="mt-2">␊
+····························<div·class="input-group">␊
+································<input·type="text"·class="form-control"·id="messageInput"·placeholder="Send·a·message...">␊
+································<button·class="btn·btn-outline-primary"·onclick="sendCollaborationMessage()">␊
+····································<i·class="fas·fa-paper-plane"></i>␊
+································</button>␊
+····························</div>␊
+························</div>␊
+····················</div>␊
+················</div>␊
+␊
+················<!--·History·Tab·-->␊
+················<div·class="tab-content"·id="historyTab">␊
+····················<div·class="mb-3">␊
+························<h6>Export·History</h6>␊
+························<p·class="text-muted">Recent·exports·and·downloads</p>␊
+····················</div>␊
+␊
+····················<div·class="export-history-table">␊
+························<div·class="table-responsive">␊
+····························<table·class="table·table-sm">␊
+································<thead>␊
+····································<tr>␊
+········································<th>Date</th>␊
+········································<th>Format</th>␊
+········································<th>Title</th>␊
+········································<th>Size</th>␊
+········································<th>Actions</th>␊
+····································</tr>␊
+································</thead>␊
+································<tbody·id="exportHistoryTableBody">␊
+····································<tr>␊
+········································<td·colspan="5"·class="text-center·text-muted">No·exports·yet</td>␊
+····································</tr>␊
+································</tbody>␊
+····························</table>␊
+························</div>␊
+····················</div>␊
+␊
+····················<div·class="text-end">␊
+························<button·class="btn·btn-sm·btn-outline-secondary"·onclick="clearExportHistory()">␊
+····························<i·class="fas·fa-trash·me-1"></i>Clear·History␊
+························</button>␊
+····················</div>␊
+················</div>␊
+············</div>␊
+········</div>␊
+␊
+········<!--·Key·Metrics·Cards·-->␊
+········<div·class="row·mb-4">␊
+············<div·class="col-xl-3·col-md-6·mb-4">␊
+················<div·class="card·metric-card·h-100">␊
+····················<div·class="card-body">␊
+························<div·class="row·no-gutters·align-items-center">␊
+····························<div·class="col·mr-2">␊
+································<div·class="text-xs·fw-bold·text-primary·text-uppercase·mb-1">Lead·Time</div>␊
+································<div·class="h5·mb-0·fw-bold·text-gray-800"·id="leadTimeAvg">Loading...</div>␊
+································<div·class="small·text-muted"·id="leadTimeMedian">Median:·--</div>␊
+····························</div>␊
+····························<div·class="col-auto">␊
+································<i·class="fas·fa-clock·fa-2x·text-gray-300"></i>␊
+····························</div>␊
+························</div>␊
+····················</div>␊
+················</div>␊
+············</div>␊
+␊
+············<div·class="col-xl-3·col-md-6·mb-4">␊
+················<div·class="card·metric-card·success·h-100">␊
+····················<div·class="card-body">␊
+························<div·class="row·no-gutters·align-items-center">␊
+····························<div·class="col·mr-2">␊
+································<div·class="text-xs·fw-bold·text-success·text-uppercase·mb-1">Cycle·Time</div>␊
+································<div·class="h5·mb-0·fw-bold·text-gray-800"·id="cycleTimeAvg">Loading...</div>␊
+································<div·class="small·text-muted"·id="cycleTimeMedian">Median:·--</div>␊
+····························</div>␊
+····························<div·class="col-auto">␊
+································<i·class="fas·fa-cog·fa-2x·text-gray-300"></i>␊
+····························</div>␊
+························</div>␊
+····················</div>␊
+················</div>␊
+············</div>␊
+␊
+············<div·class="col-xl-3·col-md-6·mb-4">␊
+················<div·class="card·metric-card·info·h-100">␊
+····················<div·class="card-body">␊
+························<div·class="row·no-gutters·align-items-center">␊
+····························<div·class="col·mr-2">␊
+································<div·class="text-xs·fw-bold·text-info·text-uppercase·mb-1">Throughput</div>␊
+································<div·class="h5·mb-0·fw-bold·text-gray-800"·id="throughputValue">Loading...</div>␊
+································<div·class="small·text-muted">items/30·days</div>␊
+····························</div>␊
+····························<div·class="col-auto">␊
+································<i·class="fas·fa-rocket·fa-2x·text-gray-300"></i>␊
+····························</div>␊
+························</div>␊
+····················</div>␊
+················</div>␊
+············</div>␊
+␊
+············<div·class="col-xl-3·col-md-6·mb-4">␊
+················<div·class="card·metric-card·warning·h-100">␊
+····················<div·class="card-body">␊
+························<div·class="row·no-gutters·align-items-center">␊
+····························<div·class="col·mr-2">␊
+································<div·class="text-xs·fw-bold·text-warning·text-uppercase·mb-1">Work·in·Progress</div>␊
+································<div·class="h5·mb-0·fw-bold·text-gray-800"·id="wipValue">Loading...</div>␊
+································<div·class="small·text-muted">active·items</div>␊
+····························</div>␊
+····························<div·class="col-auto">␊
+································<i·class="fas·fa-tasks·fa-2x·text-gray-300"></i>␊
+····························</div>␊
+························</div>␊
+····················</div>␊
+················</div>␊
+············</div>␊
+········</div>␊
+␊
+········<!--·Charts·Row·-->␊
+········<div·class="row·mb-4">␊
+············<div·class="col-lg-6">␊
+················<div·class="chart-container">␊
+····················<h6·class="text-primary·mb-3">Lead·Time·vs·Cycle·Time</h6>␊
+····················<div·id="leadCycleChart"·style="height:·300px;"></div>␊
+················</div>␊
+············</div>␊
+············<div·class="col-lg-6">␊
+················<div·class="chart-container">␊
+····················<h6·class="text-primary·mb-3">Work·in·Progress·by·State</h6>␊
+····················<div·id="wipChart"·style="height:·300px;"></div>␊
+················</div>␊
+············</div>␊
+········</div>␊
+␊
+········<!--·Team·Performance·-->␊
+········<div·class="row·mb-4">␊
+············<div·class="col-lg-8">␊
+················<div·class="chart-container">␊
+····················<h6·class="text-primary·mb-3">Team·Performance</h6>␊
+····················<div·id="teamChart"·style="height:·400px;"></div>␊
+················</div>␊
+············</div>␊
+············<div·class="col-lg-4">␊
+················<div·class="chart-container">␊
+····················<h6·class="text-primary·mb-3">Flow·Efficiency</h6>␊
+····················<div·id="efficiencyChart"·style="height:·300px;"></div>␊
+················</div>␊
+············</div>␊
+········</div>␊
+␊
+········<!--·Predictive·Analytics·Section·-->␊
+········<div·class="row·mb-4">␊
+············<div·class="col-lg-8">␊
+················<div·class="chart-container">␊
+····················<div·class="d-flex·justify-content-between·align-items-center·mb-3">␊
+························<h6·class="text-primary·mb-0">Delivery·Forecast</h6>␊
+························<div·class="d-flex·gap-2">␊
+····························<select·id="forecastItems"·class="form-select·form-select-sm"·style="width:·auto;">␊
+································<option·value="10">10·items</option>␊
+································<option·value="20"·selected>20·items</option>␊
+································<option·value="50">50·items</option>␊
+································<option·value="100">100·items</option>␊
+····························</select>␊
+····························<button·id="updateForecast"·class="btn·btn-sm·btn-outline-primary">␊
+································<i·class="fas·fa-sync"></i>·Update␊
+····························</button>␊
+························</div>␊
+····················</div>␊
+····················<div·id="forecastChart"·style="height:·300px;"></div>␊
+····················<div·class="row·mt-3">␊
+························<div·class="col-md-4">␊
+····························<div·class="text-center">␊
+································<div·class="text-success·fw-bold"·id="optimisticDate">--</div>␊
+································<small·class="text-muted">Optimistic·(10%)</small>␊
+····························</div>␊
+························</div>␊
+························<div·class="col-md-4">␊
+····························<div·class="text-center">␊
+································<div·class="text-primary·fw-bold"·id="realisticDate">--</div>␊
+································<small·class="text-muted">Realistic·(50%)</small>␊
+····························</div>␊
+························</div>␊
+························<div·class="col-md-4">␊
+····························<div·class="text-center">␊
+································<div·class="text-warning·fw-bold"·id="pessimisticDate">--</div>␊
+································<small·class="text-muted">Pessimistic·(90%)</small>␊
+····························</div>␊
+························</div>␊
+····················</div>␊
+················</div>␊
+············</div>␊
+············<div·class="col-lg-4">␊
+················<div·class="chart-container">␊
+····················<h6·class="text-primary·mb-3">Velocity·Trend</h6>␊
+····················<div·id="velocityTrendChart"·style="height:·200px;"></div>␊
+····················<div·class="mt-3">␊
+························<div·class="d-flex·justify-content-between·align-items-center·mb-2">␊
+····························<span·class="text-muted">Trend·Direction</span>␊
+····························<span·id="trendDirection"·class="badge·bg-secondary">--</span>␊
+························</div>␊
+························<div·class="d-flex·justify-content-between·align-items-center·mb-2">␊
+····························<span·class="text-muted">Risk·Level</span>␊
+····························<span·id="riskLevel"·class="badge·bg-secondary">--</span>␊
+························</div>␊
+························<div·class="d-flex·justify-content-between·align-items-center">␊
+····························<span·class="text-muted">Confidence</span>␊
+····························<span·id="forecastConfidence"·class="fw-bold">--%</span>␊
+························</div>␊
+····················</div>␊
+················</div>␊
+············</div>␊
+········</div>␊
+␊
+········<!--·Insights·and·Recommendations·-->␊
+········<div·class="row·mb-4">␊
+············<div·class="col-12">␊
+················<div·class="chart-container">␊
+····················<h6·class="text-primary·mb-3">␊
+························<i·class="fas·fa-lightbulb·me-2"></i>Insights·&·Recommendations␊
+····················</h6>␊
+····················<div·id="insightsContainer">␊
+························<div·class="row"·id="insightCards">␊
+····························<!--·Insight·cards·will·be·populated·dynamically·-->␊
+························</div>␊
+························<div·class="mt-3">␊
+····························<h6·class="text-secondary·mb-2">Recommendations</h6>␊
+····························<ul·id="recommendationsList"·class="list-unstyled">␊
+································<!--·Recommendations·will·be·populated·dynamically·-->␊
+····························</ul>␊
+························</div>␊
+····················</div>␊
+················</div>␊
+············</div>␊
+········</div>␊
+␊
+········<!--·Time·Series·Analysis·-->␊
+········<div·class="row·mb-4">␊
+············<div·class="col-lg-6">␊
+················<div·class="chart-container">␊
+····················<div·class="d-flex·justify-content-between·align-items-center·mb-3">␊
+························<h6·class="text-primary·mb-0">Moving·Averages</h6>␊
+························<div·class="btn-group·btn-group-sm"·role="group">␊
+····························<input·type="radio"·class="btn-check"·name="maMetric"·id="ma-leadtime"·value="leadTime"·checked>␊
+····························<label·class="btn·btn-outline-primary"·for="ma-leadtime">Lead·Time</label>␊
+····························<input·type="radio"·class="btn-check"·name="maMetric"·id="ma-cycletime"·value="cycleTime">␊
+····························<label·class="btn·btn-outline-primary"·for="ma-cycletime">Cycle·Time</label>␊
+····························<input·type="radio"·class="btn-check"·name="maMetric"·id="ma-throughput"·value="throughput">␊
+····························<label·class="btn·btn-outline-primary"·for="ma-throughput">Throughput</label>␊
+························</div>␊
+····················</div>␊
+····················<div·id="movingAveragesChart"·style="height:·300px;"></div>␊
+················</div>␊
+············</div>␊
+············<div·class="col-lg-6">␊
+················<div·class="chart-container">␊
+····················<h6·class="text-primary·mb-3">Period·Comparison</h6>␊
+····················<div·id="periodComparisonChart"·style="height:·300px;"></div>␊
+····················<div·class="mt-3">␊
+························<div·class="row·text-center">␊
+····························<div·class="col">␊
+································<div·class="text-primary·fw-bold"·id="currentPeriodValue">--</div>␊
+································<small·class="text-muted">Current·Period</small>␊
+····························</div>␊
+····························<div·class="col">␊
+································<div·class="text-secondary·fw-bold"·id="previousPeriodValue">--</div>␊
+································<small·class="text-muted">Previous·Period</small>␊
+····························</div>␊
+····························<div·class="col">␊
+································<div·id="periodChange"·class="fw-bold">--%</div>␊
+································<small·class="text-muted">Change</small>␊
+····························</div>␊
+························</div>␊
+····················</div>␊
+················</div>␊
+············</div>␊
+········</div>␊
+␊
+········<!--·Team·Table·-->␊
+········<div·class="row">␊
+············<div·class="col-12">␊
+················<div·class="chart-container">␊
+····················<h6·class="text-primary·mb-3">Team·Details</h6>␊
+····················<div·class="table-responsive">␊
+························<table·class="table·table-hover">␊
+····························<thead·class="table-light">␊
+································<tr>␊
+····································<th>Team·Member</th>␊
+····································<th>Completed</th>␊
+····································<th>Active</th>␊
+····································<th>Completion·Rate</th>␊
+····································<th>Avg·Lead·Time</th>␊
+································</tr>␊
+····························</thead>␊
+····························<tbody·id="teamTableBody">␊
+································<tr><td·colspan="5"·class="text-center·text-muted">Loading...</td></tr>␊
+····························</tbody>␊
+························</table>␊
+····················</div>␊
+················</div>␊
+············</div>␊
+········</div>␊
+····</div>␊
+␊
+····<!--·Hidden·file·input·-->␊
+····<input·type="file"·id="fileInput"·accept=".json"·style="display:·none;">␊
+␊
+····<script·src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>␊
+····<script>␊
+········//·FlowDashboard·class·now·loaded·from·external·js/dashboard.js·file␊
+········let·dashboardInstance·=·null;␊
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f8f9fc;
-        }
-
-        .metric-card {
-            border-left: 4px solid var(--primary-color);
-            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-        }
-
-        .metric-card.success { border-left-color: var(--success-color); }
-        .metric-card.info { border-left-color: var(--info-color); }
-        .metric-card.warning { border-left-color: var(--warning-color); }
-
-        .chart-container {
-            background: white;
-            border-radius: 0.35rem;
-            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .data-source-selector {
-            background: white;
-            border-radius: 0.35rem;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-        }
-        
-        .advanced-filtering-panel {
-            background: white;
-            border-radius: 0.35rem;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-        }
-        
-        .filter-section {
-            margin-bottom: 1.5rem;
-        }
-        
-        .filter-presets {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-        }
-        
-        .preset-btn {
-            padding: 0.375rem 0.75rem;
-            border: 1px solid #dee2e6;
-            border-radius: 0.375rem;
-            background: white;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 0.875rem;
-        }
-        
-        .preset-btn:hover {
-            background: #f8f9fa;
-            border-color: #adb5bd;
-        }
-        
-        .preset-btn.active {
-            background: var(--primary-color);
-            color: white;
-            border-color: var(--primary-color);
-        }
-        
-        .filter-summary {
-            background: #f8f9fa;
-            border-radius: 0.375rem;
-            padding: 0.75rem;
-            margin-bottom: 1rem;
-            border-left: 4px solid var(--info-color);
-        }
-        
-        .filter-summary.active {
-            border-left-color: var(--success-color);
-        }
-        
-        .filter-chips {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.375rem;
-            margin-top: 0.5rem;
-        }
-        
-        .filter-chip {
-            background: var(--info-color);
-            color: white;
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.375rem;
-            font-size: 0.75rem;
-            display: flex;
-            align-items: center;
-            gap: 0.25rem;
-        }
-        
-        .filter-chip .remove-chip {
-            cursor: pointer;
-            opacity: 0.7;
-            transition: opacity 0.2s;
-        }
-        
-        .filter-chip .remove-chip:hover {
-            opacity: 1;
-        }
-        
-        .drill-down-breadcrumb {
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
-            border-radius: 0.375rem;
-            padding: 0.5rem;
-            margin-bottom: 1rem;
-        }
-        
-        .breadcrumb-item {
-            display: inline-block;
-            margin-right: 0.5rem;
-        }
-        
-        .breadcrumb-item:not(:last-child)::after {
-            content: '>';
-            margin-left: 0.5rem;
-            color: #6c757d;
-        }
-        
-        .breadcrumb-link {
-            color: var(--primary-color);
-            text-decoration: none;
-            cursor: pointer;
-        }
-        
-        .breadcrumb-link:hover {
-            text-decoration: underline;
-        }
-        
-        .filter-controls {
-            display: flex;
-            gap: 0.5rem;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-        
-        .filter-history-nav {
-            display: flex;
-            gap: 0.25rem;
-        }
-        
-        .filter-history-nav button {
-            padding: 0.25rem 0.5rem;
-            border: 1px solid #dee2e6;
-            background: white;
-            border-radius: 0.25rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        
-        .filter-history-nav button:hover:not(:disabled) {
-            background: #f8f9fa;
-        }
-        
-        .filter-history-nav button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        
-        .filter-toggle {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            cursor: pointer;
-        }
-        
-        .filter-panel-collapsed .filter-content {
-            display: none;
-        }
-        
-        .multi-select {
-            position: relative;
-        }
-        
-        .multi-select-dropdown {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: white;
-            border: 1px solid #dee2e6;
-            border-radius: 0.375rem;
-            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-            z-index: 1000;
-            max-height: 200px;
-            overflow-y: auto;
-        }
-        
-        .multi-select-option {
-            padding: 0.5rem 0.75rem;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        
-        .multi-select-option:hover {
-            background: #f8f9fa;
-        }
-        
-        .multi-select-option.selected {
-            background: var(--primary-color);
-            color: white;
-        }
-        
-        .date-range-picker {
-            display: flex;
-            gap: 0.5rem;
-            align-items: center;
-        }
-        
-        @media (max-width: 768px) {
-            .filter-presets {
-                flex-direction: column;
-            }
-            
-            .filter-controls {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            .date-range-picker {
-                flex-direction: column;
-                align-items: stretch;
-            }
-        }
-        
-        /* Export & Collaboration Styles */
-        .export-collaboration-panel {
-            background: white;
-            border-radius: 0.35rem;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-        }
-        
-        .export-format-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-        
-        .export-format-card {
-            border: 2px solid #dee2e6;
-            border-radius: 0.5rem;
-            padding: 1rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-align: center;
-        }
-        
-        .export-format-card:hover {
-            border-color: var(--primary-color);
-            background: #f8f9fc;
-        }
-        
-        .export-format-card.selected {
-            border-color: var(--primary-color);
-            background: #e3f0ff;
-        }
-        
-        .export-format-icon {
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
-            color: var(--primary-color);
-        }
-        
-        .export-format-name {
-            font-weight: bold;
-            margin-bottom: 0.25rem;
-        }
-        
-        .export-format-description {
-            font-size: 0.875rem;
-            color: #6c757d;
-        }
-        
-        .export-options {
-            background: #f8f9fa;
-            border-radius: 0.375rem;
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }
-        
-        .share-link-container {
-            background: #e7f3ff;
-            border: 1px solid #b8daff;
-            border-radius: 0.375rem;
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }
-        
-        .share-link-input {
-            background: white;
-            border: 1px solid #ced4da;
-            border-radius: 0.375rem;
-            padding: 0.5rem;
-            width: 100%;
-            font-family: monospace;
-            font-size: 0.875rem;
-        }
-        
-        .collaboration-room {
-            background: #fff3cd;
-            border: 1px solid #ffeaa7;
-            border-radius: 0.375rem;
-            padding: 1rem;
-            margin-bottom: 1rem;
-        }
-        
-        .participant-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            margin-top: 0.5rem;
-        }
-        
-        .participant-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: var(--primary-color);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.75rem;
-            font-weight: bold;
-        }
-        
-        .export-history-table {
-            max-height: 300px;
-            overflow-y: auto;
-        }
-        
-        .export-progress {
-            background: #f8f9fa;
-            border-radius: 0.375rem;
-            padding: 1rem;
-            margin-bottom: 1rem;
-            border-left: 4px solid var(--info-color);
-        }
-        
-        .export-progress.success {
-            border-left-color: var(--success-color);
-            background: #d4edda;
-        }
-        
-        .export-progress.error {
-            border-left-color: #dc3545;
-            background: #f8d7da;
-        }
-        
-        .collaboration-message {
-            background: white;
-            border-radius: 0.375rem;
-            padding: 0.75rem;
-            margin-bottom: 0.5rem;
-            border-left: 3px solid var(--info-color);
-        }
-        
-        .collaboration-message.filter-change {
-            border-left-color: var(--warning-color);
-        }
-        
-        .collaboration-message.annotation {
-            border-left-color: var(--success-color);
-        }
-        
-        .message-sender {
-            font-weight: bold;
-            font-size: 0.875rem;
-            color: var(--primary-color);
-        }
-        
-        .message-timestamp {
-            font-size: 0.75rem;
-            color: #6c757d;
-            float: right;
-        }
-        
-        .message-content {
-            margin-top: 0.25rem;
-            font-size: 0.875rem;
-        }
-        
-        .export-collaboration-tabs {
-            display: flex;
-            border-bottom: 1px solid #dee2e6;
-            margin-bottom: 1.5rem;
-        }
-        
-        .tab-button {
-            background: none;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            cursor: pointer;
-            border-bottom: 2px solid transparent;
-            transition: all 0.2s;
-            font-weight: 500;
-        }
-        
-        .tab-button:hover {
-            background: #f8f9fa;
-        }
-        
-        .tab-button.active {
-            border-bottom-color: var(--primary-color);
-            color: var(--primary-color);
-        }
-        
-        .tab-content {
-            display: none;
-        }
-        
-        .tab-content.active {
-            display: block;
-        }
-        
-        @media (max-width: 768px) {
-            .export-format-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .export-collaboration-tabs {
-                flex-direction: column;
-            }
-            
-            .tab-button {
-                text-align: left;
-                border-bottom: 1px solid #dee2e6;
-                border-radius: 0;
-            }
-        }
-    </style>
-</head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="#">
-                <i class="fas fa-chart-line"></i> Flow Metrics Dashboard
-            </a>
-            <div class="navbar-nav ms-auto">
-                <button class="btn btn-outline-light btn-sm" id="refreshBtn">
-                    <i class="fas fa-sync-alt"></i> Refresh
-                </button>
-                <button class="btn btn-outline-light btn-sm ms-2" id="loadFileBtn">
-                    <i class="fas fa-upload"></i> Load JSON
-                </button>
-                <div class="form-check form-switch ms-3">
-                    <input class="form-check-input" type="checkbox" id="autoRefreshToggle">
-                    <label class="form-check-label text-light" for="autoRefreshToggle">
-                        Auto-refresh (30s)
-                    </label>
-                </div>
-            </div>
-        </div>
-    </nav>
-
-    <div class="container-fluid mt-4">
-        <!-- Data Source Selection -->
-        <div class="data-source-selector">
-            <div class="row align-items-center mb-3">
-                <div class="col-md-6">
-                    <h6 class="mb-0">Data Source</h6>
-                    <small class="text-muted" id="dataSourceInfo">No data loaded</small>
-                </div>
-                <div class="col-md-6">
-                    <div class="btn-group w-100" role="group">
-                        <input type="radio" class="btn-check" name="dataSource" id="mockData" checked>
-                        <label class="btn btn-outline-primary" for="mockData">Mock Data</label>
-
-                        <input type="radio" class="btn-check" name="dataSource" id="jsonFile">
-                        <label class="btn btn-outline-primary" for="jsonFile">JSON File</label>
-
-                        <input type="radio" class="btn-check" name="dataSource" id="indexedDB">
-                        <label class="btn btn-outline-primary" for="indexedDB">IndexedDB</label>
-
-                        <input type="radio" class="btn-check" name="dataSource" id="cliData">
-                        <label class="btn btn-outline-primary" for="cliData">CLI Data</label>
-                    </div>
-                </div>
-            </div>
-            <!-- Quick Filters Note -->
-            <div class="alert alert-info mb-3">
-                <i class="fas fa-info-circle me-2"></i>
-                <strong>Tip:</strong> For comprehensive filtering including work item types, priorities, assignees, states, and more, use the <strong>Advanced Filtering & Drill-Down</strong> section below.
-            </div>
-            
-            <!-- Work Item Type Filter -->
-            <div class="row align-items-center mb-3">
-                <div class="col-md-6">
-                    <h6 class="mb-0">Work Item Type Filter (Basic)</h6>
-                    <small class="text-muted" id="workItemTypeInfo">All types included</small>
-                </div>
-                <div class="col-md-6">
-                    <div class="dropdown">
-                        <button class="btn btn-outline-info dropdown-toggle w-100" type="button" id="workItemTypeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-tags me-2"></i>All Types
-                        </button>
-                        <ul class="dropdown-menu w-100" aria-labelledby="workItemTypeDropdown" id="workItemTypeDropdownMenu">
-                            <li><a class="dropdown-item" href="#" data-work-item-type="All Types">
-                                <input type="checkbox" class="form-check-input me-2" checked> All Types
-                            </a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="#" data-work-item-type="User Story">
-                                <input type="checkbox" class="form-check-input me-2"> User Story
-                            </a></li>
-                            <li><a class="dropdown-item" href="#" data-work-item-type="Bug">
-                                <input type="checkbox" class="form-check-input me-2"> Bug
-                            </a></li>
-                            <li><a class="dropdown-item" href="#" data-work-item-type="Task">
-                                <input type="checkbox" class="form-check-input me-2"> Task
-                            </a></li>
-                            <li><a class="dropdown-item" href="#" data-work-item-type="Feature">
-                                <input type="checkbox" class="form-check-input me-2"> Feature
-                            </a></li>
-                            <li><a class="dropdown-item" href="#" data-work-item-type="Epic">
-                                <input type="checkbox" class="form-check-input me-2"> Epic
-                            </a></li>
-                            <li><a class="dropdown-item" href="#" data-work-item-type="Issue">
-                                <input type="checkbox" class="form-check-input me-2"> Issue
-                            </a></li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sprint Filter -->
-            <div class="row align-items-center mb-3">
-                <div class="col-md-6">
-                    <h6 class="mb-0">Sprint Filter (Basic)</h6>
-                    <small class="text-muted" id="sprintInfo">All sprints included</small>
-                </div>
-                <div class="col-md-6">
-                    <div class="dropdown">
-                        <button class="btn btn-outline-warning dropdown-toggle w-100" type="button" id="sprintDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-running me-2"></i>All Sprints
-                        </button>
-                        <ul class="dropdown-menu w-100" aria-labelledby="sprintDropdown" id="sprintDropdownMenu">
-                            <li><a class="dropdown-item" href="#" data-sprint="All Sprints">
-                                <input type="checkbox" class="form-check-input me-2" checked> All Sprints
-                            </a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <!-- Sprint options will be populated by JavaScript -->
-                        </ul>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Workstream Filter -->
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <h6 class="mb-0">Workstream Filter (Basic)</h6>
-                    <small class="text-muted" id="workstreamInfo">All teams included</small>
-                </div>
-                <div class="col-md-6">
-                    <div class="dropdown">
-                        <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" id="workstreamDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-users me-2"></i>All Teams
-                        </button>
-                        <ul class="dropdown-menu w-100" aria-labelledby="workstreamDropdown" id="workstreamDropdownMenu">
-                            <li><a class="dropdown-item" href="#" data-workstream="All Teams">
-                                <input type="checkbox" class="form-check-input me-2" checked> All Teams
-                            </a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <!-- Workstream options will be populated by JavaScript -->
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Advanced Filtering Panel -->
-        <div class="advanced-filtering-panel" id="advancedFilteringPanel">
-            <div class="filter-toggle" onclick="toggleFilterPanel()">
-                <h5 class="mb-0">
-                    <i class="fas fa-filter me-2"></i>
-                    Advanced Filtering & Drill-Down
-                </h5>
-                <i class="fas fa-chevron-up ms-auto" id="filterToggleIcon"></i>
-            </div>
-            
-            <div class="filter-content" id="filterContent" style="display: block;">
-                <!-- Filter Summary -->
-                <div class="filter-summary" id="filterSummary">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <strong>Active Filters:</strong>
-                            <span id="filterCount">None</span>
-                        </div>
-                        <div class="filter-controls">
-                            <div class="filter-history-nav">
-                                <button type="button" id="filterBackBtn" onclick="goBackFilter()" disabled>
-                                    <i class="fas fa-arrow-left"></i>
-                                </button>
-                                <button type="button" id="filterForwardBtn" onclick="goForwardFilter()" disabled>
-                                    <i class="fas fa-arrow-right"></i>
-                                </button>
-                            </div>
-                            <button class="btn btn-sm btn-outline-secondary" onclick="clearAllFilters()">
-                                <i class="fas fa-times me-1"></i>Clear All
-                            </button>
-                            <button class="btn btn-sm btn-outline-primary" onclick="shareFilters()">
-                                <i class="fas fa-share me-1"></i>Share
-                            </button>
-                        </div>
-                    </div>
-                    <div class="filter-chips" id="filterChips"></div>
-                </div>
-
-                <!-- Drill-down Breadcrumb -->
-                <div class="drill-down-breadcrumb" id="drillDownBreadcrumb" style="display: none;">
-                    <i class="fas fa-sitemap me-2"></i>
-                    <span class="text-muted">Drill-down Path:</span>
-                    <div class="breadcrumb-items" id="breadcrumbItems"></div>
-                </div>
-
-                <!-- Filter Presets -->
-                <div class="filter-section">
-                    <h6 class="mb-2">Quick Presets</h6>
-                    <div class="filter-presets" id="filterPresets">
-                        <button class="preset-btn" data-preset="last7days">Last 7 Days</button>
-                        <button class="preset-btn" data-preset="last30days">Last 30 Days</button>
-                        <button class="preset-btn" data-preset="current-sprint">Current Sprint</button>
-                        <button class="preset-btn" data-preset="high-priority">High Priority</button>
-                        <button class="preset-btn" data-preset="bugs-only">Bugs Only</button>
-                        <button class="preset-btn" data-preset="completed-items">Completed Items</button>
-                    </div>
-                </div>
-
-                <!-- Filter Controls -->
-                <div class="row">
-                    <!-- Date Range Filter -->
-                    <div class="col-md-6 filter-section">
-                        <h6 class="mb-2">Date Range</h6>
-                        <div class="date-range-picker">
-                            <input type="date" class="form-control" id="startDateFilter" placeholder="Start Date">
-                            <span class="align-self-center">to</span>
-                            <input type="date" class="form-control" id="endDateFilter" placeholder="End Date">
-                        </div>
-                    </div>
-
-                    <!-- Work Item Types Filter -->
-                    <div class="col-md-6 filter-section">
-                        <h6 class="mb-2">Work Item Types</h6>
-                        <div class="multi-select" id="workItemTypesFilter">
-                            <input type="text" class="form-control" placeholder="Select work item types..." readonly onclick="toggleMultiSelect('workItemTypes')">
-                            <div class="multi-select-dropdown" id="workItemTypesDropdown" style="display: none;"></div>
-                        </div>
-                    </div>
-
-                    <!-- Priorities Filter -->
-                    <div class="col-md-6 filter-section">
-                        <h6 class="mb-2">Priorities</h6>
-                        <div class="multi-select" id="prioritiesFilter">
-                            <input type="text" class="form-control" placeholder="Select priorities..." readonly onclick="toggleMultiSelect('priorities')">
-                            <div class="multi-select-dropdown" id="prioritiesDropdown" style="display: none;"></div>
-                        </div>
-                    </div>
-
-                    <!-- Assignees Filter -->
-                    <div class="col-md-6 filter-section">
-                        <h6 class="mb-2">Assignees</h6>
-                        <div class="multi-select" id="assigneesFilter">
-                            <input type="text" class="form-control" placeholder="Select assignees..." readonly onclick="toggleMultiSelect('assignees')">
-                            <div class="multi-select-dropdown" id="assigneesDropdown" style="display: none;"></div>
-                        </div>
-                    </div>
-
-                    <!-- States Filter -->
-                    <div class="col-md-6 filter-section">
-                        <h6 class="mb-2">States</h6>
-                        <div class="multi-select" id="statesFilter">
-                            <input type="text" class="form-control" placeholder="Select states..." readonly onclick="toggleMultiSelect('states')">
-                            <div class="multi-select-dropdown" id="statesDropdown" style="display: none;"></div>
-                        </div>
-                    </div>
-
-                    <!-- Tags Filter -->
-                    <div class="col-md-6 filter-section">
-                        <h6 class="mb-2">Tags</h6>
-                        <div class="multi-select" id="tagsFilter">
-                            <input type="text" class="form-control" placeholder="Select tags..." readonly onclick="toggleMultiSelect('tags')">
-                            <div class="multi-select-dropdown" id="tagsDropdown" style="display: none;"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Save Custom Preset -->
-                <div class="filter-section">
-                    <div class="row">
-                        <div class="col-md-8">
-                            <input type="text" class="form-control" id="customPresetName" placeholder="Save current filters as preset...">
-                        </div>
-                        <div class="col-md-4">
-                            <button class="btn btn-outline-success w-100" onclick="saveCustomPreset()">
-                                <i class="fas fa-save me-1"></i>Save Preset
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Export & Collaboration Panel -->
-        <div class="export-collaboration-panel" id="exportCollaborationPanel">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="mb-0">
-                    <i class="fas fa-download me-2"></i>
-                    Export & Collaboration
-                </h5>
-                <button class="btn btn-sm btn-outline-primary" onclick="toggleExportPanel()">
-                    <i class="fas fa-chevron-down" id="exportToggleIcon"></i>
-                </button>
-            </div>
-            
-            <div class="export-content" id="exportContent">
-                <!-- Tabs -->
-                <div class="export-collaboration-tabs">
-                    <button class="tab-button active" onclick="switchExportTab('export')">
-                        <i class="fas fa-file-export me-1"></i>Export
-                    </button>
-                    <button class="tab-button" onclick="switchExportTab('share')">
-                        <i class="fas fa-share-alt me-1"></i>Share
-                    </button>
-                    <button class="tab-button" onclick="switchExportTab('collaborate')">
-                        <i class="fas fa-users me-1"></i>Collaborate
-                    </button>
-                    <button class="tab-button" onclick="switchExportTab('history')">
-                        <i class="fas fa-history me-1"></i>History
-                    </button>
-                </div>
-
-                <!-- Export Tab -->
-                <div class="tab-content active" id="exportTab">
-                    <div class="export-progress" id="exportProgress" style="display: none;">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span>Preparing export...</span>
-                            <div class="spinner-border spinner-border-sm" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                        </div>
-                        <div class="progress mt-2" style="height: 6px;">
-                            <div class="progress-bar" id="exportProgressBar" role="progressbar" style="width: 0%"></div>
-                        </div>
-                    </div>
-
-                    <div class="export-format-grid" id="exportFormatGrid">
-                        <div class="export-format-card" data-format="pdf" onclick="selectExportFormat('pdf')">
-                            <div class="export-format-icon">
-                                <i class="fas fa-file-pdf"></i>
-                            </div>
-                            <div class="export-format-name">PDF Report</div>
-                            <div class="export-format-description">Comprehensive report with charts and metrics</div>
-                        </div>
-
-                        <div class="export-format-card" data-format="excel" onclick="selectExportFormat('excel')">
-                            <div class="export-format-icon">
-                                <i class="fas fa-file-excel"></i>
-                            </div>
-                            <div class="export-format-name">Excel Spreadsheet</div>
-                            <div class="export-format-description">Raw data and metrics for analysis</div>
-                        </div>
-
-                        <div class="export-format-card" data-format="csv" onclick="selectExportFormat('csv')">
-                            <div class="export-format-icon">
-                                <i class="fas fa-file-csv"></i>
-                            </div>
-                            <div class="export-format-name">CSV Data</div>
-                            <div class="export-format-description">Comma-separated values for import</div>
-                        </div>
-
-                        <div class="export-format-card" data-format="json" onclick="selectExportFormat('json')">
-                            <div class="export-format-icon">
-                                <i class="fas fa-file-code"></i>
-                            </div>
-                            <div class="export-format-name">JSON Data</div>
-                            <div class="export-format-description">Structured data in JSON format</div>
-                        </div>
-
-                        <div class="export-format-card" data-format="png" onclick="selectExportFormat('png')">
-                            <div class="export-format-icon">
-                                <i class="fas fa-image"></i>
-                            </div>
-                            <div class="export-format-name">PNG Image</div>
-                            <div class="export-format-description">Dashboard screenshot</div>
-                        </div>
-                    </div>
-
-                    <div class="export-options" id="exportOptions" style="display: none;">
-                        <h6>Export Options</h6>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="exportTitle" class="form-label">Report Title</label>
-                                    <input type="text" class="form-control" id="exportTitle" value="Flow Metrics Dashboard Report">
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="exportSubtitle" class="form-label">Subtitle</label>
-                                    <input type="text" class="form-control" id="exportSubtitle" value="">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-check mb-2">
-                                    <input class="form-check-input" type="checkbox" id="includeCharts" checked>
-                                    <label class="form-check-label" for="includeCharts">Include Charts</label>
-                                </div>
-                                <div class="form-check mb-2">
-                                    <input class="form-check-input" type="checkbox" id="includeData" checked>
-                                    <label class="form-check-label" for="includeData">Include Raw Data</label>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="form-check mb-2">
-                                    <input class="form-check-input" type="checkbox" id="includeMetrics" checked>
-                                    <label class="form-check-label" for="includeMetrics">Include Metrics Summary</label>
-                                </div>
-                                <div class="form-check mb-2">
-                                    <input class="form-check-input" type="checkbox" id="includeInsights" checked>
-                                    <label class="form-check-label" for="includeInsights">Include Insights</label>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="text-end">
-                            <button class="btn btn-secondary me-2" onclick="cancelExport()">Cancel</button>
-                            <button class="btn btn-primary" onclick="performExport()">
-                                <i class="fas fa-download me-1"></i>Export Now
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Share Tab -->
-                <div class="tab-content" id="shareTab">
-                    <div class="mb-3">
-                        <h6>Dashboard Sharing</h6>
-                        <p class="text-muted">Generate a shareable link for this dashboard view.</p>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="shareTitle" class="form-label">Share Title</label>
-                            <input type="text" class="form-control" id="shareTitle" value="Flow Metrics Dashboard">
-                        </div>
-                        <div class="col-md-6">
-                            <label for="shareExpiry" class="form-label">Expires In</label>
-                            <select class="form-select" id="shareExpiry">
-                                <option value="1">1 Day</option>
-                                <option value="7" selected>7 Days</option>
-                                <option value="30">30 Days</option>
-                                <option value="never">Never</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="allowEdit">
-                                <label class="form-check-label" for="allowEdit">Allow editing</label>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="requirePassword">
-                                <label class="form-check-label" for="requirePassword">Require password</label>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3" id="passwordSection" style="display: none;">
-                        <label for="sharePassword" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="sharePassword" placeholder="Enter password">
-                    </div>
-
-                    <div class="text-end mb-3">
-                        <button class="btn btn-primary" onclick="generateShareLink()">
-                            <i class="fas fa-link me-1"></i>Generate Share Link
-                        </button>
-                    </div>
-
-                    <div class="share-link-container" id="shareLinkContainer" style="display: none;">
-                        <h6><i class="fas fa-link me-2"></i>Shareable Link</h6>
-                        <div class="input-group">
-                            <input type="text" class="share-link-input" id="shareLinkInput" readonly>
-                            <button class="btn btn-outline-secondary" onclick="copyShareLink()">
-                                <i class="fas fa-copy"></i>
-                            </button>
-                        </div>
-                        <small class="text-muted mt-1 d-block">Anyone with this link can view your dashboard</small>
-                    </div>
-                </div>
-
-                <!-- Collaborate Tab -->
-                <div class="tab-content" id="collaborateTab">
-                    <div class="mb-3">
-                        <h6>Team Collaboration</h6>
-                        <p class="text-muted">Create or join collaboration rooms for real-time team insights.</p>
-                    </div>
-
-                    <div class="row mb-3">
-                        <div class="col-md-8">
-                            <input type="text" class="form-control" id="collaborationRoomName" placeholder="Enter room name or ID">
-                        </div>
-                        <div class="col-md-4">
-                            <div class="btn-group w-100">
-                                <button class="btn btn-primary" onclick="createCollaborationRoom()">
-                                    <i class="fas fa-plus me-1"></i>Create
-                                </button>
-                                <button class="btn btn-outline-primary" onclick="joinCollaborationRoom()">
-                                    <i class="fas fa-sign-in-alt me-1"></i>Join
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="collaboration-room" id="activeRoom" style="display: none;">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <h6 class="mb-0">
-                                <i class="fas fa-users me-2"></i>
-                                <span id="roomName">Collaboration Room</span>
-                            </h6>
-                            <button class="btn btn-sm btn-outline-danger" onclick="leaveCollaborationRoom()">
-                                <i class="fas fa-sign-out-alt me-1"></i>Leave
-                            </button>
-                        </div>
-                        
-                        <div class="mb-2">
-                            <small class="text-muted">Room ID: <span id="roomId"></span></small>
-                        </div>
-                        
-                        <div class="mb-2">
-                            <strong>Participants (<span id="participantCount">0</span>):</strong>
-                            <div class="participant-list" id="participantList"></div>
-                        </div>
-                    </div>
-
-                    <div class="collaboration-messages" id="collaborationMessages" style="display: none;">
-                        <h6>Recent Activity</h6>
-                        <div class="collaboration-message-list" id="messageList" style="max-height: 200px; overflow-y: auto;">
-                            <!-- Messages will be populated here -->
-                        </div>
-                        
-                        <div class="mt-2">
-                            <div class="input-group">
-                                <input type="text" class="form-control" id="messageInput" placeholder="Send a message...">
-                                <button class="btn btn-outline-primary" onclick="sendCollaborationMessage()">
-                                    <i class="fas fa-paper-plane"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- History Tab -->
-                <div class="tab-content" id="historyTab">
-                    <div class="mb-3">
-                        <h6>Export History</h6>
-                        <p class="text-muted">Recent exports and downloads</p>
-                    </div>
-
-                    <div class="export-history-table">
-                        <div class="table-responsive">
-                            <table class="table table-sm">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Format</th>
-                                        <th>Title</th>
-                                        <th>Size</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="exportHistoryTableBody">
-                                    <tr>
-                                        <td colspan="5" class="text-center text-muted">No exports yet</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <div class="text-end">
-                        <button class="btn btn-sm btn-outline-secondary" onclick="clearExportHistory()">
-                            <i class="fas fa-trash me-1"></i>Clear History
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Key Metrics Cards -->
-        <div class="row mb-4">
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card metric-card h-100">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs fw-bold text-primary text-uppercase mb-1">Lead Time</div>
-                                <div class="h5 mb-0 fw-bold text-gray-800" id="leadTimeAvg">Loading...</div>
-                                <div class="small text-muted" id="leadTimeMedian">Median: --</div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-clock fa-2x text-gray-300"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card metric-card success h-100">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs fw-bold text-success text-uppercase mb-1">Cycle Time</div>
-                                <div class="h5 mb-0 fw-bold text-gray-800" id="cycleTimeAvg">Loading...</div>
-                                <div class="small text-muted" id="cycleTimeMedian">Median: --</div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-cog fa-2x text-gray-300"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card metric-card info h-100">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs fw-bold text-info text-uppercase mb-1">Throughput</div>
-                                <div class="h5 mb-0 fw-bold text-gray-800" id="throughputValue">Loading...</div>
-                                <div class="small text-muted">items/30 days</div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-rocket fa-2x text-gray-300"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-xl-3 col-md-6 mb-4">
-                <div class="card metric-card warning h-100">
-                    <div class="card-body">
-                        <div class="row no-gutters align-items-center">
-                            <div class="col mr-2">
-                                <div class="text-xs fw-bold text-warning text-uppercase mb-1">Work in Progress</div>
-                                <div class="h5 mb-0 fw-bold text-gray-800" id="wipValue">Loading...</div>
-                                <div class="small text-muted">active items</div>
-                            </div>
-                            <div class="col-auto">
-                                <i class="fas fa-tasks fa-2x text-gray-300"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Charts Row -->
-        <div class="row mb-4">
-            <div class="col-lg-6">
-                <div class="chart-container">
-                    <h6 class="text-primary mb-3">Lead Time vs Cycle Time</h6>
-                    <div id="leadCycleChart" style="height: 300px;"></div>
-                </div>
-            </div>
-            <div class="col-lg-6">
-                <div class="chart-container">
-                    <h6 class="text-primary mb-3">Work in Progress by State</h6>
-                    <div id="wipChart" style="height: 300px;"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Team Performance -->
-        <div class="row mb-4">
-            <div class="col-lg-8">
-                <div class="chart-container">
-                    <h6 class="text-primary mb-3">Team Performance</h6>
-                    <div id="teamChart" style="height: 400px;"></div>
-                </div>
-            </div>
-            <div class="col-lg-4">
-                <div class="chart-container">
-                    <h6 class="text-primary mb-3">Flow Efficiency</h6>
-                    <div id="efficiencyChart" style="height: 300px;"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Predictive Analytics Section -->
-        <div class="row mb-4">
-            <div class="col-lg-8">
-                <div class="chart-container">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="text-primary mb-0">Delivery Forecast</h6>
-                        <div class="d-flex gap-2">
-                            <select id="forecastItems" class="form-select form-select-sm" style="width: auto;">
-                                <option value="10">10 items</option>
-                                <option value="20" selected>20 items</option>
-                                <option value="50">50 items</option>
-                                <option value="100">100 items</option>
-                            </select>
-                            <button id="updateForecast" class="btn btn-sm btn-outline-primary">
-                                <i class="fas fa-sync"></i> Update
-                            </button>
-                        </div>
-                    </div>
-                    <div id="forecastChart" style="height: 300px;"></div>
-                    <div class="row mt-3">
-                        <div class="col-md-4">
-                            <div class="text-center">
-                                <div class="text-success fw-bold" id="optimisticDate">--</div>
-                                <small class="text-muted">Optimistic (10%)</small>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="text-center">
-                                <div class="text-primary fw-bold" id="realisticDate">--</div>
-                                <small class="text-muted">Realistic (50%)</small>
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="text-center">
-                                <div class="text-warning fw-bold" id="pessimisticDate">--</div>
-                                <small class="text-muted">Pessimistic (90%)</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-4">
-                <div class="chart-container">
-                    <h6 class="text-primary mb-3">Velocity Trend</h6>
-                    <div id="velocityTrendChart" style="height: 200px;"></div>
-                    <div class="mt-3">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="text-muted">Trend Direction</span>
-                            <span id="trendDirection" class="badge bg-secondary">--</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="text-muted">Risk Level</span>
-                            <span id="riskLevel" class="badge bg-secondary">--</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="text-muted">Confidence</span>
-                            <span id="forecastConfidence" class="fw-bold">--%</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Insights and Recommendations -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="chart-container">
-                    <h6 class="text-primary mb-3">
-                        <i class="fas fa-lightbulb me-2"></i>Insights & Recommendations
-                    </h6>
-                    <div id="insightsContainer">
-                        <div class="row" id="insightCards">
-                            <!-- Insight cards will be populated dynamically -->
-                        </div>
-                        <div class="mt-3">
-                            <h6 class="text-secondary mb-2">Recommendations</h6>
-                            <ul id="recommendationsList" class="list-unstyled">
-                                <!-- Recommendations will be populated dynamically -->
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Time Series Analysis -->
-        <div class="row mb-4">
-            <div class="col-lg-6">
-                <div class="chart-container">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h6 class="text-primary mb-0">Moving Averages</h6>
-                        <div class="btn-group btn-group-sm" role="group">
-                            <input type="radio" class="btn-check" name="maMetric" id="ma-leadtime" value="leadTime" checked>
-                            <label class="btn btn-outline-primary" for="ma-leadtime">Lead Time</label>
-                            <input type="radio" class="btn-check" name="maMetric" id="ma-cycletime" value="cycleTime">
-                            <label class="btn btn-outline-primary" for="ma-cycletime">Cycle Time</label>
-                            <input type="radio" class="btn-check" name="maMetric" id="ma-throughput" value="throughput">
-                            <label class="btn btn-outline-primary" for="ma-throughput">Throughput</label>
-                        </div>
-                    </div>
-                    <div id="movingAveragesChart" style="height: 300px;"></div>
-                </div>
-            </div>
-            <div class="col-lg-6">
-                <div class="chart-container">
-                    <h6 class="text-primary mb-3">Period Comparison</h6>
-                    <div id="periodComparisonChart" style="height: 300px;"></div>
-                    <div class="mt-3">
-                        <div class="row text-center">
-                            <div class="col">
-                                <div class="text-primary fw-bold" id="currentPeriodValue">--</div>
-                                <small class="text-muted">Current Period</small>
-                            </div>
-                            <div class="col">
-                                <div class="text-secondary fw-bold" id="previousPeriodValue">--</div>
-                                <small class="text-muted">Previous Period</small>
-                            </div>
-                            <div class="col">
-                                <div id="periodChange" class="fw-bold">--%</div>
-                                <small class="text-muted">Change</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Team Table -->
-        <div class="row">
-            <div class="col-12">
-                <div class="chart-container">
-                    <h6 class="text-primary mb-3">Team Details</h6>
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Team Member</th>
-                                    <th>Completed</th>
-                                    <th>Active</th>
-                                    <th>Completion Rate</th>
-                                    <th>Avg Lead Time</th>
-                                </tr>
-                            </thead>
-                            <tbody id="teamTableBody">
-                                <tr><td colspan="5" class="text-center text-muted">Loading...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Hidden file input -->
-    <input type="file" id="fileInput" accept=".json" style="display: none;">
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- FlowDashboard class now loaded from external js/dashboard.js file -->
-</body>
-</html>
+········document.addEventListener('DOMContentLoaded',·()·=>·{␊
+············dashboardInstance·=·new·FlowDashboard();␊
+········});␊
+····</script>␊
+</body>␊
+</html>␊

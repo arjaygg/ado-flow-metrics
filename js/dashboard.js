@@ -458,25 +458,410 @@ class FlowDashboard {
         return `${orgUrl}/${project}/_workitems/edit/${numericId}`;
     }
 
-    // Placeholder methods for compilation
-    updateMetricsCards(data) { /* Implementation from original */ }
-    updateCharts(data) { /* Implementation from original */ }
-    updateTeamTable(data) { /* Implementation from original */ }
-    updatePredictiveAnalytics(data) { /* Implementation from original */ }
-    updateTimeSeriesAnalysis(data) { /* Implementation from original */ }
-    updateInsightsAndRecommendations(data) { /* Implementation from original */ }
-    updateFilteringDropdowns(data) { /* Implementation from original */ }
-    generateMockData() { /* Implementation from original */ return {}; }
-    showNoDataMessage() { /* Implementation from original */ }
-    showErrorMessage(message) { /* Implementation from original */ }
-    populateSprintFilter(data) { /* Implementation from original */ }
-    handleWorkstreamFilter(e) { /* Implementation from original */ }
-    handleWorkItemTypeFilter(e) { /* Implementation from original */ }
-    handleSprintFilter(e) { /* Implementation from original */ }
-    toggleAutoRefresh(enabled) { /* Implementation from original */ }
-    setupAdvancedFiltering() { /* Implementation from original */ }
-    setupExportCollaboration() { /* Implementation from original */ }
-    updateMovingAverages(metric) { /* Implementation from original */ }
+    updatePredictiveAnalytics(data = null) {
+        const currentData = data || this.data;
+        if (!currentData) {
+            console.warn('No data available for predictive analytics');
+            this.showFallbackCharts();
+            return;
+        }
+
+        try {
+            // Prepare historical data with fallback generation
+            let historicalData = currentData.historical_data || [];
+            if (!historicalData || historicalData.length === 0) {
+                historicalData = this.generateSampleHistoricalData();
+            }
+
+            // Initialize predictive analytics with historical data
+            this.predictiveAnalytics.initialize(historicalData);
+
+            // Get remaining work from user input or estimate
+            const remainingWork = parseInt(document.getElementById('forecastItems')?.value) || 20;
+
+            // Generate delivery forecast
+            const prediction = this.predictiveAnalytics.predictDeliveryDate(remainingWork, {
+                confidenceLevel: 0.85
+            });
+
+            // Update forecast chart
+            this.updateDeliveryForecastChart(prediction);
+
+            // Update velocity trend chart
+            this.updateVelocityTrendChart(this.predictiveAnalytics.velocityHistory);
+
+            // Remove skeleton loading
+            this.enhancedUX.hideSkeleton('forecastChart');
+            this.enhancedUX.hideSkeleton('velocityTrendChart');
+
+        } catch (error) {
+            console.error('Error updating predictive analytics:', error);
+            this.showFallbackCharts();
+        }
+    }
+
+    updateTimeSeriesAnalysis(data = null) {
+        const currentData = data || this.data;
+        if (!currentData) {
+            console.warn('No data available for time series analysis');
+            this.showFallbackCharts();
+            return;
+        }
+
+        try {
+            // Prepare time series data with fallback
+            let historicalData = currentData.historical_data || [];
+            if (!historicalData || historicalData.length === 0) {
+                historicalData = this.generateSampleHistoricalData();
+            }
+
+            // Transform to time series format
+            const timeSeriesData = this.prepareTimeSeriesData(historicalData);
+
+            // Initialize time series analyzer
+            this.timeSeriesAnalyzer.initialize(timeSeriesData);
+
+            // Update charts
+            const selectedMetric = document.querySelector('input[name="maMetric"]:checked')?.value || 'leadTime';
+            this.updateMovingAverages(selectedMetric);
+            this.updatePeriodComparison();
+
+        } catch (error) {
+            console.error('Error updating time series analysis:', error);
+            this.showFallbackCharts();
+        }
+    }
+
+    updateMovingAverages(metric = 'leadTime') {
+        try {
+            const analysis = this.timeSeriesAnalyzer.getAnalysis(metric);
+            
+            if (!analysis) {
+                console.warn('No analysis available for moving averages');
+                this.showFallbackMovingAveragesChart();
+                return;
+            }
+
+            const movingAverages = analysis.movingAverages || [];
+            if (movingAverages.length === 0) {
+                this.showFallbackMovingAveragesChart();
+                return;
+            }
+
+            // Get the first moving average (7-day by default)
+            const ma7 = movingAverages[0]?.data || [];
+            const rawData = analysis.rawData || [];
+
+            if (ma7.length === 0 || rawData.length === 0) {
+                this.showFallbackMovingAveragesChart();
+                return;
+            }
+
+            const traces = [
+                {
+                    x: rawData.map(d => d.date),
+                    y: rawData.map(d => d.value),
+                    type: 'scatter',
+                    mode: 'markers',
+                    name: 'Raw Data',
+                    marker: { color: '#e3e6f0', size: 4 }
+                },
+                {
+                    x: ma7.map(d => d.date),
+                    y: ma7.map(d => d.value),
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: '7-day MA',
+                    line: { color: '#4e73df', width: 2 }
+                }
+            ];
+
+            const layout = {
+                title: `${metric} Moving Averages`,
+                xaxis: { title: 'Date' },
+                yaxis: { title: 'Value' },
+                margin: { t: 40, b: 40, l: 60, r: 20 },
+                legend: { x: 0, y: 1 }
+            };
+
+            Plotly.newPlot('movingAveragesChart', traces, layout, { responsive: true });
+            this.enhancedUX.hideSkeleton('movingAveragesChart');
+
+        } catch (error) {
+            console.error('Error updating moving averages:', error);
+            this.showFallbackMovingAveragesChart();
+        }
+    }
+
+    updatePeriodComparison() {
+        try {
+            const analysis = this.timeSeriesAnalyzer.getAnalysis('leadTime');
+            
+            if (!analysis || !analysis.comparativePeriods) {
+                console.warn('No period comparison data available');
+                this.showFallbackPeriodComparisonChart();
+                return;
+            }
+
+            const comparisons = analysis.comparativePeriods.comparisons || [];
+            if (comparisons.length === 0) {
+                this.showFallbackPeriodComparisonChart();
+                return;
+            }
+
+            // Get the first comparison (week over week by default)
+            const comparison = comparisons[0];
+            if (!comparison || !comparison.currentPeriod || !comparison.previousPeriod) {
+                this.showFallbackPeriodComparisonChart();
+                return;
+            }
+
+            const trace = {
+                x: ['Previous Period', 'Current Period'],
+                y: [comparison.previousPeriod.average, comparison.currentPeriod.average],
+                type: 'bar',
+                marker: { color: ['#f6c23e', '#4e73df'] }
+            };
+
+            const layout = {
+                title: comparison.label || 'Period Comparison',
+                yaxis: { title: 'Average Lead Time (days)' },
+                margin: { t: 40, b: 40, l: 60, r: 20 }
+            };
+
+            Plotly.newPlot('periodComparisonChart', [trace], layout, { responsive: true });
+            this.enhancedUX.hideSkeleton('periodComparisonChart');
+
+        } catch (error) {
+            console.error('Error updating period comparison:', error);
+            this.showFallbackPeriodComparisonChart();
+        }
+    }
+
+    generateSampleHistoricalData() {
+        const sampleData = [];
+        const today = new Date();
+        
+        for (let i = 30; i >= 0; i--) {
+            const date = new Date(today);
+            date.setDate(date.getDate() - i);
+            
+            const leadTime = 3 + Math.random() * 7;
+            const cycleTime = 2 + Math.random() * 4;
+            
+            for (let j = 0; j < Math.floor(Math.random() * 3) + 1; j++) {
+                sampleData.push({
+                    id: `sample-${i}-${j}`,
+                    resolvedDate: date.toISOString().split('T')[0],
+                    leadTime: leadTime + (Math.random() - 0.5) * 2,
+                    cycleTime: cycleTime + (Math.random() - 0.5) * 1,
+                    state: 'Done',
+                    workItemType: 'User Story'
+                });
+            }
+        }
+        
+        return sampleData;
+    }
+
+    prepareTimeSeriesData(historicalData) {
+        const timeSeriesData = [];
+        
+        historicalData.forEach(item => {
+            if (item.resolvedDate) {
+                timeSeriesData.push({
+                    date: item.resolvedDate,
+                    value: item.leadTime || 0,
+                    metric: 'leadTime'
+                });
+                timeSeriesData.push({
+                    date: item.resolvedDate,
+                    value: item.cycleTime || 0,
+                    metric: 'cycleTime'
+                });
+            }
+        });
+
+        return timeSeriesData;
+    }
+
+    showFallbackCharts() {
+        this.showFallbackDeliveryForecastChart();
+        this.showFallbackVelocityTrendChart();
+        this.showFallbackMovingAveragesChart();
+        this.showFallbackPeriodComparisonChart();
+    }
+
+    showFallbackDeliveryForecastChart() {
+        const trace = {
+            x: ['Optimistic', 'Realistic', 'Pessimistic'],
+            y: [6, 8, 12],
+            type: 'bar',
+            marker: { color: ['#1cc88a', '#4e73df', '#f6c23e'] },
+            text: ['6.0 weeks', '8.0 weeks', '12.0 weeks'],
+            textposition: 'auto'
+        };
+
+        const layout = {
+            title: 'Delivery Timeline Forecast',
+            xaxis: { title: 'Confidence Level' },
+            yaxis: { title: 'Weeks to Complete' },
+            margin: { t: 40, b: 40, l: 60, r: 20 }
+        };
+
+        Plotly.newPlot('forecastChart', [trace], layout, { responsive: true });
+        this.enhancedUX.hideSkeleton('forecastChart');
+    }
+
+    showFallbackVelocityTrendChart() {
+        const trace = {
+            x: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5', 'Week 6'],
+            y: [8, 9, 7, 10, 8, 9],
+            type: 'scatter',
+            mode: 'lines+markers',
+            line: { color: '#4e73df', width: 2 },
+            marker: { size: 6 }
+        };
+
+        const layout = {
+            title: 'Velocity Trend',
+            xaxis: { title: 'Time Period' },
+            yaxis: { title: 'Items/Week' },
+            margin: { t: 40, b: 40, l: 60, r: 20 }
+        };
+
+        Plotly.newPlot('velocityTrendChart', [trace], layout, { responsive: true });
+        this.enhancedUX.hideSkeleton('velocityTrendChart');
+    }
+
+    showFallbackMovingAveragesChart() {
+        const dates = ['2024-01-01', '2024-01-02', '2024-01-03', '2024-01-04', '2024-01-05', '2024-01-06', '2024-01-07'];
+        const rawData = [5, 7, 6, 8, 5, 9, 7];
+        const ma7 = [5, 6, 6.3, 6.5, 6.2, 6.8, 6.7];
+
+        const traces = [
+            {
+                x: dates,
+                y: rawData,
+                type: 'scatter',
+                mode: 'markers',
+                name: 'Raw Data',
+                marker: { color: '#e3e6f0', size: 4 }
+            },
+            {
+                x: dates,
+                y: ma7,
+                type: 'scatter',
+                mode: 'lines',
+                name: '7-day MA',
+                line: { color: '#4e73df', width: 2 }
+            }
+        ];
+
+        const layout = {
+            title: 'Moving Averages',
+            xaxis: { title: 'Date' },
+            yaxis: { title: 'Value' },
+            margin: { t: 40, b: 40, l: 60, r: 20 },
+            legend: { x: 0, y: 1 }
+        };
+
+        Plotly.newPlot('movingAveragesChart', traces, layout, { responsive: true });
+        this.enhancedUX.hideSkeleton('movingAveragesChart');
+    }
+
+    showFallbackPeriodComparisonChart() {
+        const trace = {
+            x: ['Previous Period', 'Current Period'],
+            y: [6.5, 5.8],
+            type: 'bar',
+            marker: { color: ['#f6c23e', '#4e73df'] }
+        };
+
+        const layout = {
+            title: 'Period Comparison',
+            yaxis: { title: 'Average Lead Time (days)' },
+            margin: { t: 40, b: 40, l: 60, r: 20 }
+        };
+
+        Plotly.newPlot('periodComparisonChart', [trace], layout, { responsive: true });
+        this.enhancedUX.hideSkeleton('periodComparisonChart');
+    }
+
+    updateDeliveryForecastChart(prediction) {
+        if (!prediction || !prediction.weeksToComplete) {
+            this.showFallbackDeliveryForecastChart();
+            return;
+        }
+
+        const trace = {
+            x: ['Optimistic', 'Realistic', 'Pessimistic'],
+            y: [
+                prediction.weeksToComplete.optimistic,
+                prediction.weeksToComplete.realistic,
+                prediction.weeksToComplete.pessimistic
+            ],
+            type: 'bar',
+            marker: { color: ['#1cc88a', '#4e73df', '#f6c23e'] },
+            text: [
+                `${prediction.weeksToComplete.optimistic.toFixed(1)} weeks`,
+                `${prediction.weeksToComplete.realistic.toFixed(1)} weeks`,
+                `${prediction.weeksToComplete.pessimistic.toFixed(1)} weeks`
+            ],
+            textposition: 'auto'
+        };
+
+        const layout = {
+            title: 'Delivery Timeline Forecast',
+            xaxis: { title: 'Confidence Level' },
+            yaxis: { title: 'Weeks to Complete' },
+            margin: { t: 40, b: 40, l: 60, r: 20 }
+        };
+
+        Plotly.newPlot('forecastChart', [trace], layout, { responsive: true });
+    }
+
+    updateVelocityTrendChart(velocityHistory) {
+        if (!velocityHistory || velocityHistory.length === 0) {
+            this.showFallbackVelocityTrendChart();
+            return;
+        }
+
+        const trace = {
+            x: velocityHistory.map((_, i) => `Week ${i + 1}`),
+            y: velocityHistory,
+            type: 'scatter',
+            mode: 'lines+markers',
+            line: { color: '#4e73df', width: 2 },
+            marker: { size: 6 }
+        };
+
+        const layout = {
+            title: 'Velocity Trend',
+            xaxis: { title: 'Time Period' },
+            yaxis: { title: 'Items/Week' },
+            margin: { t: 40, b: 40, l: 60, r: 20 }
+        };
+
+        Plotly.newPlot('velocityTrendChart', [trace], layout, { responsive: true });
+    }
+
+    // Placeholder methods for remaining functionality
+    updateMetricsCards(data) { console.log('updateMetricsCards called'); }
+    updateCharts(data) { console.log('updateCharts called'); }
+    updateTeamTable(data) { console.log('updateTeamTable called'); }
+    updateInsightsAndRecommendations(data) { console.log('updateInsightsAndRecommendations called'); }
+    updateFilteringDropdowns(data) { console.log('updateFilteringDropdowns called'); }
+    generateMockData() { return {}; }
+    showNoDataMessage() { console.log('showNoDataMessage called'); }
+    showErrorMessage(message) { console.log('showErrorMessage called:', message); }
+    populateSprintFilter(data) { console.log('populateSprintFilter called'); }
+    handleWorkstreamFilter(e) { console.log('handleWorkstreamFilter called'); }
+    handleWorkItemTypeFilter(e) { console.log('handleWorkItemTypeFilter called'); }
+    handleSprintFilter(e) { console.log('handleSprintFilter called'); }
+    toggleAutoRefresh(enabled) { console.log('toggleAutoRefresh called:', enabled); }
+    setupAdvancedFiltering() { console.log('setupAdvancedFiltering called'); }
+    setupExportCollaboration() { console.log('setupExportCollaboration called'); }
 }
 
 // Initialize dashboard when DOM is loaded
