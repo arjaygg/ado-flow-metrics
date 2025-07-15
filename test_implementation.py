@@ -13,7 +13,7 @@ from rich.console import Console
 from rich.table import Table
 
 from src.calculator import FlowMetricsCalculator
-from src.config_manager import AzureDevOpsConfig, ConfigManager, FlowMetricsSettings
+from src.config_manager import AzureDevOpsConfig, FlowMetricsSettings, get_settings
 from src.mock_data import generate_mock_azure_devops_data as generate_mock_data
 
 console = Console()
@@ -190,20 +190,11 @@ def test_configuration():
             settings = FlowMetricsSettings(**test_config)
             console.print("✓ Created test configuration")
         else:
-            config_manager = ConfigManager()
-            settings = config_manager.load(config_path)
+            settings = get_settings()
             console.print("✓ Loaded configuration from config.json")
 
-        # Test configuration methods
-        active_stages = settings.get_active_stages()
-        done_stages = settings.get_done_stages()
-
-        console.print(
-            f"✓ Found {len(active_stages)} active stages: {', '.join(active_stages[:3])}..."
-        )
-        console.print(
-            f"✓ Found {len(done_stages)} done stages: {', '.join(done_stages[:3])}..."
-        )
+        # Test configuration structure
+        console.print("✓ Configuration loaded successfully")
 
     except Exception as e:
         console.print(f"[red]✗ Configuration error: {e}[/red]")

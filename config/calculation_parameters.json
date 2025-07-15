@@ -1,0 +1,176 @@
+{
+  "metadata": {
+    "config_version": "1.0.0",
+    "last_updated": "2025-07-14T00:00:00Z",
+    "description": "Flow metrics calculation parameters and thresholds",
+    "based_on_analysis": "1586 work items from ADO Flow system"
+  },
+  "flow_metrics": {
+    "throughput": {
+      "default_period_days": 30,
+      "supported_periods": [7, 14, 30, 60, 90],
+      "calculation_method": "completed_items",
+      "exclude_weekends": true,
+      "exclude_holidays": false
+    },
+    "lead_time": {
+      "calculation_basis": "creation_to_completion",
+      "business_days_only": false,
+      "percentiles": [50, 75, 85, 95],
+      "include_blocked_time": true,
+      "warning_threshold_days": 30,
+      "critical_threshold_days": 60
+    },
+    "cycle_time": {
+      "calculation_basis": "first_active_to_completion",
+      "business_days_only": false,
+      "percentiles": [50, 75, 85, 95],
+      "exclude_blocked_time": false,
+      "warning_threshold_days": 14,
+      "critical_threshold_days": 30
+    },
+    "flow_efficiency": {
+      "calculation_method": "active_time_ratio",
+      "active_states_required": true,
+      "blocked_states_excluded": true,
+      "thresholds": {
+        "excellent": 0.8,
+        "good": 0.6,
+        "average": 0.4,
+        "poor": 0.2
+      }
+    },
+    "little_law": {
+      "enabled": true,
+      "variance_threshold": 200,
+      "warning_variance": 150,
+      "validation_period_days": 30
+    }
+  },
+  "performance_thresholds": {
+    "lead_time_targets": {
+      "Task": {
+        "target_days": 5,
+        "warning_days": 10,
+        "critical_days": 20
+      },
+      "Product Backlog Item": {
+        "target_days": 12,
+        "warning_days": 20,
+        "critical_days": 40
+      },
+      "Bug": {
+        "target_days": 3,
+        "warning_days": 7,
+        "critical_days": 14
+      },
+      "Test Case": {
+        "target_days": 2,
+        "warning_days": 5,
+        "critical_days": 10
+      },
+      "Feature": {
+        "target_days": 30,
+        "warning_days": 45,
+        "critical_days": 60
+      }
+    },
+    "cycle_time_targets": {
+      "Task": {
+        "target_days": 2,
+        "warning_days": 5,
+        "critical_days": 10
+      },
+      "Product Backlog Item": {
+        "target_days": 8,
+        "warning_days": 15,
+        "critical_days": 25
+      },
+      "Bug": {
+        "target_days": 1,
+        "warning_days": 3,
+        "critical_days": 7
+      }
+    },
+    "wip_limits": {
+      "development_team": {
+        "warning_limit": 50,
+        "critical_limit": 75,
+        "optimal_range": [20, 40]
+      },
+      "testing_team": {
+        "warning_limit": 30,
+        "critical_limit": 50,
+        "optimal_range": [10, 25]
+      },
+      "overall_system": {
+        "warning_limit": 100,
+        "critical_limit": 150,
+        "optimal_range": [50, 80]
+      }
+    }
+  },
+  "calculation_settings": {
+    "date_handling": {
+      "timezone": "UTC",
+      "business_hours": {
+        "start": "09:00",
+        "end": "17:00"
+      },
+      "business_days": [1, 2, 3, 4, 5],
+      "holidays": []
+    },
+    "data_quality": {
+      "min_items_for_percentiles": 5,
+      "exclude_outliers": true,
+      "outlier_threshold_multiplier": 3.0,
+      "require_state_transitions": true
+    },
+    "aggregation": {
+      "default_grouping": "assignee",
+      "supported_groupings": ["assignee", "type", "priority", "workstream"],
+      "min_group_size": 3,
+      "confidence_intervals": [80, 90, 95]
+    }
+  },
+  "reporting": {
+    "dashboard_defaults": {
+      "default_period_days": 30,
+      "refresh_interval_minutes": 60,
+      "cache_duration_minutes": 30,
+      "show_percentiles": [50, 85, 95]
+    },
+    "export_settings": {
+      "formats": ["json", "csv", "excel"],
+      "include_raw_data": false,
+      "include_calculations": true,
+      "decimal_precision": 2
+    },
+    "alerts": {
+      "enabled": true,
+      "check_frequency_minutes": 30,
+      "threshold_breach_notifications": true,
+      "trend_analysis_notifications": true
+    }
+  },
+  "advanced_features": {
+    "forecasting": {
+      "enabled": true,
+      "confidence_intervals": [70, 85, 95],
+      "monte_carlo_iterations": 1000,
+      "historical_data_points": 50
+    },
+    "trend_analysis": {
+      "enabled": true,
+      "trend_period_days": 90,
+      "significance_threshold": 0.05,
+      "minimum_data_points": 10
+    },
+    "anomaly_detection": {
+      "enabled": true,
+      "sensitivity": "medium",
+      "lookback_period_days": 60,
+      "notification_threshold": 2.0
+    }
+  }
+}

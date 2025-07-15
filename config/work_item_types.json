@@ -1,0 +1,791 @@
+{
+  "metadata": {
+    "config_version": "2.0.0",
+    "last_updated": "2025-07-14T00:00:00Z",
+    "source_analysis": "work_items.json",
+    "total_work_items_analyzed": 1586,
+    "unique_types_found": 16,
+    "analysis_date": "2025-07-14"
+  },
+  "work_item_types": {
+    "Task": {
+      "category": "Development",
+      "category_code": "DEV",
+      "volume": {
+        "count": 672,
+        "percentage": 42.3,
+        "rank": 1
+      },
+      "behavior": {
+        "effort_estimation": "hours",
+        "typical_effort_range": [1, 40],
+        "default_effort_hours": 8,
+        "uses_story_points": false,
+        "has_sub_tasks": true,
+        "can_be_parent": false,
+        "flow_type": "work_item",
+        "priority_sensitive": true,
+        "requires_estimation": true
+      },
+      "flow_characteristics": {
+        "typical_cycle_time_days": 3,
+        "complexity_factor": 1.0,
+        "rework_probability": 0.15,
+        "blocking_probability": 0.10,
+        "split_factor": 1.2,
+        "dependency_likelihood": 0.25
+      },
+      "metrics": {
+        "include_in_velocity": true,
+        "include_in_throughput": true,
+        "include_in_lead_time": true,
+        "include_in_cycle_time": true,
+        "weight_in_planning": 1.0,
+        "complexity_multiplier": 1.0
+      },
+      "validation": {
+        "required_fields": ["title", "assigned_to", "priority"],
+        "optional_fields": ["effort_hours", "tags"],
+        "effort_validation": "positive_number"
+      }
+    },
+    "Product Backlog Item": {
+      "category": "Requirements",
+      "category_code": "REQ",
+      "volume": {
+        "count": 365,
+        "percentage": 23.0,
+        "rank": 2
+      },
+      "behavior": {
+        "effort_estimation": "story_points",
+        "typical_effort_range": [1, 21],
+        "default_story_points": 5,
+        "uses_story_points": true,
+        "has_sub_tasks": true,
+        "can_be_parent": true,
+        "flow_type": "user_story",
+        "priority_sensitive": true,
+        "requires_estimation": true
+      },
+      "flow_characteristics": {
+        "typical_cycle_time_days": 7,
+        "complexity_factor": 1.5,
+        "rework_probability": 0.20,
+        "blocking_probability": 0.15,
+        "split_factor": 2.0,
+        "dependency_likelihood": 0.40
+      },
+      "metrics": {
+        "include_in_velocity": true,
+        "include_in_throughput": true,
+        "include_in_lead_time": true,
+        "include_in_cycle_time": true,
+        "weight_in_planning": 2.0,
+        "complexity_multiplier": 1.5
+      },
+      "validation": {
+        "required_fields": ["title", "priority"],
+        "optional_fields": ["story_points", "assigned_to", "tags"],
+        "effort_validation": "fibonacci_points"
+      }
+    },
+    "Test Case": {
+      "category": "Testing",
+      "category_code": "TEST",
+      "volume": {
+        "count": 194,
+        "percentage": 12.2,
+        "rank": 3
+      },
+      "behavior": {
+        "effort_estimation": "hours",
+        "typical_effort_range": [0.5, 8],
+        "default_effort_hours": 2,
+        "uses_story_points": false,
+        "has_sub_tasks": false,
+        "can_be_parent": false,
+        "flow_type": "test_artifact",
+        "priority_sensitive": false,
+        "requires_estimation": false
+      },
+      "flow_characteristics": {
+        "typical_cycle_time_days": 1,
+        "complexity_factor": 0.8,
+        "rework_probability": 0.25,
+        "blocking_probability": 0.05,
+        "split_factor": 1.0,
+        "dependency_likelihood": 0.60
+      },
+      "metrics": {
+        "include_in_velocity": false,
+        "include_in_throughput": true,
+        "include_in_lead_time": false,
+        "include_in_cycle_time": true,
+        "weight_in_planning": 0.5,
+        "complexity_multiplier": 0.8
+      },
+      "validation": {
+        "required_fields": ["title"],
+        "optional_fields": ["effort_hours", "assigned_to"],
+        "effort_validation": "positive_number"
+      }
+    },
+    "Bug": {
+      "category": "Defects",
+      "category_code": "BUG",
+      "volume": {
+        "count": 115,
+        "percentage": 7.3,
+        "rank": 4
+      },
+      "behavior": {
+        "effort_estimation": "hours",
+        "typical_effort_range": [1, 16],
+        "default_effort_hours": 4,
+        "uses_story_points": false,
+        "has_sub_tasks": false,
+        "can_be_parent": false,
+        "flow_type": "defect",
+        "priority_sensitive": true,
+        "requires_estimation": true
+      },
+      "flow_characteristics": {
+        "typical_cycle_time_days": 2,
+        "complexity_factor": 1.2,
+        "rework_probability": 0.30,
+        "blocking_probability": 0.20,
+        "split_factor": 1.1,
+        "dependency_likelihood": 0.15
+      },
+      "metrics": {
+        "include_in_velocity": false,
+        "include_in_throughput": true,
+        "include_in_lead_time": true,
+        "include_in_cycle_time": true,
+        "weight_in_planning": 0.8,
+        "complexity_multiplier": 1.2
+      },
+      "validation": {
+        "required_fields": ["title", "priority"],
+        "optional_fields": ["effort_hours", "assigned_to", "tags"],
+        "effort_validation": "positive_number"
+      }
+    },
+    "Requirement": {
+      "category": "Requirements",
+      "category_code": "REQ",
+      "volume": {
+        "count": 53,
+        "percentage": 3.3,
+        "rank": 5
+      },
+      "behavior": {
+        "effort_estimation": "story_points",
+        "typical_effort_range": [2, 13],
+        "default_story_points": 8,
+        "uses_story_points": true,
+        "has_sub_tasks": true,
+        "can_be_parent": true,
+        "flow_type": "requirement",
+        "priority_sensitive": true,
+        "requires_estimation": true
+      },
+      "flow_characteristics": {
+        "typical_cycle_time_days": 10,
+        "complexity_factor": 2.0,
+        "rework_probability": 0.35,
+        "blocking_probability": 0.25,
+        "split_factor": 2.5,
+        "dependency_likelihood": 0.50
+      },
+      "metrics": {
+        "include_in_velocity": true,
+        "include_in_throughput": true,
+        "include_in_lead_time": true,
+        "include_in_cycle_time": true,
+        "weight_in_planning": 2.5,
+        "complexity_multiplier": 2.0
+      },
+      "validation": {
+        "required_fields": ["title", "priority"],
+        "optional_fields": ["story_points", "assigned_to", "tags"],
+        "effort_validation": "fibonacci_points"
+      }
+    },
+    "Test Suite": {
+      "category": "Testing",
+      "category_code": "TEST",
+      "volume": {
+        "count": 44,
+        "percentage": 2.8,
+        "rank": 6
+      },
+      "behavior": {
+        "effort_estimation": "hours",
+        "typical_effort_range": [4, 24],
+        "default_effort_hours": 12,
+        "uses_story_points": false,
+        "has_sub_tasks": true,
+        "can_be_parent": true,
+        "flow_type": "test_artifact",
+        "priority_sensitive": false,
+        "requires_estimation": true
+      },
+      "flow_characteristics": {
+        "typical_cycle_time_days": 5,
+        "complexity_factor": 1.3,
+        "rework_probability": 0.20,
+        "blocking_probability": 0.10,
+        "split_factor": 3.0,
+        "dependency_likelihood": 0.70
+      },
+      "metrics": {
+        "include_in_velocity": false,
+        "include_in_throughput": true,
+        "include_in_lead_time": false,
+        "include_in_cycle_time": true,
+        "weight_in_planning": 1.0,
+        "complexity_multiplier": 1.3
+      },
+      "validation": {
+        "required_fields": ["title"],
+        "optional_fields": ["effort_hours", "assigned_to"],
+        "effort_validation": "positive_number"
+      }
+    },
+    "QA Activities": {
+      "category": "Quality Assurance",
+      "category_code": "QA",
+      "volume": {
+        "count": 40,
+        "percentage": 2.5,
+        "rank": 7
+      },
+      "behavior": {
+        "effort_estimation": "hours",
+        "typical_effort_range": [2, 16],
+        "default_effort_hours": 8,
+        "uses_story_points": false,
+        "has_sub_tasks": false,
+        "can_be_parent": false,
+        "flow_type": "activity",
+        "priority_sensitive": false,
+        "requires_estimation": true
+      },
+      "flow_characteristics": {
+        "typical_cycle_time_days": 3,
+        "complexity_factor": 1.1,
+        "rework_probability": 0.15,
+        "blocking_probability": 0.15,
+        "split_factor": 1.5,
+        "dependency_likelihood": 0.45
+      },
+      "metrics": {
+        "include_in_velocity": false,
+        "include_in_throughput": true,
+        "include_in_lead_time": false,
+        "include_in_cycle_time": true,
+        "weight_in_planning": 0.8,
+        "complexity_multiplier": 1.1
+      },
+      "validation": {
+        "required_fields": ["title", "assigned_to"],
+        "optional_fields": ["effort_hours", "tags"],
+        "effort_validation": "positive_number"
+      }
+    },
+    "BA Activities": {
+      "category": "Business Analysis",
+      "category_code": "BA",
+      "volume": {
+        "count": 30,
+        "percentage": 1.9,
+        "rank": 8
+      },
+      "behavior": {
+        "effort_estimation": "hours",
+        "typical_effort_range": [4, 24],
+        "default_effort_hours": 12,
+        "uses_story_points": false,
+        "has_sub_tasks": false,
+        "can_be_parent": false,
+        "flow_type": "activity",
+        "priority_sensitive": false,
+        "requires_estimation": true
+      },
+      "flow_characteristics": {
+        "typical_cycle_time_days": 5,
+        "complexity_factor": 1.4,
+        "rework_probability": 0.25,
+        "blocking_probability": 0.20,
+        "split_factor": 2.0,
+        "dependency_likelihood": 0.35
+      },
+      "metrics": {
+        "include_in_velocity": false,
+        "include_in_throughput": true,
+        "include_in_lead_time": false,
+        "include_in_cycle_time": true,
+        "weight_in_planning": 1.2,
+        "complexity_multiplier": 1.4
+      },
+      "validation": {
+        "required_fields": ["title", "assigned_to"],
+        "optional_fields": ["effort_hours", "tags"],
+        "effort_validation": "positive_number"
+      }
+    },
+    "Feature": {
+      "category": "Product",
+      "category_code": "FEAT",
+      "volume": {
+        "count": 21,
+        "percentage": 1.3,
+        "rank": 9
+      },
+      "behavior": {
+        "effort_estimation": "story_points",
+        "typical_effort_range": [8, 34],
+        "default_story_points": 21,
+        "uses_story_points": true,
+        "has_sub_tasks": true,
+        "can_be_parent": true,
+        "flow_type": "epic",
+        "priority_sensitive": true,
+        "requires_estimation": true
+      },
+      "flow_characteristics": {
+        "typical_cycle_time_days": 21,
+        "complexity_factor": 3.0,
+        "rework_probability": 0.40,
+        "blocking_probability": 0.30,
+        "split_factor": 5.0,
+        "dependency_likelihood": 0.80
+      },
+      "metrics": {
+        "include_in_velocity": true,
+        "include_in_throughput": true,
+        "include_in_lead_time": true,
+        "include_in_cycle_time": true,
+        "weight_in_planning": 5.0,
+        "complexity_multiplier": 3.0
+      },
+      "validation": {
+        "required_fields": ["title", "priority"],
+        "optional_fields": ["story_points", "assigned_to", "tags"],
+        "effort_validation": "fibonacci_points"
+      }
+    },
+    "Tech Lead Activities": {
+      "category": "Management",
+      "category_code": "MGMT",
+      "volume": {
+        "count": 20,
+        "percentage": 1.3,
+        "rank": 10
+      },
+      "behavior": {
+        "effort_estimation": "hours",
+        "typical_effort_range": [2, 16],
+        "default_effort_hours": 8,
+        "uses_story_points": false,
+        "has_sub_tasks": false,
+        "can_be_parent": false,
+        "flow_type": "activity",
+        "priority_sensitive": false,
+        "requires_estimation": true
+      },
+      "flow_characteristics": {
+        "typical_cycle_time_days": 3,
+        "complexity_factor": 1.2,
+        "rework_probability": 0.10,
+        "blocking_probability": 0.05,
+        "split_factor": 1.0,
+        "dependency_likelihood": 0.20
+      },
+      "metrics": {
+        "include_in_velocity": false,
+        "include_in_throughput": true,
+        "include_in_lead_time": false,
+        "include_in_cycle_time": true,
+        "weight_in_planning": 0.8,
+        "complexity_multiplier": 1.2
+      },
+      "validation": {
+        "required_fields": ["title", "assigned_to"],
+        "optional_fields": ["effort_hours", "tags"],
+        "effort_validation": "positive_number"
+      }
+    },
+    "Spike": {
+      "category": "Research",
+      "category_code": "RES",
+      "volume": {
+        "count": 15,
+        "percentage": 0.9,
+        "rank": 11
+      },
+      "behavior": {
+        "effort_estimation": "hours",
+        "typical_effort_range": [4, 40],
+        "default_effort_hours": 16,
+        "uses_story_points": false,
+        "has_sub_tasks": false,
+        "can_be_parent": false,
+        "flow_type": "investigation",
+        "priority_sensitive": true,
+        "requires_estimation": true
+      },
+      "flow_characteristics": {
+        "typical_cycle_time_days": 5,
+        "complexity_factor": 1.8,
+        "rework_probability": 0.50,
+        "blocking_probability": 0.40,
+        "split_factor": 1.0,
+        "dependency_likelihood": 0.30
+      },
+      "metrics": {
+        "include_in_velocity": false,
+        "include_in_throughput": true,
+        "include_in_lead_time": true,
+        "include_in_cycle_time": true,
+        "weight_in_planning": 1.5,
+        "complexity_multiplier": 1.8
+      },
+      "validation": {
+        "required_fields": ["title", "assigned_to", "priority"],
+        "optional_fields": ["effort_hours", "tags"],
+        "effort_validation": "positive_number"
+      }
+    },
+    "Report": {
+      "category": "Documentation",
+      "category_code": "DOC",
+      "volume": {
+        "count": 6,
+        "percentage": 0.4,
+        "rank": 12
+      },
+      "behavior": {
+        "effort_estimation": "hours",
+        "typical_effort_range": [2, 16],
+        "default_effort_hours": 8,
+        "uses_story_points": false,
+        "has_sub_tasks": false,
+        "can_be_parent": false,
+        "flow_type": "deliverable",
+        "priority_sensitive": false,
+        "requires_estimation": true
+      },
+      "flow_characteristics": {
+        "typical_cycle_time_days": 3,
+        "complexity_factor": 1.0,
+        "rework_probability": 0.20,
+        "blocking_probability": 0.10,
+        "split_factor": 1.0,
+        "dependency_likelihood": 0.25
+      },
+      "metrics": {
+        "include_in_velocity": false,
+        "include_in_throughput": true,
+        "include_in_lead_time": false,
+        "include_in_cycle_time": true,
+        "weight_in_planning": 0.5,
+        "complexity_multiplier": 1.0
+      },
+      "validation": {
+        "required_fields": ["title"],
+        "optional_fields": ["effort_hours", "assigned_to"],
+        "effort_validation": "positive_number"
+      }
+    },
+    "Issue": {
+      "category": "Management",
+      "category_code": "MGMT",
+      "volume": {
+        "count": 6,
+        "percentage": 0.4,
+        "rank": 13
+      },
+      "behavior": {
+        "effort_estimation": "hours",
+        "typical_effort_range": [1, 8],
+        "default_effort_hours": 4,
+        "uses_story_points": false,
+        "has_sub_tasks": false,
+        "can_be_parent": false,
+        "flow_type": "issue",
+        "priority_sensitive": true,
+        "requires_estimation": false
+      },
+      "flow_characteristics": {
+        "typical_cycle_time_days": 2,
+        "complexity_factor": 0.8,
+        "rework_probability": 0.10,
+        "blocking_probability": 0.30,
+        "split_factor": 1.0,
+        "dependency_likelihood": 0.20
+      },
+      "metrics": {
+        "include_in_velocity": false,
+        "include_in_throughput": true,
+        "include_in_lead_time": false,
+        "include_in_cycle_time": true,
+        "weight_in_planning": 0.3,
+        "complexity_multiplier": 0.8
+      },
+      "validation": {
+        "required_fields": ["title", "priority"],
+        "optional_fields": ["effort_hours", "assigned_to"],
+        "effort_validation": "positive_number"
+      }
+    },
+    "Product": {
+      "category": "Product",
+      "category_code": "PROD",
+      "volume": {
+        "count": 2,
+        "percentage": 0.1,
+        "rank": 14
+      },
+      "behavior": {
+        "effort_estimation": "story_points",
+        "typical_effort_range": [50, 200],
+        "default_story_points": 100,
+        "uses_story_points": true,
+        "has_sub_tasks": true,
+        "can_be_parent": true,
+        "flow_type": "portfolio",
+        "priority_sensitive": true,
+        "requires_estimation": false
+      },
+      "flow_characteristics": {
+        "typical_cycle_time_days": 90,
+        "complexity_factor": 5.0,
+        "rework_probability": 0.60,
+        "blocking_probability": 0.50,
+        "split_factor": 20.0,
+        "dependency_likelihood": 0.95
+      },
+      "metrics": {
+        "include_in_velocity": false,
+        "include_in_throughput": false,
+        "include_in_lead_time": true,
+        "include_in_cycle_time": false,
+        "weight_in_planning": 10.0,
+        "complexity_multiplier": 5.0
+      },
+      "validation": {
+        "required_fields": ["title"],
+        "optional_fields": ["story_points", "assigned_to", "tags"],
+        "effort_validation": "positive_number"
+      }
+    },
+    "Impediment": {
+      "category": "Management",
+      "category_code": "MGMT",
+      "volume": {
+        "count": 2,
+        "percentage": 0.1,
+        "rank": 15
+      },
+      "behavior": {
+        "effort_estimation": "hours",
+        "typical_effort_range": [1, 24],
+        "default_effort_hours": 8,
+        "uses_story_points": false,
+        "has_sub_tasks": false,
+        "can_be_parent": false,
+        "flow_type": "impediment",
+        "priority_sensitive": true,
+        "requires_estimation": false
+      },
+      "flow_characteristics": {
+        "typical_cycle_time_days": 7,
+        "complexity_factor": 2.0,
+        "rework_probability": 0.30,
+        "blocking_probability": 0.80,
+        "split_factor": 1.0,
+        "dependency_likelihood": 0.60
+      },
+      "metrics": {
+        "include_in_velocity": false,
+        "include_in_throughput": false,
+        "include_in_lead_time": true,
+        "include_in_cycle_time": true,
+        "weight_in_planning": 0.0,
+        "complexity_multiplier": 2.0
+      },
+      "validation": {
+        "required_fields": ["title", "priority"],
+        "optional_fields": ["effort_hours", "assigned_to"],
+        "effort_validation": "positive_number"
+      }
+    },
+    "Test Plan": {
+      "category": "Testing",
+      "category_code": "TEST",
+      "volume": {
+        "count": 1,
+        "percentage": 0.1,
+        "rank": 16
+      },
+      "behavior": {
+        "effort_estimation": "hours",
+        "typical_effort_range": [8, 40],
+        "default_effort_hours": 24,
+        "uses_story_points": false,
+        "has_sub_tasks": true,
+        "can_be_parent": true,
+        "flow_type": "test_artifact",
+        "priority_sensitive": false,
+        "requires_estimation": true
+      },
+      "flow_characteristics": {
+        "typical_cycle_time_days": 10,
+        "complexity_factor": 2.0,
+        "rework_probability": 0.30,
+        "blocking_probability": 0.20,
+        "split_factor": 5.0,
+        "dependency_likelihood": 0.80
+      },
+      "metrics": {
+        "include_in_velocity": false,
+        "include_in_throughput": true,
+        "include_in_lead_time": false,
+        "include_in_cycle_time": true,
+        "weight_in_planning": 2.0,
+        "complexity_multiplier": 2.0
+      },
+      "validation": {
+        "required_fields": ["title"],
+        "optional_fields": ["effort_hours", "assigned_to"],
+        "effort_validation": "positive_number"
+      }
+    }
+  },
+  "categories": {
+    "Development": {
+      "description": "Core development work including implementation tasks",
+      "types": ["Task"],
+      "color": "#007ACC",
+      "icon": "code",
+      "priority_in_planning": "high",
+      "contribution_to_velocity": "primary"
+    },
+    "Requirements": {
+      "description": "Business requirements and user stories",
+      "types": ["Product Backlog Item", "Requirement"],
+      "color": "#6A1B9A",
+      "icon": "requirements",
+      "priority_in_planning": "high",
+      "contribution_to_velocity": "primary"
+    },
+    "Testing": {
+      "description": "All testing-related activities and artifacts",
+      "types": ["Test Case", "Test Suite", "Test Plan"],
+      "color": "#388E3C",
+      "icon": "test_tube",
+      "priority_in_planning": "medium",
+      "contribution_to_velocity": "secondary"
+    },
+    "Defects": {
+      "description": "Bug fixes and defect resolution",
+      "types": ["Bug"],
+      "color": "#D32F2F",
+      "icon": "bug_report",
+      "priority_in_planning": "high",
+      "contribution_to_velocity": "maintenance"
+    },
+    "Quality Assurance": {
+      "description": "QA processes and quality activities",
+      "types": ["QA Activities"],
+      "color": "#F57C00",
+      "icon": "verified",
+      "priority_in_planning": "medium",
+      "contribution_to_velocity": "support"
+    },
+    "Business Analysis": {
+      "description": "Business analysis and requirements gathering",
+      "types": ["BA Activities"],
+      "color": "#5D4037",
+      "icon": "analytics",
+      "priority_in_planning": "medium",
+      "contribution_to_velocity": "support"
+    },
+    "Product": {
+      "description": "High-level product features and portfolio items",
+      "types": ["Feature", "Product"],
+      "color": "#1976D2",
+      "icon": "inventory",
+      "priority_in_planning": "strategic",
+      "contribution_to_velocity": "strategic"
+    },
+    "Management": {
+      "description": "Project management and coordination activities",
+      "types": ["Tech Lead Activities", "Issue", "Impediment"],
+      "color": "#616161",
+      "icon": "manage_accounts",
+      "priority_in_planning": "low",
+      "contribution_to_velocity": "overhead"
+    },
+    "Research": {
+      "description": "Investigation and research activities",
+      "types": ["Spike"],
+      "color": "#7B1FA2",
+      "icon": "science",
+      "priority_in_planning": "medium",
+      "contribution_to_velocity": "research"
+    },
+    "Documentation": {
+      "description": "Documentation and reporting activities",
+      "types": ["Report"],
+      "color": "#455A64",
+      "icon": "description",
+      "priority_in_planning": "low",
+      "contribution_to_velocity": "support"
+    }
+  },
+  "calculation_rules": {
+    "velocity_calculation": {
+      "include_types": ["Task", "Product Backlog Item", "Requirement", "Feature"],
+      "exclude_types": ["Test Case", "Test Suite", "QA Activities", "BA Activities", "Tech Lead Activities", "Issue", "Impediment", "Report", "Spike", "Product", "Test Plan"],
+      "weight_by_complexity": true,
+      "normalize_by_time": true
+    },
+    "throughput_calculation": {
+      "include_all_types": true,
+      "exclude_portfolio_items": ["Product"],
+      "count_completed_only": true,
+      "time_box_basis": "weekly"
+    },
+    "cycle_time_calculation": {
+      "include_types": ["Task", "Product Backlog Item", "Bug", "Requirement", "Feature", "Spike"],
+      "exclude_types": ["Test Case", "Test Suite", "QA Activities", "BA Activities", "Tech Lead Activities", "Issue", "Impediment", "Report", "Product", "Test Plan"],
+      "measure_working_days": true,
+      "exclude_blocked_time": true
+    },
+    "lead_time_calculation": {
+      "include_types": ["Product Backlog Item", "Bug", "Requirement", "Feature", "Spike", "Impediment", "Product"],
+      "exclude_types": ["Task", "Test Case", "Test Suite", "QA Activities", "BA Activities", "Tech Lead Activities", "Issue", "Report", "Test Plan"],
+      "measure_calendar_days": true,
+      "include_queue_time": true
+    }
+  },
+  "validation_rules": {
+    "fibonacci_sequence": [1, 2, 3, 5, 8, 13, 21, 34, 55, 89],
+    "priority_levels": [1, 2, 3, 4],
+    "effort_constraints": {
+      "min_hours": 0.5,
+      "max_hours": 200,
+      "min_story_points": 1,
+      "max_story_points": 89
+    },
+    "required_states": ["To Do", "In Progress", "Done"],
+    "assignment_rules": {
+      "requires_assignee": ["Task", "Bug", "QA Activities", "BA Activities", "Tech Lead Activities", "Spike"],
+      "optional_assignee": ["Product Backlog Item", "Requirement", "Feature", "Test Case", "Test Suite", "Report", "Issue", "Product", "Impediment", "Test Plan"]
+    }
+  }
+}

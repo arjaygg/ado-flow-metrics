@@ -1,0 +1,43 @@
+{
+  "timestamp": "2025-07-14 05:51:07",
+  "test_type": "integration_comprehensive",
+  "total_tests": 7,
+  "passed_tests": 4,
+  "failed_tests": 3,
+  "success_rate": "57.1%",
+  "results": [
+    {
+      "test": "Azure DevOps Mock Integration",
+      "passed": true
+    },
+    {
+      "test": "Calculator Integration",
+      "passed": false
+    },
+    {
+      "test": "Dashboard Data Pipeline",
+      "passed": false
+    },
+    {
+      "test": "CLI Commands",
+      "passed": true
+    },
+    {
+      "test": "Dashboard File Integrity",
+      "passed": true
+    },
+    {
+      "test": "Workstream Filtering",
+      "passed": true
+    },
+    {
+      "test": "End-to-End Flow",
+      "passed": false
+    }
+  ],
+  "test_artifacts": [
+    "test_mock_data.json",
+    "test_metrics.json",
+    "data/integration_test_data.json"
+  ]
+}

@@ -1,0 +1,104 @@
+{
+  "timestamp": "2025-07-15T15:03:49.467902",
+  "pyramid_distribution": {
+    "unit_tests": {
+      "target_percentage": 70,
+      "actual_count": 0,
+      "passed": 0,
+      "failed": 0
+    },
+    "integration_tests": {
+      "target_percentage": 20,
+      "actual_count": 0,
+      "passed": 0,
+      "failed": 0
+    },
+    "e2e_tests": {
+      "target_percentage": 10,
+      "actual_count": 0,
+      "passed": 0,
+      "failed": 0
+    }
+  },
+  "detailed_results": [
+    {
+      "file": "tests/unit/test_web_server_endpoints.py",
+      "type": "unit",
+      "test_count": 0,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "duration": 1.738842248916626,
+      "return_code": 0,
+      "summary": "",
+      "stdout": "\u001b[1m============================= test session starts ==============================\u001b[0m\nplatform linux -- Python 3.13.5, pytest-8.4.1, pluggy-1.6.0 -- /home/linuxbrew/.linuxbrew/opt/python@3.13/bin/python3.13\ncachedir: .pytest_cache\nrootdir: /home/devag/git/feat-ado-flow-hive\nconfigfile: pytest.ini\nplugins: anyio-4.9.0, dash-3.1.1, cov-6.2.1\n\u001b[1mcollecting ... \u001b[0mcollected 23 items\n\ntests/unit/test_web_server_endpoints.py::TestWorkItemsEndpoint::test_work_items_endpoint_success \u001b[32mPASSED\u001b[0m\u001b[33m [  4%]\u001b[0m\ntests/unit/test_web_server_endpoints.py::TestWorkItemsEndpoint::test_work_items_endpoint_data_transformation \u001b[32mPASSED\u001b[0m\u001b[33m [  8%]\u001b[0m\ntests/unit/test_web_server_endpoints.py::TestWorkItemsEndpoint::test_work_items_endpoint_handles_null_values \u001b[32mPASSED\u001b[0m\u001b[33m [ 13%]\u001b[0m\ntests/unit/test_web_server_endpoints.py::TestWorkItemsEndpoint::test_work_items_endpoint_error_handling \u001b[32mPASSED\u001b[0m\u001b[33m [ 17%]\u001b[0m\ntests/unit/test_web_server_endpoints.py::TestWorkItemsEndpoint::t",
+      "stderr": ""
+    },
+    {
+      "file": "tests/unit/test_advanced_filtering.py",
+      "type": "unit",
+      "test_count": 0,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "duration": 2.4119789600372314,
+      "return_code": 0,
+      "summary": "",
+      "stdout": "\u001b[1m============================= test session starts ==============================\u001b[0m\nplatform linux -- Python 3.13.5, pytest-8.4.1, pluggy-1.6.0 -- /home/linuxbrew/.linuxbrew/opt/python@3.13/bin/python3.13\ncachedir: .pytest_cache\nrootdir: /home/devag/git/feat-ado-flow-hive\nconfigfile: pytest.ini\nplugins: anyio-4.9.0, dash-3.1.1, cov-6.2.1\n\u001b[1mcollecting ... \u001b[0mcollected 29 items\n\ntests/unit/test_advanced_filtering.py::TestAdvancedFilteringCore::test_initialization \u001b[32mPASSED\u001b[0m\u001b[33m [  3%]\u001b[0m\ntests/unit/test_advanced_filtering.py::TestAdvancedFilteringCore::test_add_filter \u001b[32mPASSED\u001b[0m\u001b[33m [  6%]\u001b[0m\ntests/unit/test_advanced_filtering.py::TestAdvancedFilteringCore::test_add_duplicate_filter \u001b[32mPASSED\u001b[0m\u001b[33m [ 10%]\u001b[0m\ntests/unit/test_advanced_filtering.py::TestAdvancedFilteringCore::test_remove_filter \u001b[32mPASSED\u001b[0m\u001b[33m [ 13%]\u001b[0m\ntests/unit/test_advanced_filtering.py::TestAdvancedFilteringCore::test_remove_nonexistent_filter \u001b[32mPASSED\u001b[0m\u001b[33m [ 17%]\u001b[0m\ntests/unit",
+      "stderr": ""
+    },
+    {
+      "file": "tests/integration/test_filtering_integration.py",
+      "type": "integration",
+      "test_count": 0,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "duration": 1.797762393951416,
+      "return_code": 1,
+      "summary": "\u001b[31m=================== \u001b[31m\u001b[1m4 failed\u001b[0m, \u001b[32m19 passed\u001b[0m, \u001b[33m4 warnings\u001b[0m\u001b[31m in 0.41s\u001b[0m\u001b[31m ===================\u001b[0m",
+      "stdout": "\u001b[1m============================= test session starts ==============================\u001b[0m\nplatform linux -- Python 3.13.5, pytest-8.4.1, pluggy-1.6.0 -- /home/linuxbrew/.linuxbrew/opt/python@3.13/bin/python3.13\ncachedir: .pytest_cache\nrootdir: /home/devag/git/feat-ado-flow-hive\nconfigfile: pytest.ini\nplugins: anyio-4.9.0, dash-3.1.1, cov-6.2.1\n\u001b[1mcollecting ... \u001b[0mcollected 23 items\n\ntests/integration/test_filtering_integration.py::TestWorkItemsAPIIntegration::test_api_endpoint_with_mock_data_source \u001b[32mPASSED\u001b[0m\u001b[33m [  4%]\u001b[0m\ntests/integration/test_filtering_integration.py::TestWorkItemsAPIIntegration::test_api_endpoint_with_file_data_source \u001b[31mFAILED\u001b[0m\u001b[31m [  8%]\u001b[0m\ntests/integration/test_filtering_integration.py::TestWorkItemsAPIIntegration::test_api_endpoint_error_handling_integration \u001b[31mFAILED\u001b[0m\u001b[31m [ 13%]\u001b[0m\ntests/integration/test_filtering_integration.py::TestWorkItemsAPIIntegration::test_cors_headers_integration \u001b[32mPASSED\u001b[0m\u001b[31m [ 17%]\u001b[0m\ntests/integration",
+      "stderr": ""
+    },
+    {
+      "file": "tests/e2e/test_filtering_workflow.py",
+      "type": "e2e",
+      "test_count": 0,
+      "passed": 0,
+      "failed": 0,
+      "skipped": 0,
+      "duration": 1.5273351669311523,
+      "return_code": 2,
+      "summary": "",
+      "stdout": "\u001b[1m============================= test session starts ==============================\u001b[0m\nplatform linux -- Python 3.13.5, pytest-8.4.1, pluggy-1.6.0 -- /home/linuxbrew/.linuxbrew/opt/python@3.13/bin/python3.13\ncachedir: .pytest_cache\nrootdir: /home/devag/git/feat-ado-flow-hive\nconfigfile: pytest.ini\nplugins: anyio-4.9.0, dash-3.1.1, cov-6.2.1\n\u001b[1mcollecting ... \u001b[0mcollected 0 items / 1 error\n\n==================================== ERRORS ====================================\n\u001b[31m\u001b[1m____________ ERROR collecting tests/e2e/test_filtering_workflow.py _____________\u001b[0m\n\u001b[31mImportError while importing test module '/home/devag/git/feat-ado-flow-hive/tests/e2e/test_filtering_workflow.py'.\nHint: make sure your test modules/packages have valid Python names.\nTraceback:\n/home/linuxbrew/.linuxbrew/lib/python3.13/site-packages/_pytest/python.py:498: in importtestmodule\n    mod = import_path(\n/home/linuxbrew/.linuxbrew/lib/python3.13/site-packages/_pytest/pathlib.py:587: in import_path\n    importli",
+      "stderr": ""
+    }
+  ],
+  "summary": {
+    "total_tests": 0,
+    "passed": 0,
+    "failed": 0,
+    "skipped": 0,
+    "success_rate": 0,
+    "total_duration": 7.48,
+    "pyramid_compliance": {
+      "compliance": 0,
+      "message": "No tests found",
+      "actual_distribution": {
+        "unit": 0,
+        "integration": 0,
+        "e2e": 0
+      },
+      "target_distribution": {
+        "unit": 70,
+        "integration": 20,
+        "e2e": 10
+      },
+      "total_tests": 0
+    },
+    "status": "PASSED",
+    "total_execution_time": 7.48
+  },
+  "coverage": {},
+  "performance": {}
+}

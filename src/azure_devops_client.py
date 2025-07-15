@@ -2,12 +2,23 @@ import base64
 import json
 import logging
 import signal
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
 from typing import Callable, Dict, List, Optional
 
 import requests
+
+from .exceptions import (
+    ADOFlowException,
+    AuthenticationError,
+    AuthorizationError,
+    APIError,
+    NetworkError,
+    ConfigurationError,
+    WorkItemError
+)
 
 logger = logging.getLogger(__name__)
 
@@ -50,8 +61,17 @@ class AzureDevOpsClient:
             logger.info("Connection to Azure DevOps verified successfully")
             return True
 
+        except requests.exceptions.Timeout as e:
+            logger.error(f"Connection timeout: {e}")
+            return False
+        except requests.exceptions.ConnectionError as e:
+            logger.error(f"Connection error: {e}")
+            return False
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Request error: {e}")
+            return False
         except Exception as e:
-            logger.error(f"Connection verification failed: {e}")
+            logger.error(f"Unexpected error during connection verification: {e}")
             return False
 
     def get_work_items(
@@ -61,246 +81,333 @@ class AzureDevOpsClient:
         history_limit: Optional[int] = None,
     ) -> List[Dict]:
         """Fetch work items from Azure DevOps with enhanced progress tracking"""
-        response = None  # Initialize response variable to prevent UnboundLocalError
+        try:
+            if progress_callback:
+                progress_callback("phase", "Initializing Azure DevOps connection...")
 
-        if progress_callback:
-            progress_callback("phase", "Initializing Azure DevOps connection...")
+            logger.debug(
+                f"Fetching work items from the last {days_back} days for project '{self.project}'."
+            )
 
-        logger.debug(
-            f"Fetching work items from the last {days_back} days for project '{self.project}'."
-        )
+            # Verify connection first to provide better error diagnostics
+            if not self._validate_connection_and_project():
+                return []
 
-        # Verify connection first to provide better error diagnostics
+            # Get work item IDs using WIQL query
+            work_item_ids = self._query_work_item_ids(days_back, progress_callback)
+            if not work_item_ids:
+                return []
+
+            # Fetch detailed work item information
+            work_items = self._fetch_work_item_details(work_item_ids, progress_callback)
+            if not work_items:
+                return []
+
+            # Transform and enrich with state history
+            return self._transform_and_enrich_work_items(work_items, progress_callback, history_limit)
+
+        except requests.exceptions.Timeout as e:
+            logger.error(f"Request timeout while fetching work items: {e}")
+            return []
+        except requests.exceptions.ConnectionError as e:
+            logger.error(f"Connection error while fetching work items: {e}")
+            return []
+        except requests.exceptions.HTTPError as http_err:
+            logger.error(f"HTTP error occurred: {http_err}")
+            return []
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Request exception while fetching work items: {e}")
+            return []
+        except ADOFlowException as e:
+            logger.error(f"ADO Flow error: {e.message}")
+            return []
+        except Exception as e:
+            logger.exception(
+                f"Unexpected error occurred while fetching work items: {e}"
+            )
+            return []
+
+    def _validate_connection_and_project(self) -> bool:
+        """Validate Azure DevOps connection and project configuration."""
         if not self.verify_connection():
             logger.error(
                 "Connection verification failed. Cannot proceed with work item fetch."
             )
+            return False
+
+        # Validate project name to prevent injection (basic sanitization)
+        if not self.project.replace("-", "").replace("_", "").isalnum():
+            raise ConfigurationError(f"Invalid project name: {self.project}")
+
+        return True
+
+    def _query_work_item_ids(self, days_back: int, progress_callback: Optional[Callable] = None) -> List[int]:
+        """Query work item IDs using WIQL with proper project scoping."""
+        if progress_callback:
+            progress_callback("phase", "Querying work item IDs...")
+
+        # Build WIQL query with validated inputs and project scope
+        cutoff_date = (datetime.now() - timedelta(days=days_back)).strftime("%Y-%m-%d")
+        wiql_query = {
+            "query": f"""
+            SELECT [System.Id]
+            FROM WorkItems
+            WHERE [System.TeamProject] = '{self.project}'
+            AND [System.ChangedDate] >= '{cutoff_date}'
+            ORDER BY [System.ChangedDate] DESC
+            """
+        }
+
+        response = self._execute_wiql_query(wiql_query)
+        work_item_refs = self._parse_wiql_response(response)
+        
+        if progress_callback:
+            progress_callback("count", len(work_item_refs))
+
+        if not work_item_refs:
+            logger.warning("No work items found in the specified period.")
             return []
 
+        return [item["id"] for item in work_item_refs]
+
+    def _execute_wiql_query(self, wiql_query: Dict) -> requests.Response:
+        """Execute WIQL query with proper error handling."""
+        wiql_url = f"{self.org_url}/{self.project}/_apis/wit/wiql?api-version=7.0"
+        logger.debug(f"Making WIQL request to: {wiql_url}")
+        
+        response = requests.post(
+            wiql_url, json=wiql_query, headers=self.headers, timeout=30
+        )
+
+        if response.status_code == 405:
+            logger.error(f"HTTP 405 Method Not Allowed. URL: {wiql_url}")
+            # Create safe headers for logging (redact PAT token)
+            safe_headers = {
+                k: ("Basic [REDACTED]" if k == "Authorization" else v)
+                for k, v in self.headers.items()
+            }
+            logger.error(f"Request headers: {safe_headers}")
+            logger.error(f"Request body: {wiql_query}")
+            raise APIError(
+                "Azure DevOps API returned 405 Method Not Allowed. This usually indicates an incorrect API endpoint or authentication issue.",
+                status_code=405
+            )
+
+        response.raise_for_status()
+        return response
+
+    def _parse_wiql_response(self, response: requests.Response) -> List[Dict]:
+        """Parse WIQL response with comprehensive error handling."""
         try:
-            # Validate project name to prevent injection (basic sanitization)
-            if not self.project.replace("-", "").replace("_", "").isalnum():
-                logger.error(f"Invalid project name: {self.project}")
-                return []
+            response_data = response.json()
+            return response_data.get("workItems", [])
+        except ValueError as json_error:
+            # Log the actual response for debugging
+            logger.error(f"Invalid JSON response from Azure DevOps API")
+            logger.error(f"Response status: {response.status_code}")
+            logger.error(f"Response headers: {dict(response.headers)}")
+            logger.error(f"Response content (first 500 chars): {response.text[:500]}")
+            
+            # Check if it's an HTML error page (common with auth issues)
+            if response.text.strip().startswith('<'):
+                logger.error("Response appears to be HTML, likely an authentication or access error")
+                if "conditional access" in response.text.lower():
+                    logger.error("Conditional Access Policy detected - use --use-mock flag for testing")
+                elif "sign in" in response.text.lower() or "login" in response.text.lower():
+                    logger.error("Authentication required - check your PAT token")
+            
+            if response.status_code == 401:
+                raise AuthenticationError(
+                    "Authentication failed - check your PAT token"
+                )
+            elif response.status_code == 403:
+                raise AuthorizationError(
+                    "Access forbidden - check project permissions or conditional access policies"
+                )
+            else:
+                raise APIError(
+                    f"Azure DevOps API returned invalid JSON. Response status: {response.status_code}. Use --use-mock flag to generate test data instead.",
+                    status_code=response.status_code,
+                    response_text=response.text[:500]
+                ) from json_error
 
-            if progress_callback:
-                progress_callback("phase", "Querying work item IDs...")
+    def _fetch_work_item_details(self, work_item_ids: List[int], progress_callback: Optional[Callable] = None) -> List[Dict]:
+        """Fetch detailed work item information in batches."""
+        batch_size = 200  # Azure DevOps API limit
+        batches = [
+            work_item_ids[i : i + batch_size]
+            for i in range(0, len(work_item_ids), batch_size)
+        ]
 
-            # First, get work item IDs using WIQL
-            # Note: Azure DevOps WIQL doesn't support full parameterization,
-            # but we validate inputs above
-            wiql_query = {
-                "query": f"""
-                SELECT [System.Id]
-                FROM WorkItems
-                WHERE [System.ChangedDate] >= '{(datetime.now() - timedelta(days=days_back)).strftime("%Y-%m-%d")}'
-                ORDER BY [System.ChangedDate] DESC
-                """
+        if progress_callback:
+            progress_callback(
+                "phase", f"Fetching {len(batches)} batches concurrently..."
+            )
+
+        # Use concurrent processing for better performance
+        work_items = self._fetch_work_items_concurrent(batches, progress_callback)
+        
+        logger.debug(
+            f"Successfully fetched details for {len(work_items)} work items in total."
+        )
+        
+        return work_items
+
+    def _transform_and_enrich_work_items(
+        self, 
+        work_items: List[Dict], 
+        progress_callback: Optional[Callable] = None, 
+        history_limit: Optional[int] = None
+    ) -> List[Dict]:
+        """Transform work items to our format and enrich with state history."""
+        if progress_callback:
+            progress_callback("phase", "Processing work items and state history...")
+
+        # First, prepare all work items without state history
+        work_items_to_process = self._transform_work_items(work_items)
+        
+        # Then enrich with state history concurrently
+        return self._enrich_with_state_history(work_items_to_process, progress_callback, history_limit)
+
+    def _transform_work_items(self, work_items: List[Dict]) -> List[Dict]:
+        """Transform raw work items to our standardized format."""
+        work_items_to_process = []
+        
+        for item in work_items:
+            fields = item.get("fields", {})
+
+            # Generate proper web link for Azure DevOps
+            # Convert from: https://dev.azure.com/ORG/PROJECT_GUID/_apis/wit/workItems/ID
+            # To: https://ORG.visualstudio.com/PROJECT/_workitems/edit/ID
+            web_link = None
+            if self.org_url and self.project and item["id"]:
+                # Extract org name from the org URL
+                org_name = self.org_url.replace("https://dev.azure.com/", "").replace("https://", "").replace(".visualstudio.com", "").rstrip("/")
+                # Use the actual project name from configuration
+                web_link = f"https://{org_name}.visualstudio.com/{self.project}/_workitems/edit/{item['id']}"
+            
+            # Build transformed item without state history (will be fetched concurrently)
+            transformed_item = {
+                "id": item["id"],  # Use real Azure DevOps numeric ID directly
+                "raw_id": item["id"],  # Keep raw ID for state history fetching
+                "title": fields.get("System.Title") or "[No Title]",
+                "type": fields.get("System.WorkItemType") or "Unknown",
+                "priority": fields.get("Microsoft.VSTS.Common.Priority") or "Medium",
+                "created_date": fields.get("System.CreatedDate") or "",
+                "created_by": self._extract_display_name(fields.get("System.CreatedBy")) or "Unknown",
+                "assigned_to": self._extract_display_name(fields.get("System.AssignedTo")) or "Unassigned",
+                "current_state": fields.get("System.State") or "New",
+                "state_transitions": [],  # Will be populated concurrently
+                "story_points": fields.get("Microsoft.VSTS.Scheduling.StoryPoints"),
+                "effort_hours": fields.get("Microsoft.VSTS.Scheduling.OriginalEstimate"),
+                "tags": self._parse_tags(fields.get("System.Tags")),
+                # Preserve Azure DevOps API fields
+                "url": item.get("url"),  # Direct API endpoint
+                "_links": item.get("_links", {}),  # Navigation links
+                "rev": item.get("rev"),  # Revision number
+                "link": web_link,  # Proper web UI link
             }
 
-            wiql_url = f"{self.org_url}/{self.project}/_apis/wit/wiql?api-version=7.0"
-            logger.debug(f"Making WIQL request to: {wiql_url}")
-            response = requests.post(
-                wiql_url, json=wiql_query, headers=self.headers, timeout=30
+            # Skip items with critical missing data
+            if not transformed_item["created_date"]:
+                logger.warning(
+                    f"Skipping work item {item['id']} - missing creation date"
+                )
+                continue
+
+            work_items_to_process.append(transformed_item)
+            
+        return work_items_to_process
+
+    def _extract_display_name(self, field_value) -> str:
+        """Extract display name from Azure DevOps user field."""
+        if isinstance(field_value, dict):
+            return field_value.get("displayName", "")
+        return str(field_value) if field_value else ""
+
+    def _parse_tags(self, tags_value) -> List[str]:
+        """Parse tags from Azure DevOps tags field."""
+        if not tags_value:
+            return []
+        return tags_value.split(";")
+
+    def _enrich_with_state_history(
+        self, 
+        work_items_to_process: List[Dict], 
+        progress_callback: Optional[Callable] = None, 
+        history_limit: Optional[int] = None
+    ) -> List[Dict]:
+        """Enrich work items with state history using concurrent processing."""
+        if progress_callback:
+            progress_callback(
+                "items",
+                f"Fetching state history for {len(work_items_to_process)} items...",
             )
 
-            if response.status_code == 405:
-                logger.error(f"HTTP 405 Method Not Allowed. URL: {wiql_url}")
-                # Create safe headers for logging (redact PAT token)
-                safe_headers = {
-                    k: ("Basic [REDACTED]" if k == "Authorization" else v)
-                    for k, v in self.headers.items()
-                }
-                logger.error(f"Request headers: {safe_headers}")
-                logger.error(f"Request body: {wiql_query}")
-                raise requests.exceptions.HTTPError(
-                    f"Azure DevOps API returned 405 Method Not Allowed. This usually indicates an incorrect API endpoint or authentication issue."
-                )
+        # Use ThreadPoolExecutor for concurrent state history fetching
+        max_workers = min(5, len(work_items_to_process))  # Limit concurrent requests
+        
+        if not work_items_to_process or max_workers <= 0:
+            return work_items_to_process
 
-            response.raise_for_status()  # Raise an exception for bad status codes
+        transformed_items = []
+        
+        # Thread-safe counter for progress tracking
+        progress_lock = threading.Lock()
+        completed = 0
+        total = len(work_items_to_process)
+        
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Submit all state history requests
+            future_to_item = {
+                executor.submit(
+                    self._get_state_history, item["raw_id"], history_limit
+                ): item
+                for item in work_items_to_process
+            }
 
-            # Check if response is valid JSON before parsing
-            try:
-                response_data = response.json()
-                work_item_refs = response_data.get("workItems", [])
-            except ValueError as json_error:
-                # Log the actual response for debugging
-                logger.error(f"Invalid JSON response from Azure DevOps API")
-                logger.error(f"Response status: {response.status_code}")
-                logger.error(f"Response headers: {dict(response.headers)}")
-                logger.error(f"Response content (first 500 chars): {response.text[:500]}")
-                
-                # Check if it's an HTML error page (common with auth issues)
-                if response.text.strip().startswith('<'):
-                    logger.error("Response appears to be HTML, likely an authentication or access error")
-                    if "conditional access" in response.text.lower():
-                        logger.error("Conditional Access Policy detected - use --use-mock flag for testing")
-                    elif "sign in" in response.text.lower() or "login" in response.text.lower():
-                        logger.error("Authentication required - check your PAT token")
-                
-                raise requests.exceptions.RequestException(
-                    f"Azure DevOps API returned invalid JSON. This usually indicates an authentication or policy issue. "
-                    f"Response status: {response.status_code}. Use --use-mock flag to generate test data instead."
-                ) from json_error
-            logger.debug(f"Found {len(work_item_refs)} work item references.")
-
-            if progress_callback:
-                progress_callback("count", len(work_item_refs))
-
-            if not work_item_refs:
-                logger.warning("No work items found in the specified period.")
-                return []
-
-            work_item_ids = [item["id"] for item in work_item_refs]
-
-            # Get detailed work item information in batches using concurrent processing
-            work_items = []
-            batch_size = 200  # Azure DevOps API limit
-            batches = [
-                work_item_ids[i : i + batch_size]
-                for i in range(0, len(work_item_ids), batch_size)
-            ]
-
-            if progress_callback:
-                progress_callback(
-                    "phase", f"Fetching {len(batches)} batches concurrently..."
-                )
-
-            # Use concurrent processing for better performance
-            work_items = self._fetch_work_items_concurrent(batches, progress_callback)
-
-            logger.debug(
-                f"Successfully fetched details for {len(work_items)} work items in total."
-            )
-
-            if progress_callback:
-                progress_callback("phase", "Processing work items and state history...")
-
-            # Transform to our format with concurrent state history fetching
-            transformed_items = []
-
-            # First, prepare all work items without state history
-            work_items_to_process = []
-            for item in work_items:
-                fields = item.get("fields", {})
-
-                # Build transformed item without state history (will be fetched concurrently)
-                transformed_item = {
-                    "id": f"WI-{item['id']}",
-                    "raw_id": item["id"],  # Keep raw ID for state history fetching
-                    "title": fields.get("System.Title") or "[No Title]",
-                    "type": fields.get("System.WorkItemType") or "Unknown",
-                    "priority": fields.get("Microsoft.VSTS.Common.Priority")
-                    or "Medium",
-                    "created_date": fields.get("System.CreatedDate") or "",
-                    "created_by": (
-                        fields.get("System.CreatedBy", {}).get("displayName")
-                        if isinstance(fields.get("System.CreatedBy"), dict)
-                        else str(fields.get("System.CreatedBy", ""))
-                    )
-                    or "Unknown",
-                    "assigned_to": (
-                        fields.get("System.AssignedTo", {}).get("displayName")
-                        if isinstance(fields.get("System.AssignedTo"), dict)
-                        else str(fields.get("System.AssignedTo", ""))
-                    )
-                    or "Unassigned",
-                    "current_state": fields.get("System.State") or "New",
-                    "state_transitions": [],  # Will be populated concurrently
-                    "story_points": fields.get("Microsoft.VSTS.Scheduling.StoryPoints"),
-                    "effort_hours": fields.get(
-                        "Microsoft.VSTS.Scheduling.OriginalEstimate"
-                    ),
-                    "tags": (
-                        fields.get("System.Tags", "").split(";")
-                        if fields.get("System.Tags")
-                        else []
-                    ),
-                }
-
-                # Skip items with critical missing data
-                if not transformed_item["created_date"]:
+            # Collect results as they complete
+            for future in as_completed(future_to_item):
+                item = future_to_item[future]
+                try:
+                    state_transitions = future.result(timeout=30)  # Add timeout
+                    item["state_transitions"] = state_transitions
+                except KeyboardInterrupt:
+                    logger.info("Cancelling remaining state history requests...")
+                    # Thread-safe cancellation
+                    remaining_futures = list(future_to_item.keys())
+                    for f in remaining_futures:
+                        f.cancel()
+                    raise
+                except Exception as e:
                     logger.warning(
-                        f"Skipping work item {item['id']} - missing creation date"
+                        f"Failed to get state history for {item['id']}: {e}"
                     )
-                    continue
+                    item["state_transitions"] = []
 
-                work_items_to_process.append(transformed_item)
+                # Thread-safe progress update
+                with progress_lock:
+                    completed += 1
+                    if progress_callback and completed % 10 == 0:
+                        progress_callback(
+                            "items", f"Processed state history: {completed}/{total}"
+                        )
 
-            # Now fetch state histories concurrently
-            if progress_callback:
-                progress_callback(
-                    "items",
-                    f"Fetching state history for {len(work_items_to_process)} items...",
-                )
-
-            # Use ThreadPoolExecutor for concurrent state history fetching
-            max_workers = min(
-                5, len(work_items_to_process)
-            )  # Limit concurrent requests
-            if work_items_to_process and max_workers > 0:
-                with ThreadPoolExecutor(max_workers=max_workers) as executor:
-                    # Submit all state history requests
-                    future_to_item = {
-                        executor.submit(
-                            self._get_state_history, item["raw_id"], history_limit
-                        ): item
-                        for item in work_items_to_process
-                    }
-
-                    # Update progress as histories are fetched
-                    completed = 0
-                    total = len(work_items_to_process)
-
-                    # Collect results as they complete
-                    for future in as_completed(future_to_item):
-                        item = future_to_item[future]
-                        try:
-                            state_transitions = future.result(timeout=30)  # Add timeout
-                            item["state_transitions"] = state_transitions
-                        except KeyboardInterrupt:
-                            logger.info("Cancelling remaining state history requests...")
-                            # Cancel remaining futures
-                            for f in future_to_item:
-                                f.cancel()
-                            raise
-                        except Exception as e:
-                            logger.warning(
-                                f"Failed to get state history for {item['id']}: {e}"
-                            )
-                            item["state_transitions"] = []
-
-                        completed += 1
-                        if progress_callback and completed % 10 == 0:
-                            progress_callback(
-                                "items", f"Processed state history: {completed}/{total}"
-                            )
-
-                    # Remove raw_id field as it's no longer needed
-                    for item in work_items_to_process:
-                        item.pop("raw_id", None)
-                        transformed_items.append(item)
-            else:
-                transformed_items = work_items_to_process
-
-            return transformed_items
-
-        except requests.exceptions.HTTPError as http_err:
-            error_text = response.text if response else "No response available"
-            logger.error(f"HTTP error occurred: {http_err} - {error_text}")
-            return []
-        except Exception as e:
-            logger.exception(
-                f"An unexpected error occurred while fetching work items: {e}"
-            )
-            return []
+            # Remove raw_id field as it's no longer needed
+            for item in work_items_to_process:
+                item.pop("raw_id", None)
+                transformed_items.append(item)
+                
+        return transformed_items
 
     def _fetch_work_items_concurrent(
         self, batches: List[List[int]], progress_callback: Optional[Callable] = None
     ) -> List[Dict]:
         """Fetch work item batches concurrently for improved performance"""
         work_items = []
+        work_items_lock = threading.Lock()
         completed_batches = 0
+        progress_lock = threading.Lock()
         total_batches = len(batches)
 
         def fetch_batch_with_retry(batch_ids: List[int], batch_num: int) -> List[Dict]:
@@ -342,11 +449,12 @@ class AzureDevOpsClient:
                     response.raise_for_status()
                     batch_work_items = response.json().get("value", [])
 
-                    # Update progress
+                    # Thread-safe progress update
                     nonlocal completed_batches
-                    completed_batches += 1
-                    if progress_callback:
-                        progress_callback("batch", completed_batches, total_batches)
+                    with progress_lock:
+                        completed_batches += 1
+                        if progress_callback:
+                            progress_callback("batch", completed_batches, total_batches)
 
                     return batch_work_items
 
@@ -381,11 +489,14 @@ class AzureDevOpsClient:
                 for future in as_completed(future_to_batch):
                     try:
                         batch_items = future.result(timeout=30)  # Add timeout
-                        work_items.extend(batch_items)
+                        # Thread-safe list extension
+                        with work_items_lock:
+                            work_items.extend(batch_items)
                     except KeyboardInterrupt:
                         logger.info("Cancelling remaining batch requests...")
-                        # Cancel remaining futures
-                        for f in future_to_batch:
+                        # Thread-safe cancellation
+                        remaining_futures = list(future_to_batch.keys())
+                        for f in remaining_futures:
                             f.cancel()
                         raise
                     except Exception as e:

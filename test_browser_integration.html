@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Browser Integration Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-result { margin: 10px 0; padding: 10px; border-radius: 5px; }
+        .success { background-color: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background-color: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        .test-details { margin-top: 10px; font-size: 0.9em; background: #f8f9fa; padding: 10px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h1>Advanced Filtering Browser Integration Test</h1>
+    <div id="test-results"></div>
+    
+    <script>
+        class BrowserIntegrationTest {
+            constructor() {
+                this.results = [];
+                this.resultsContainer = document.getElementById('test-results');
+            }
+            
+            async runAllTests() {
+                await this.testWorkItemsEndpoint();
+                await this.testDataStructureMapping();
+                await this.testAdvancedFilteringLoad();
+                await this.testFilteringFunctionality();
+                this.displayResults();
+            }
+            
+            async testWorkItemsEndpoint() {
+                try {
+                    const response = await fetch('/api/work-items');
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    const workItems = await response.json();
+                    
+                    if (!Array.isArray(workItems)) {
+                        throw new Error('Work items response is not an array');
+                    }
+                    
+                    this.addResult('success', 'Work Items Endpoint', 
+                        `Successfully loaded ${workItems.length} work items`, 
+                        `First item keys: ${Object.keys(workItems[0] || {}).join(', ')}`);
+                        
+                    return workItems;
+                } catch (error) {
+                    this.addResult('error', 'Work Items Endpoint', error.message);
+                    return [];
+                }
+            }
+            
+            async testDataStructureMapping() {
+                try {
+                    const response = await fetch('/api/work-items');
+                    const workItems = await response.json();
+                    
+                    if (workItems.length === 0) {
+                        throw new Error('No work items to test data structure');
+                    }
+                    
+                    const firstItem = workItems[0];
+                    const requiredFields = ['id', 'title', 'workItemType', 'priority', 'assignedTo', 'state'];
+                    const missingFields = requiredFields.filter(field => !(field in firstItem));
+                    
+                    if (missingFields.length > 0) {
+                        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+                    }
+                    
+                    // Check correct mapping
+                    const checks = [];
+                    if (firstItem.assignedTo !== undefined) checks.push('assigned_to → assignedTo: ✓');
+                    if (firstItem.state !== undefined) checks.push('current_state → state: ✓');
+                    if (typeof firstItem.priority === 'string') checks.push('numeric priority → string: ✓');
+                    
+                    this.addResult('success', 'Data Structure Mapping', 
+                        'All required fields present with correct mapping',
+                        checks.join('\n'));
+                        
+                } catch (error) {
+                    this.addResult('error', 'Data Structure Mapping', error.message);
+                }
+            }
+            
+            async testAdvancedFilteringLoad() {
+                try {
+                    // Check if AdvancedFiltering class is available
+                    if (typeof AdvancedFiltering === 'undefined') {
+                        throw new Error('AdvancedFiltering class not available');
+                    }
+                    
+                    // Try to instantiate the filtering class
+                    const filtering = new AdvancedFiltering();
+                    
+                    if (!filtering.filters) {
+                        throw new Error('AdvancedFiltering instance missing filters property');
+                    }
+                    
+                    const filterTypes = Object.keys(filtering.filters);
+                    
+                    this.addResult('success', 'Advanced Filtering Class Load', 
+                        'AdvancedFiltering class loaded successfully',
+                        `Available filter types: ${filterTypes.join(', ')}`);
+                        
+                    return filtering;
+                } catch (error) {
+                    this.addResult('error', 'Advanced Filtering Class Load', error.message);
+                    return null;
+                }
+            }
+            
+            async testFilteringFunctionality() {
+                try {
+                    const workItems = await fetch('/api/work-items').then(r => r.json());
+                    
+                    if (typeof AdvancedFiltering === 'undefined') {
+                        throw new Error('AdvancedFiltering not available for functionality test');
+                    }
+                    
+                    const filtering = new AdvancedFiltering();
+                    
+                    // Test basic filtering
+                    if (typeof filtering.applyFilters !== 'function') {
+                        throw new Error('applyFilters method not available');
+                    }
+                    
+                    // Try a simple filter
+                    filtering.filters.workItemTypes = ['Bug'];
+                    const filteredItems = filtering.applyFilters(workItems);
+                    
+                    if (!Array.isArray(filteredItems)) {
+                        throw new Error('applyFilters did not return an array');
+                    }
+                    
+                    const bugItems = filteredItems.filter(item => item.workItemType === 'Bug');
+                    
+                    this.addResult('success', 'Filtering Functionality', 
+                        `Successfully filtered work items: ${workItems.length} → ${filteredItems.length}`,
+                        `Bug filter test: Found ${bugItems.length} bug items`);
+                        
+                } catch (error) {
+                    this.addResult('error', 'Filtering Functionality', error.message);
+                }
+            }
+            
+            addResult(type, testName, message, details = '') {
+                this.results.push({ type, testName, message, details });
+            }
+            
+            displayResults() {
+                this.resultsContainer.innerHTML = '';
+                
+                const summary = {
+                    total: this.results.length,
+                    success: this.results.filter(r => r.type === 'success').length,
+                    error: this.results.filter(r => r.type === 'error').length
+                };
+                
+                const summaryDiv = document.createElement('div');
+                summaryDiv.className = 'test-result info';
+                summaryDiv.innerHTML = `
+                    <strong>Test Summary</strong><br>
+                    Total Tests: ${summary.total}<br>
+                    Passed: ${summary.success}<br>
+                    Failed: ${summary.error}<br>
+                    Success Rate: ${Math.round((summary.success / summary.total) * 100)}%
+                `;
+                this.resultsContainer.appendChild(summaryDiv);
+                
+                this.results.forEach(result => {
+                    const div = document.createElement('div');
+                    div.className = `test-result ${result.type}`;
+                    
+                    let html = `<strong>${result.testName}</strong>: ${result.message}`;
+                    if (result.details) {
+                        html += `<div class="test-details">${result.details.replace(/\n/g, '<br>')}</div>`;
+                    }
+                    
+                    div.innerHTML = html;
+                    this.resultsContainer.appendChild(div);
+                });
+            }
+        }
+        
+        // Auto-run tests when page loads
+        window.addEventListener('load', () => {
+            const tester = new BrowserIntegrationTest();
+            tester.runAllTests();
+        });
+    </script>
+    
+    <!-- Load the necessary scripts for testing -->
+    <script src="/js/advanced-filtering.js"></script>
+</body>
+</html>

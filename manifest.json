@@ -1,0 +1,151 @@
+{
+  "name": "Flow Metrics Dashboard",
+  "short_name": "FlowMetrics",
+  "description": "Advanced Flow Metrics Analytics Dashboard for DevOps Teams",
+  "start_url": "/dashboard.html",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#4e73df",
+  "background_color": "#f8f9fc",
+  "lang": "en-US",
+  "scope": "/",
+  "categories": ["productivity", "business", "analytics"],
+  "screenshots": [
+    {
+      "src": "/images/screenshot-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "platform": "wide",
+      "label": "Flow Metrics Dashboard - Desktop View"
+    },
+    {
+      "src": "/images/screenshot-mobile.png", 
+      "sizes": "360x640",
+      "type": "image/png",
+      "platform": "narrow",
+      "label": "Flow Metrics Dashboard - Mobile View"
+    }
+  ],
+  "icons": [
+    {
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96", 
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png", 
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png", 
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "View Dashboard",
+      "short_name": "Dashboard", 
+      "description": "Open the main Flow Metrics dashboard",
+      "url": "/dashboard.html",
+      "icons": [
+        {
+          "src": "/icons/shortcut-dashboard.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Export Reports",
+      "short_name": "Export",
+      "description": "Export flow metrics reports",
+      "url": "/dashboard.html#export",
+      "icons": [
+        {
+          "src": "/icons/shortcut-export.png", 
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Team Collaboration",
+      "short_name": "Collaborate",
+      "description": "Join team collaboration rooms",
+      "url": "/dashboard.html#collaborate",
+      "icons": [
+        {
+          "src": "/icons/shortcut-collaborate.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "Test Features",
+      "short_name": "Test",
+      "description": "Test Phase 1 features",
+      "url": "/test-phase1-features.html",
+      "icons": [
+        {
+          "src": "/icons/shortcut-test.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
+  "handle_links": "preferred",
+  "capture_links": "existing-client-navigate"
+}

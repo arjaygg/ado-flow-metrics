@@ -1,7 +1,7 @@
 {
   "azure_devops": {
-    "org_url": "https://dev.azure.com/bofaz",
-    "default_project": "Axos-Universal-Core",
+    "org_url": "https://dev.azure.com/your-org",
+    "default_project": "your-project",
     "pat_token": "${AZURE_DEVOPS_PAT}"
   },
   "flow_metrics": {

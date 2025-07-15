@@ -1016,22 +1016,75 @@ def serve(port: int, open_browser: bool, auto_generate: bool, executive: bool):
             )
             sys.exit(1)
 
-        # Create a simple HTTP server to serve the dashboard
+        # Create a robust HTTP server to serve the dashboard
         class DashboardHandler(http.server.SimpleHTTPRequestHandler):
             def __init__(self, *args, **kwargs):
                 super().__init__(*args, directory=str(dashboard_file.parent), **kwargs)
+            
+            def log_message(self, format, *args):
+                """Enhanced logging for debugging"""
+                safe_print(f"[cyan]{SYMBOLS['info']} HTTP: {format % args}[/cyan]")
+            
+            def do_GET(self):
+                """Enhanced GET handler with better error handling"""
+                safe_print(f"[cyan]{SYMBOLS['info']} GET request for: {self.path}[/cyan]")
+                try:
+                    return super().do_GET()
+                except Exception as e:
+                    safe_print(f"[red]{SYMBOLS['error']} Server error for {self.path}: {e}[/red]")
+                    self.send_error(500, f"Server error: {e}")
+            
+            def end_headers(self):
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+                self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+                self.send_header('Cache-Control', 'no-cache')
+                super().end_headers()
+            
+            def guess_type(self, path):
+                """Enhanced MIME type detection"""
+                try:
+                    result = super().guess_type(path)
+                    if isinstance(result, tuple) and len(result) >= 2:
+                        mimetype, encoding = result[0], result[1]
+                    else:
+                        mimetype, encoding = result, None
+                except Exception:
+                    mimetype, encoding = None, None
+                
+                # Override with our specific types
+                if path.endswith('.js'):
+                    return 'application/javascript', encoding
+                elif path.endswith('.json'):
+                    return 'application/json', encoding
+                elif path.endswith('.html'):
+                    return 'text/html', encoding
+                elif path.endswith('.css'):
+                    return 'text/css', encoding
+                elif path.endswith('.woff') or path.endswith('.woff2'):
+                    return 'font/woff', encoding
+                elif path.endswith('.ico'):
+                    return 'image/x-icon', encoding
+                
+                return mimetype or 'application/octet-stream', encoding
 
         # Start server in background thread
         def start_server():
-            with socketserver.TCPServer(("", port), DashboardHandler) as httpd:
-                console.print(
-                    f"[green]✓ Dashboard server started on http://localhost:{port}[/green]"
-                )
-                console.print("[yellow]Press Ctrl+C to stop the server[/yellow]")
-                try:
-                    httpd.serve_forever()
-                except KeyboardInterrupt:
-                    console.print("[yellow]Dashboard server stopped[/yellow]")
+            try:
+                with socketserver.TCPServer(("", port), DashboardHandler) as httpd:
+                    httpd.allow_reuse_address = True
+                    console.print(
+                        f"[green]✓ Dashboard server started on http://localhost:{port}[/green]"
+                    )
+                    console.print(f"[cyan]Serving files from: {dashboard_file.parent}[/cyan]")
+                    console.print("[yellow]Press Ctrl+C to stop the server[/yellow]")
+                    try:
+                        httpd.serve_forever()
+                    except KeyboardInterrupt:
+                        console.print("[yellow]Dashboard server stopped[/yellow]")
+            except OSError as e:
+                console.print(f"[red]Server error: {e}[/red]")
+                console.print(f"[yellow]Try a different port: --port {port + 1}[/yellow]")
 
         server_thread = threading.Thread(target=start_server, daemon=True)
         server_thread.start()
