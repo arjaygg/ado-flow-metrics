@@ -1,0 +1,19 @@
+-- Basic WIQL Query Examples
+
+-- Simple query to get all active work items
+SELECT [System.Id], [System.Title], [System.State]
+FROM WorkItems
+WHERE [System.State] = 'Active'
+
+-- Query with multiple filters
+SELECT [System.Id], [System.Title], [System.AssignedTo]
+FROM WorkItems
+WHERE [System.WorkItemType] IN ('Bug', 'User Story')
+AND [System.State] NOT IN ('Closed', 'Removed')
+ORDER BY [System.CreatedDate] DESC
+
+-- Query for recent work items
+SELECT [System.Id], [System.Title], [System.CreatedDate]
+FROM WorkItems
+WHERE [System.CreatedDate] >= '2024-01-01'
+ORDER BY [System.CreatedDate] DESC

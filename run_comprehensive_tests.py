@@ -18,7 +18,7 @@ import time
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 
 @dataclass
@@ -44,11 +44,11 @@ class TestPyramidRunner:
 
         # Quality gate thresholds
         self.quality_gates = {
-            "min_unit_test_coverage": 70.0,  # Reduced from 85% to realistic target
-            "min_integration_test_coverage": 60.0,  # Reduced from 75% to realistic target
-            "min_overall_coverage": 65.0,  # Reduced from 80% to realistic target
-            "max_unit_test_time": 120.0,  # Increased from 60s to allow for setup
-            "max_integration_test_time": 600.0,  # Increased from 300s to allow for complex tests
+            "min_unit_test_coverage": 70.0,  # Reduced from 85% to realistic
+            "min_integration_test_coverage": 60.0,  # Reduced from 75%
+            "min_overall_coverage": 65.0,  # Reduced from 80% to realistic
+            "max_unit_test_time": 120.0,  # Increased from 60s for setup
+            "max_integration_test_time": 600.0,  # Increased from 300s
             "max_e2e_test_time": 600.0,  # seconds
             "max_performance_test_time": 900.0,  # seconds
         }

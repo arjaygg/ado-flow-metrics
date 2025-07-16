@@ -1,0 +1,26 @@
+-- Sample WIQL Queries for Azure DevOps Flow Metrics
+-- Use these as templates for your own custom queries
+
+-- Query 1: Your specific use case from the request
+SELECT
+    [System.Id],
+    [System.WorkItemType],
+    [System.Title],
+    [System.State],
+    [System.CreatedBy],
+    [System.AssignedTo],
+    [Custom.QATester],
+    [Custom.HoursSpent],
+    [Custom.HourEstimate],
+    [Custom.QAHourEstimate],
+    [System.Tags],
+    [System.CreatedDate],
+    [Custom.DevTargetDate],
+    [System.AreaPath],
+    [System.IterationPath]
+FROM workitems
+WHERE
+    [System.AreaPath] = 'Axos-Universal-Core\AUC Single Account and Sub-Accounting'
+    AND NOT [System.State] IN ('Removed', '6 - Removed')
+    AND NOT [System.WorkItemType] IN ('Impediment', 'Test Plan', 'Tech Lead Activities', 'Task', 'Test Case', 'Epic', 'Test Suite', 'QA Activities', 'Feature', 'Shared Steps', 'Initiatives')
+ORDER BY [Custom.TimeSpent] DESC

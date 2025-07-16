@@ -6,7 +6,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
-from typing import Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import requests
 
@@ -17,6 +17,8 @@ from .exceptions import (
     AuthorizationError,
     ConfigurationError,
     NetworkError,
+    WIQLError,
+    WIQLValidationError,
     WorkItemError,
 )
 
@@ -33,6 +35,7 @@ class AzureDevOpsClient:
             "Content-Type": "application/json",
             "Accept": "application/json",
         }
+        self.wiql_enabled = True  # Flag to enable WIQL support
 
     def verify_connection(self) -> bool:
         """Verify connection to Azure DevOps and permissions"""
@@ -617,6 +620,109 @@ class AzureDevOpsClient:
         except Exception as e:
             print(f"Error fetching team members: {str(e)}")
             return []
+
+    def validate_wiql_query(self, wiql_query: str) -> Dict[str, Any]:
+        """Validate a WIQL query before execution."""
+        if not self.wiql_enabled:
+            return {"valid": False, "errors": ["WIQL support is disabled"]}
+
+        try:
+            from .wiql_parser import WIQLParser
+
+            parser = WIQLParser()
+            parsed_query = parser.parse_query(wiql_query)
+            validation_errors = parser.validate_query(parsed_query)
+
+            return {
+                "valid": len(validation_errors) == 0,
+                "errors": validation_errors,
+                "parsed_query": {
+                    "select_fields": parsed_query.select_fields,
+                    "from_clause": parsed_query.from_clause,
+                    "conditions_count": len(parsed_query.where_conditions),
+                    "project_filter": parsed_query.project_filter,
+                    "top_count": parsed_query.top_count,
+                },
+            }
+        except Exception as e:
+            return {
+                "valid": False,
+                "errors": [f"WIQL validation failed: {str(e)}"],
+                "parsed_query": None,
+            }
+
+    def execute_custom_wiql(self, wiql_query: str, validate: bool = True) -> List[Dict]:
+        """Execute a custom WIQL query and return work items."""
+        if not self.wiql_enabled:
+            raise WIQLError("WIQL support is disabled")
+
+        try:
+            # Validate query if requested
+            if validate:
+                validation_result = self.validate_wiql_query(wiql_query)
+                if not validation_result["valid"]:
+                    raise WIQLValidationError(
+                        f"WIQL validation failed: {'; '.join(validation_result['errors'])}"
+                    )
+
+            # Execute WIQL query
+            wiql_request = {"query": wiql_query}
+            response = self._execute_wiql_query(wiql_request)
+            work_item_refs = self._parse_wiql_response(response)
+
+            if not work_item_refs:
+                logger.info("No work items found for the custom WIQL query")
+                return []
+
+            # Get work item IDs
+            work_item_ids = [item["id"] for item in work_item_refs]
+
+            # Fetch detailed work item information
+            work_items = self._fetch_work_item_details(work_item_ids)
+
+            if not work_items:
+                return []
+
+            # Transform and enrich with state history
+            return self._transform_and_enrich_work_items(work_items)
+
+        except (WIQLError, WIQLValidationError):
+            raise
+        except Exception as e:
+            logger.error(f"Failed to execute custom WIQL query: {e}")
+            raise WIQLError(f"Custom WIQL query execution failed: {e}")
+
+    def get_wiql_capabilities(self) -> Dict[str, Any]:
+        """Get information about WIQL capabilities."""
+        if not self.wiql_enabled:
+            return {"wiql_enabled": False, "message": "WIQL support is disabled"}
+
+        try:
+            from .wiql_parser import WIQLParser
+
+            parser = WIQLParser()
+            supported_fields = parser.system_fields
+
+            return {
+                "wiql_enabled": True,
+                "supported_system_fields": list(supported_fields.keys()),
+                "field_types": list(
+                    set(field.field_type.value for field in supported_fields.values())
+                ),
+                "supported_operators": list(
+                    set(
+                        op.value
+                        for field in supported_fields.values()
+                        for op in field.supported_operators
+                    )
+                ),
+                "custom_fields_supported": True,
+            }
+        except Exception as e:
+            return {
+                "wiql_enabled": False,
+                "error": f"Failed to get WIQL capabilities: {str(e)}",
+            }
 
 
 def load_azure_devops_data():

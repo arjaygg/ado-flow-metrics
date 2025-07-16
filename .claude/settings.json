@@ -40,7 +40,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cat | jq -r '.tool_input.command // \"\"' | xargs -I {} npx claude-flow@alpha hooks pre-command --command \"{}\" --validate-safety true --prepare-resources true"
+            "command": "COMMAND=$(cat | jq -r '.tool_input.command // \"\"'); npx claude-flow@alpha hooks pre-command --command \"$COMMAND\" --validate-safety true --prepare-resources true"
           }
         ]
       },
@@ -60,7 +60,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cat | jq -r '.tool_input.command // \"\"' | xargs -I {} npx claude-flow@alpha hooks post-command --command \"{}\" --track-metrics true --store-results true"
+            "command": "COMMAND=$(cat | jq -r '.tool_input.command // \"\"'); npx claude-flow@alpha hooks post-command --command \"$COMMAND\" --track-metrics true --store-results true"
           }
         ]
       },
