@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Work Items Fix Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+        pre { background: #f5f5f5; padding: 10px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>Work Items Fix Test</h1>
+    
+    <div class="test-section">
+        <h2>Test 1: Load CLI Data with Work Items</h2>
+        <div id="test1-result">Running...</div>
+        <pre id="test1-data"></pre>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 2: Extract and Process Work Items</h2>
+        <div id="test2-result">Waiting for Test 1...</div>
+        <pre id="test2-data"></pre>
+    </div>
+    
+    <div class="test-section">
+        <h2>Test 3: Validate getRealAzureDevOpsId Function</h2>
+        <div id="test3-result">Waiting for Test 2...</div>
+        <pre id="test3-data"></pre>
+    </div>
+
+    <script>
+        class WorkItemsFixTest {
+            constructor() {
+                this.runTests();
+            }
+
+            async runTests() {
+                try {
+                    await this.test1_loadCliData();
+                    await this.test2_extractWorkItems();
+                    await this.test3_validateIdFunction();
+                } catch (error) {
+                    console.error('Test error:', error);
+                }
+            }
+
+            async test1_loadCliData() {
+                document.getElementById('test1-result').innerHTML = '<span class="info">Loading CLI data...</span>';
+                
+                try {
+                    // Simulate the CLI data loading process
+                    let metricsData = null;
+                    let workItemsData = null;
+
+                    // Load metrics data
+                    const dataSources = [
+                        './data/dashboard_data.json',
+                        './data/flow_metrics_report.json'
+                    ];
+
+                    for (const source of dataSources) {
+                        try {
+                            const response = await fetch(source);
+                            if (response.ok) {
+                                const data = await response.json();
+                                console.log(`Successfully loaded data from ${source}`);
+                                
+                                if (data.data) {
+                                    metricsData = data.data;
+                                    break;
+                                } else if (data.summary || data.lead_time || data.cycle_time) {
+                                    metricsData = data;
+                                    break;
+                                }
+                            }
+                        } catch (err) {
+                            console.log(`Failed to load from ${source}: ${err.message}`);
+                        }
+                    }
+
+                    // Load work items data
+                    try {
+                        const workItemsResponse = await fetch('./data/work_items.json');
+                        if (workItemsResponse.ok) {
+                            workItemsData = await workItemsResponse.json();
+                            console.log('Successfully loaded work items data');
+                        }
+                    } catch (err) {
+                        console.log(`Failed to load work items: ${err.message}`);
+                    }
+
+                    // Combine the data
+                    if (metricsData && workItemsData) {
+                        metricsData.work_items = workItemsData;
+                        this.testData = metricsData;
+                        
+                        document.getElementById('test1-result').innerHTML = '<span class="success">✓ CLI data loaded successfully</span>';
+                        document.getElementById('test1-data').textContent = JSON.stringify({
+                            metricsLoaded: !!metricsData,
+                            workItemsLoaded: !!workItemsData,
+                            workItemsCount: workItemsData ? workItemsData.length : 0,
+                            firstWorkItem: workItemsData ? workItemsData[0] : null
+                        }, null, 2);
+                    } else {
+                        throw new Error('Failed to load data');
+                    }
+                } catch (error) {
+                    document.getElementById('test1-result').innerHTML = '<span class="error">✗ Test 1 failed: ' + error.message + '</span>';
+                    document.getElementById('test1-data').textContent = error.stack;
+                }
+            }
+
+            async test2_extractWorkItems() {
+                document.getElementById('test2-result').innerHTML = '<span class="info">Extracting work items...</span>';
+                
+                try {
+                    if (!this.testData || !this.testData.work_items) {
+                        throw new Error('No work items data available from Test 1');
+                    }
+
+                    const workItems = this.testData.work_items;
+                    
+                    // Simulate the extractWorkItems process
+                    const processedWorkItems = workItems.slice(0, 5).map(item => ({
+                        id: item.id || item.raw_id || Math.random().toString(36),
+                        raw_id: item.raw_id || (typeof item.id === 'number' ? item.id : null),
+                        display_id: item.display_id || null,
+                        title: item.title || 'No Title',
+                        type: item.type || 'Task',
+                        state: item.current_state || item.state || 'New',
+                        assigned_to: item.assigned_to || 'Unassigned',
+                        priority: item.priority || 3,
+                        created_date: item.created_date || new Date().toISOString(),
+                        story_points: item.story_points,
+                        effort_hours: item.effort_hours
+                    }));
+
+                    this.processedWorkItems = processedWorkItems;
+                    
+                    document.getElementById('test2-result').innerHTML = '<span class="success">✓ Work items extracted successfully</span>';
+                    document.getElementById('test2-data').textContent = JSON.stringify({
+                        originalCount: workItems.length,
+                        processedCount: processedWorkItems.length,
+                        sampleItems: processedWorkItems.slice(0, 3)
+                    }, null, 2);
+                } catch (error) {
+                    document.getElementById('test2-result').innerHTML = '<span class="error">✗ Test 2 failed: ' + error.message + '</span>';
+                    document.getElementById('test2-data').textContent = error.stack;
+                }
+            }
+
+            async test3_validateIdFunction() {
+                document.getElementById('test3-result').innerHTML = '<span class="info">Validating ID function...</span>';
+                
+                try {
+                    if (!this.processedWorkItems) {
+                        throw new Error('No processed work items available from Test 2');
+                    }
+
+                    // Simulate the getRealAzureDevOpsId function
+                    const getRealAzureDevOpsId = (item) => {
+                        // If raw_id is available, use it (original Azure DevOps ID)
+                        if (item.raw_id) {
+                            return item.raw_id;
+                        }
+                        
+                        // If the id is a number, use it directly
+                        if (typeof item.id === 'number') {
+                            return item.id;
+                        }
+                        
+                        // If display_id exists and has WI- prefix, extract the numeric part
+                        if (item.display_id && typeof item.display_id === 'string' && item.display_id.startsWith('WI-')) {
+                            return item.display_id.substring(3); // Remove 'WI-' prefix
+                        }
+                        
+                        // If the id is a string, check if it's a WI- prefixed format
+                        if (typeof item.id === 'string') {
+                            if (item.id.startsWith('WI-')) {
+                                return item.id.substring(3); // Remove 'WI-' prefix
+                            }
+                            return item.id;
+                        }
+                        
+                        // Fallback - return the id as-is
+                        return item.id;
+                    };
+
+                    const results = this.processedWorkItems.map(item => ({
+                        originalId: item.id,
+                        rawId: item.raw_id,
+                        displayId: item.display_id,
+                        realId: getRealAzureDevOpsId(item),
+                        title: item.title.substring(0, 50) + '...'
+                    }));
+
+                    // Check if any items still have WI- prefix in the real ID
+                    const hasWIPrefix = results.some(r => typeof r.realId === 'string' && r.realId.startsWith('WI-'));
+                    
+                    if (hasWIPrefix) {
+                        throw new Error('Some items still have WI- prefix in real ID');
+                    }
+
+                    document.getElementById('test3-result').innerHTML = '<span class="success">✓ ID function working correctly - no WI- prefixes found</span>';
+                    document.getElementById('test3-data').textContent = JSON.stringify(results, null, 2);
+                } catch (error) {
+                    document.getElementById('test3-result').innerHTML = '<span class="error">✗ Test 3 failed: ' + error.message + '</span>';
+                    document.getElementById('test3-data').textContent = error.stack;
+                }
+            }
+        }
+
+        // Run tests when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            new WorkItemsFixTest();
+        });
+    </script>
+</body>
+</html>

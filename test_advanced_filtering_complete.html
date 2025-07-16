@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Advanced Filtering Test</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fc;
+            margin: 20px;
+        }
+        .test-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        }
+        .test-result {
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid;
+        }
+        .success {
+            background-color: #d4edda;
+            border-left-color: #28a745;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-left-color: #dc3545;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border-left-color: #17a2b8;
+            color: #0c5460;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border-left-color: #ffc107;
+            color: #856404;
+        }
+        .test-details {
+            margin-top: 10px;
+            font-size: 0.9em;
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            white-space: pre-wrap;
+        }
+        .filter-demo {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        .filter-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .control-group label {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #495057;
+        }
+        select, input {
+            padding: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .clear-btn {
+            background: #6c757d;
+        }
+        .clear-btn:hover {
+            background: #545b62;
+        }
+        .filter-results {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .work-item {
+            padding: 8px;
+            margin: 5px 0;
+            background: #f8f9fa;
+            border-radius: 3px;
+            border-left: 3px solid #007bff;
+            font-size: 0.9em;
+        }
+        .work-item.bug { border-left-color: #dc3545; }
+        .work-item.task { border-left-color: #28a745; }
+        .work-item.feature { border-left-color: #17a2b8; }
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin: 15px 0;
+        }
+        .stat-card {
+            background: #007bff;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-card.success { background: #28a745; }
+        .stat-card.warning { background: #ffc107; color: #212529; }
+        .stat-card.danger { background: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 Complete Advanced Filtering Test Suite</h1>
+        <div id="test-results"></div>
+        
+        <div class="filter-demo">
+            <h3>🎛️ Interactive Filtering Demo</h3>
+            <div class="filter-controls">
+                <div class="control-group">
+                    <label for="workItemType">Work Item Type</label>
+                    <select id="workItemType">
+                        <option value="">All Types</option>
+                        <option value="Bug">Bug</option>
+                        <option value="Task">Task</option>
+                        <option value="Feature">Feature</option>
+                        <option value="Story">Story</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="priority">Priority</label>
+                    <select id="priority">
+                        <option value="">All Priorities</option>
+                        <option value="Critical">Critical</option>
+                        <option value="High">High</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Low">Low</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="state">State</label>
+                    <select id="state">
+                        <option value="">All States</option>
+                        <option value="New">New</option>
+                        <option value="Active">Active</option>
+                        <option value="Resolved">Resolved</option>
+                        <option value="Closed">Closed</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label for="assignee">Assignee</label>
+                    <select id="assignee">
+                        <option value="">All Assignees</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <button onclick="applyFilters()">Apply Filters</button>
+                <button class="clear-btn" onclick="clearFilters()">Clear All</button>
+                <button onclick="exportResults()">Export Results</button>
+            </div>
+            
+            <div class="summary-stats" id="summary-stats"></div>
+            <div class="filter-results" id="filter-results"></div>
+        </div>
+    </div>
+
+    <script src="/js/advanced-filtering.js"></script>
+    <script>
+        class CompleteFilteringTest {
+            constructor() {
+                this.results = [];
+                this.resultsContainer = document.getElementById('test-results');
+                this.workItemsData = [];
+                this.advancedFiltering = null;
+                this.currentFilteredData = [];
+            }
+            
+            async runAllTests() {
+                console.log("Starting complete filtering test suite...");
+                
+                await this.testEndpointConnectivity();
+                await this.testDataLoading();
+                await this.testDataStructure();
+                await this.testAdvancedFilteringClass();
+                await this.testBasicFiltering();
+                await this.testMultiDimensionalFiltering();
+                await this.testFilterPresets();
+                await this.testUIIntegration();
+                
+                this.displayResults();
+                this.setupInteractiveDemo();
+            }
+            
+            async testEndpointConnectivity() {
+                try {
+                    const endpoints = [
+                        '/api/work-items',
+                        '/api/metrics', 
+                        '/api/config',
+                        '/health'
+                    ];
+                    
+                    const results = await Promise.all(
+                        endpoints.map(async endpoint => {
+                            const response = await fetch(endpoint);
+                            return { endpoint, status: response.status, ok: response.ok };
+                        })
+                    );
+                    
+                    const failedEndpoints = results.filter(r => !r.ok);
+                    
+                    if (failedEndpoints.length === 0) {
+                        this.addResult('success', 'Endpoint Connectivity', 
+                            'All API endpoints responding correctly',
+                            results.map(r => `${r.endpoint}: ${r.status}`).join('\n'));
+                    } else {
+                        this.addResult('error', 'Endpoint Connectivity', 
+                            `${failedEndpoints.length} endpoints failed`,
+                            failedEndpoints.map(r => `${r.endpoint}: ${r.status}`).join('\n'));
+                    }
+                    
+                } catch (error) {
+                    this.addResult('error', 'Endpoint Connectivity', error.message);
+                }
+            }
+            
+            async testDataLoading() {
+                try {
+                    const response = await fetch('/api/work-items');
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
+                    this.workItemsData = await response.json();
+                    
+                    if (!Array.isArray(this.workItemsData)) {
+                        throw new Error('Work items data is not an array');
+                    }
+                    
+                    if (this.workItemsData.length === 0) {
+                        throw new Error('No work items loaded');
+                    }
+                    
+                    this.addResult('success', 'Data Loading', 
+                        `Successfully loaded ${this.workItemsData.length} work items`,
+                        `Sample item: ${JSON.stringify(this.workItemsData[0], null, 2)}`);
+                        
+                } catch (error) {
+                    this.addResult('error', 'Data Loading', error.message);
+                }
+            }
+            
+            async testDataStructure() {
+                try {
+                    if (this.workItemsData.length === 0) {
+                        throw new Error('No work items to test structure');
+                    }
+                    
+                    const requiredFields = ['id', 'title', 'workItemType', 'priority', 'assignedTo', 'state'];
+                    const firstItem = this.workItemsData[0];
+                    const missingFields = requiredFields.filter(field => !(field in firstItem));
+                    
+                    if (missingFields.length > 0) {
+                        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+                    }
+                    
+                    // Test data types
+                    const typeChecks = [
+                        { field: 'priority', expected: 'string', actual: typeof firstItem.priority },
+                        { field: 'assignedTo', expected: 'string', actual: typeof firstItem.assignedTo },
+                        { field: 'state', expected: 'string', actual: typeof firstItem.state }
+                    ];
+                    
+                    const typeErrors = typeChecks.filter(check => check.actual !== check.expected);
+                    
+                    if (typeErrors.length > 0) {
+                        this.addResult('warning', 'Data Structure', 
+                            'Some data types may not be optimal',
+                            typeErrors.map(e => `${e.field}: expected ${e.expected}, got ${e.actual}`).join('\n'));
+                    } else {
+                        this.addResult('success', 'Data Structure', 
+                            'All required fields present with correct types',
+                            typeChecks.map(c => `${c.field}: ${c.actual} ✓`).join('\n'));
+                    }
+                    
+                } catch (error) {
+                    this.addResult('error', 'Data Structure', error.message);
+                }
+            }
+            
+            async testAdvancedFilteringClass() {
+                try {
+                    if (typeof AdvancedFiltering === 'undefined') {
+                        throw new Error('AdvancedFiltering class not available');
+                    }
+                    
+                    this.advancedFiltering = new AdvancedFiltering();
+                    
+                    const requiredMethods = ['applyFilters', 'setFilter', 'clearFilters', 'getFilteredCount'];
+                    const availableMethods = requiredMethods.filter(method => 
+                        typeof this.advancedFiltering[method] === 'function'
+                    );
+                    
+                    if (availableMethods.length !== requiredMethods.length) {
+                        const missing = requiredMethods.filter(m => !availableMethods.includes(m));
+                        this.addResult('warning', 'Advanced Filtering Class', 
+                            'Some methods may not be available',
+                            `Missing: ${missing.join(', ')}\nAvailable: ${availableMethods.join(', ')}`);
+                    } else {
+                        this.addResult('success', 'Advanced Filtering Class', 
+                            'AdvancedFiltering class loaded with all methods',
+                            `Available methods: ${availableMethods.join(', ')}`);
+                    }
+                    
+                } catch (error) {
+                    this.addResult('error', 'Advanced Filtering Class', error.message);
+                }
+            }
+            
+            async testBasicFiltering() {
+                try {
+                    if (!this.advancedFiltering || this.workItemsData.length === 0) {
+                        throw new Error('Prerequisites not met for basic filtering test');
+                    }
+                    
+                    // Test single dimension filters
+                    const tests = [
+                        { filter: 'workItemTypes', value: ['Bug'], description: 'Filter by Bug type' },
+                        { filter: 'priorities', value: ['High'], description: 'Filter by High priority' },
+                        { filter: 'states', value: ['Closed'], description: 'Filter by Closed state' }
+                    ];
+                    
+                    const results = [];
+                    
+                    for (const test of tests) {
+                        this.advancedFiltering.clearFilters();
+                        this.advancedFiltering.filters[test.filter] = test.value;
+                        
+                        const filtered = this.advancedFiltering.applyFilters(this.workItemsData);
+                        const originalCount = this.workItemsData.length;
+                        const filteredCount = filtered.length;
+                        
+                        results.push(`${test.description}: ${originalCount} → ${filteredCount}`);
+                        
+                        if (filteredCount > originalCount) {
+                            throw new Error(`Filter increased count: ${test.description}`);
+                        }
+                    }
+                    
+                    this.addResult('success', 'Basic Filtering', 
+                        'All basic filters working correctly',
+                        results.join('\n'));
+                        
+                } catch (error) {
+                    this.addResult('error', 'Basic Filtering', error.message);
+                }
+            }
+            
+            async testMultiDimensionalFiltering() {
+                try {
+                    if (!this.advancedFiltering || this.workItemsData.length === 0) {
+                        throw new Error('Prerequisites not met for multi-dimensional filtering test');
+                    }
+                    
+                    this.advancedFiltering.clearFilters();
+                    this.advancedFiltering.filters.workItemTypes = ['Bug'];
+                    this.advancedFiltering.filters.priorities = ['High'];
+                    this.advancedFiltering.filters.states = ['New', 'Active'];
+                    
+                    const filtered = this.advancedFiltering.applyFilters(this.workItemsData);
+                    
+                    // Verify all items match all criteria
+                    const invalidItems = filtered.filter(item => 
+                        item.workItemType !== 'Bug' || 
+                        item.priority !== 'High' || 
+                        !['New', 'Active'].includes(item.state)
+                    );
+                    
+                    if (invalidItems.length > 0) {
+                        throw new Error(`${invalidItems.length} items don't match all filter criteria`);
+                    }
+                    
+                    this.addResult('success', 'Multi-Dimensional Filtering', 
+                        `Filtered ${this.workItemsData.length} → ${filtered.length} items with multiple criteria`,
+                        `High priority bugs that are New or Active: ${filtered.length} items`);
+                        
+                } catch (error) {
+                    this.addResult('error', 'Multi-Dimensional Filtering', error.message);
+                }
+            }
+            
+            async testFilterPresets() {
+                try {
+                    if (!this.advancedFiltering) {
+                        throw new Error('AdvancedFiltering not available for preset test');
+                    }
+                    
+                    const presetTests = ['last7days', 'last30days', 'current-sprint'];
+                    const results = [];
+                    
+                    for (const presetName of presetTests) {
+                        if (this.advancedFiltering.presets && this.advancedFiltering.presets.has(presetName)) {
+                            const preset = this.advancedFiltering.presets.get(presetName);
+                            results.push(`${presetName}: ${preset.name} ✓`);
+                        } else {
+                            results.push(`${presetName}: Not available ✗`);
+                        }
+                    }
+                    
+                    const availablePresets = results.filter(r => r.includes('✓')).length;
+                    
+                    if (availablePresets > 0) {
+                        this.addResult('success', 'Filter Presets', 
+                            `${availablePresets}/${presetTests.length} presets available`,
+                            results.join('\n'));
+                    } else {
+                        this.addResult('warning', 'Filter Presets', 
+                            'No presets available',
+                            'Presets may need to be implemented');
+                    }
+                    
+                } catch (error) {
+                    this.addResult('error', 'Filter Presets', error.message);
+                }
+            }
+            
+            async testUIIntegration() {
+                try {
+                    const uiElements = [
+                        'workItemType',
+                        'priority', 
+                        'state',
+                        'assignee'
+                    ];
+                    
+                    const missingElements = uiElements.filter(id => !document.getElementById(id));
+                    
+                    if (missingElements.length > 0) {
+                        throw new Error(`Missing UI elements: ${missingElements.join(', ')}`);
+                    }
+                    
+                    // Test if elements can be populated
+                    const workItemTypes = [...new Set(this.workItemsData.map(item => item.workItemType))];
+                    const priorities = [...new Set(this.workItemsData.map(item => item.priority))];
+                    const states = [...new Set(this.workItemsData.map(item => item.state))];
+                    const assignees = [...new Set(this.workItemsData.map(item => item.assignedTo))];
+                    
+                    this.addResult('success', 'UI Integration', 
+                        'All UI elements present and data available for population',
+                        `Types: ${workItemTypes.length}, Priorities: ${priorities.length}, States: ${states.length}, Assignees: ${assignees.length}`);
+                        
+                } catch (error) {
+                    this.addResult('error', 'UI Integration', error.message);
+                }
+            }
+            
+            setupInteractiveDemo() {
+                if (this.workItemsData.length === 0) return;
+                
+                // Populate assignee dropdown
+                const assigneeSelect = document.getElementById('assignee');
+                const assignees = [...new Set(this.workItemsData.map(item => item.assignedTo))].sort();
+                assignees.forEach(assignee => {
+                    const option = document.createElement('option');
+                    option.value = assignee;
+                    option.textContent = assignee;
+                    assigneeSelect.appendChild(option);
+                });
+                
+                // Initial display
+                this.currentFilteredData = this.workItemsData;
+                this.updateDisplay();
+            }
+            
+            updateDisplay() {
+                this.updateSummaryStats();
+                this.updateFilterResults();
+            }
+            
+            updateSummaryStats() {
+                const statsContainer = document.getElementById('summary-stats');
+                const data = this.currentFilteredData;
+                
+                const totalItems = data.length;
+                const bugCount = data.filter(item => item.workItemType === 'Bug').length;
+                const highPriorityCount = data.filter(item => item.priority === 'High').length;
+                const closedCount = data.filter(item => item.state === 'Closed').length;
+                
+                statsContainer.innerHTML = `
+                    <div class="stat-card">
+                        <h4>${totalItems}</h4>
+                        <p>Total Items</p>
+                    </div>
+                    <div class="stat-card danger">
+                        <h4>${bugCount}</h4>
+                        <p>Bugs</p>
+                    </div>
+                    <div class="stat-card warning">
+                        <h4>${highPriorityCount}</h4>
+                        <p>High Priority</p>
+                    </div>
+                    <div class="stat-card success">
+                        <h4>${closedCount}</h4>
+                        <p>Closed</p>
+                    </div>
+                `;
+            }
+            
+            updateFilterResults() {
+                const resultsContainer = document.getElementById('filter-results');
+                const data = this.currentFilteredData.slice(0, 50); // Limit display
+                
+                if (data.length === 0) {
+                    resultsContainer.innerHTML = '<p>No items match the current filters.</p>';
+                    return;
+                }
+                
+                resultsContainer.innerHTML = data.map(item => `
+                    <div class="work-item ${item.workItemType.toLowerCase()}">
+                        <strong>${item.id}: ${item.title}</strong><br>
+                        <small>
+                            Type: ${item.workItemType} | 
+                            Priority: ${item.priority} | 
+                            State: ${item.state} | 
+                            Assignee: ${item.assignedTo}
+                        </small>
+                    </div>
+                `).join('');
+                
+                if (this.currentFilteredData.length > 50) {
+                    resultsContainer.innerHTML += `<p><em>Showing 50 of ${this.currentFilteredData.length} items</em></p>`;
+                }
+            }
+            
+            addResult(type, testName, message, details = '') {
+                this.results.push({ type, testName, message, details });
+            }
+            
+            displayResults() {
+                this.resultsContainer.innerHTML = '';
+                
+                const summary = {
+                    total: this.results.length,
+                    success: this.results.filter(r => r.type === 'success').length,
+                    warning: this.results.filter(r => r.type === 'warning').length,
+                    error: this.results.filter(r => r.type === 'error').length
+                };
+                
+                const summaryDiv = document.createElement('div');
+                summaryDiv.className = `test-result ${summary.error > 0 ? 'error' : summary.warning > 0 ? 'warning' : 'success'}`;
+                summaryDiv.innerHTML = `
+                    <strong>🏆 Test Suite Summary</strong><br>
+                    Total Tests: ${summary.total} | 
+                    Passed: ${summary.success} | 
+                    Warnings: ${summary.warning} | 
+                    Failed: ${summary.error}<br>
+                    Success Rate: ${Math.round((summary.success / summary.total) * 100)}%
+                `;
+                this.resultsContainer.appendChild(summaryDiv);
+                
+                this.results.forEach(result => {
+                    const div = document.createElement('div');
+                    div.className = `test-result ${result.type}`;
+                    
+                    let html = `<strong>${result.testName}</strong>: ${result.message}`;
+                    if (result.details) {
+                        html += `<div class="test-details">${result.details}</div>`;
+                    }
+                    
+                    div.innerHTML = html;
+                    this.resultsContainer.appendChild(div);
+                });
+            }
+        }
+        
+        // Global functions for the interactive demo
+        let tester;
+        
+        function applyFilters() {
+            if (!tester || !tester.advancedFiltering) return;
+            
+            tester.advancedFiltering.clearFilters();
+            
+            const workItemType = document.getElementById('workItemType').value;
+            const priority = document.getElementById('priority').value;
+            const state = document.getElementById('state').value;
+            const assignee = document.getElementById('assignee').value;
+            
+            if (workItemType) tester.advancedFiltering.filters.workItemTypes = [workItemType];
+            if (priority) tester.advancedFiltering.filters.priorities = [priority];
+            if (state) tester.advancedFiltering.filters.states = [state];
+            if (assignee) tester.advancedFiltering.filters.assignees = [assignee];
+            
+            tester.currentFilteredData = tester.advancedFiltering.applyFilters(tester.workItemsData);
+            tester.updateDisplay();
+            
+            console.log(`Applied filters: ${tester.workItemsData.length} → ${tester.currentFilteredData.length} items`);
+        }
+        
+        function clearFilters() {
+            if (!tester) return;
+            
+            document.getElementById('workItemType').value = '';
+            document.getElementById('priority').value = '';
+            document.getElementById('state').value = '';
+            document.getElementById('assignee').value = '';
+            
+            if (tester.advancedFiltering) {
+                tester.advancedFiltering.clearFilters();
+            }
+            
+            tester.currentFilteredData = tester.workItemsData;
+            tester.updateDisplay();
+            
+            console.log('Filters cleared');
+        }
+        
+        function exportResults() {
+            if (!tester || !tester.currentFilteredData) return;
+            
+            const data = tester.currentFilteredData;
+            const csv = [
+                ['ID', 'Title', 'Type', 'Priority', 'State', 'Assignee'],
+                ...data.map(item => [
+                    item.id,
+                    item.title,
+                    item.workItemType,
+                    item.priority,
+                    item.state,
+                    item.assignedTo
+                ])
+            ].map(row => row.join(',')).join('\n');
+            
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'filtered_work_items.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            console.log(`Exported ${data.length} filtered items`);
+        }
+        
+        // Auto-run tests when page loads
+        window.addEventListener('load', () => {
+            tester = new CompleteFilteringTest();
+            tester.runAllTests();
+        });
+    </script>
+</body>
+</html>

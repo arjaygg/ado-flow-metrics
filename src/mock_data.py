@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from typing import List, Dict
 
 
-def generate_mock_azure_devops_data():
+def generate_mock_azure_devops_data(org_name="example-org", project_name="example-project"):
     """Generate mock Azure DevOps work items data for flow metrics calculation"""
 
     # Team members from the evaluation files
@@ -87,7 +87,7 @@ def generate_mock_azure_devops_data():
                     )
 
         work_item = {
-            "id": f"WI-{i+1:04d}",
+            "id": i+1,  # Use real Azure DevOps numeric ID directly
             "title": f"Work Item {i+1}",
             "type": random.choice(work_item_types),
             "priority": random.choice(priorities),
@@ -104,6 +104,11 @@ def generate_mock_azure_devops_data():
                 ["frontend", "backend", "database", "api", "ui", "testing"],
                 random.randint(1, 3),
             ),
+            # Azure DevOps API fields (mocked for consistency)
+            "url": f"https://dev.azure.com/{org_name}/{project_name}/_apis/wit/workitems/{i+1}",
+            "_links": {},  # Usually empty in real data
+            "rev": random.randint(1, 10),  # Mock revision number
+            "link": f"https://{org_name}.visualstudio.com/{project_name}/_workitems/edit/{i+1}",  # Proper web UI link
         }
 
         work_items.append(work_item)

@@ -1,12 +1,12 @@
 {
   "azure_devops": {
     "org_url": "https://dev.azure.com/your-org",
-    "default_project": "your-project-name",
+    "default_project": "your-project",
     "pat_token": "${AZURE_DEVOPS_PAT}"
   },
   "flow_metrics": {
     "throughput_period_days": 30,
-    "default_days_back": 90,
+    "default_days_back": 20,
     "executive_dashboard": {
       "enable_work_items_table": true,
       "items_per_page": 50,

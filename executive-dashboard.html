@@ -246,7 +246,7 @@
                 </div>
                 <div class="col-md-6">
                     <div class="btn-group w-100" role="group">
-                        <input type="radio" class="btn-check" name="dataSource" id="mockData" checked>
+                        <input type="radio" class="btn-check" name="dataSource" id="mockData">
                         <label class="btn btn-outline-primary" for="mockData">Demo Data</label>
 
                         <input type="radio" class="btn-check" name="dataSource" id="jsonFile">
@@ -255,7 +255,7 @@
                         <input type="radio" class="btn-check" name="dataSource" id="indexedDB">
                         <label class="btn btn-outline-primary" for="indexedDB">Saved Data</label>
 
-                        <input type="radio" class="btn-check" name="dataSource" id="cliData">
+                        <input type="radio" class="btn-check" name="dataSource" id="cliData" checked>
                         <label class="btn btn-outline-primary" for="cliData">CLI Data</label>
                     </div>
                 </div>
@@ -568,7 +568,28 @@
                 this.init();
             }
 
+            async loadConfig() {
+                try {
+                    const response = await fetch('./config/config.json');
+                    if (!response.ok) {
+                        throw new Error(`Failed to load config: ${response.status}`);
+                    }
+                    this.config = await response.json();
+                    console.log('Config loaded:', this.config);
+                } catch (error) {
+                    console.error('Failed to load configuration:', error);
+                    // Fallback to default config
+                    this.config = {
+                        azure_devops: {
+                            org_url: 'https://dev.azure.com/example-org',
+                            default_project: 'example-project'
+                        }
+                    };
+                }
+            }
+
             async init() {
+                await this.loadConfig();
                 await this.initIndexedDB();
                 await this.initWorkstreams();
                 this.setupEventListeners();
@@ -732,6 +753,10 @@
                         './data/test_metrics_report.json'
                     ];
 
+                    let metricsData = null;
+                    let workItemsData = null;
+
+                    // Load metrics data
                     for (const source of dataSources) {
                         try {
                             const response = await fetch(source);
@@ -741,14 +766,44 @@
 
                                 // Handle different data formats
                                 if (data.data) {
-                                    return data.data; // Dashboard format
+                                    metricsData = data.data; // Dashboard format
+                                    break;
                                 } else if (data.summary || data.lead_time || data.cycle_time) {
-                                    return data; // Direct metrics format
+                                    metricsData = data; // Direct metrics format
+                                    break;
                                 }
                             }
                         } catch (err) {
                             console.log(`Failed to load from ${source}: ${err.message}`);
                         }
+                    }
+
+                    // Try to load work items data - prefer real ADO data
+                    const workItemsSources = [
+                        './data/work_items_ado.json',  // Real ADO data
+                        './data/work_items.json'        // Fallback
+                    ];
+                    
+                    for (const source of workItemsSources) {
+                        try {
+                            const workItemsResponse = await fetch(source);
+                            if (workItemsResponse.ok) {
+                                workItemsData = await workItemsResponse.json();
+                                console.log(`Successfully loaded work items data from ${source}`);
+                                break;
+                            }
+                        } catch (err) {
+                            console.log(`Failed to load work items from ${source}: ${err.message}`);
+                        }
+                    }
+
+                    // Combine the data
+                    if (metricsData) {
+                        if (workItemsData && Array.isArray(workItemsData)) {
+                            // Add work items to metrics data
+                            metricsData.work_items = workItemsData;
+                        }
+                        return metricsData;
                     }
 
                     console.log('No CLI data found in any location');
@@ -1301,8 +1356,13 @@
                     workItems = data;
                 }
                 
-                this.currentWorkItems = workItems.map(item => ({
+                // Limit work items for better performance - paginate if needed
+                const maxWorkItems = 500; // Limit initial load
+                const limitedWorkItems = workItems.slice(0, maxWorkItems);
+                
+                this.currentWorkItems = limitedWorkItems.map(item => ({
                     id: item.id || item.raw_id || Math.random().toString(36),
+                    raw_id: item.raw_id || (typeof item.id === 'number' ? item.id : null),
                     title: item.title || 'No Title',
                     type: item.type || 'Task',
                     state: item.current_state || item.state || 'New',
@@ -1328,15 +1388,16 @@
                     // Generate completed items
                     for (let i = 0; i < Math.min(metrics.completed_items || 0, 10); i++) {
                         workItems.push({
-                            id: `WI-${itemId}`,
-                            raw_id: itemId,
+                            id: 2000000 + itemId, // Use numeric IDs like real ADO
+                            raw_id: 2000000 + itemId,
                             title: `${this.getRandomTaskTitle()} - ${memberName}`,
                             type: this.getRandomWorkItemType(),
                             current_state: 'Done',
                             assigned_to: memberName,
                             priority: Math.floor(Math.random() * 4) + 1,
                             created_date: this.getRandomDate(-30, -5),
-                            story_points: Math.floor(Math.random() * 8) + 1
+                            story_points: Math.floor(Math.random() * 8) + 1,
+                            link: this.generateWorkItemLink({ id: 2000000 + itemId })
                         });
                         itemId++;
                     }
@@ -1344,15 +1405,16 @@
                     // Generate active items
                     for (let i = 0; i < Math.min(metrics.active_items || 0, 5); i++) {
                         workItems.push({
-                            id: `WI-${itemId}`,
-                            raw_id: itemId,
+                            id: 2000000 + itemId, // Use numeric IDs like real ADO
+                            raw_id: 2000000 + itemId,
                             title: `${this.getRandomTaskTitle()} - ${memberName}`,
                             type: this.getRandomWorkItemType(),
                             current_state: this.getRandomActiveState(),
                             assigned_to: memberName,
                             priority: Math.floor(Math.random() * 4) + 1,
                             created_date: this.getRandomDate(-20, -1),
-                            story_points: Math.floor(Math.random() * 8) + 1
+                            story_points: Math.floor(Math.random() * 8) + 1,
+                            link: this.generateWorkItemLink({ id: 2000000 + itemId })
                         });
                         itemId++;
                     }
@@ -1395,13 +1457,24 @@
             }
 
             generateWorkItemLink(item) {
-                const baseUrl = 'https://dev.azure.com';
-                const orgName = 'your-organization';
-                const projectName = 'your-project';
+                // If item already has a valid link, use it
+                if (item.link && item.link !== 'null' && item.link !== null) {
+                    return item.link;
+                }
                 
-                if (item.raw_id || item.id) {
-                    const workItemId = item.raw_id || item.id.toString().replace('WI-', '');
-                    return `${baseUrl}/${orgName}/${projectName}/_workitems/edit/${workItemId}`;
+                // Generate proper web link for Azure DevOps
+                // Format: https://org.visualstudio.com/project/_workitems/edit/ID
+                const orgUrl = this.config?.azure_devops?.org_url || 'https://dev.azure.com/example-org';
+                const projectName = this.config?.azure_devops?.default_project || 'example-project';
+                
+                // Extract org name from URL
+                const orgName = orgUrl.replace('https://dev.azure.com/', '').replace('https://', '').replace('.visualstudio.com', '').trim();
+                
+                // Get the real Azure DevOps ID for the link
+                const realId = this.getRealAzureDevOpsId(item);
+                
+                if (realId) {
+                    return `https://${orgName}.visualstudio.com/${projectName}/_workitems/edit/${realId}`;
                 }
                 
                 return '#';
@@ -1455,6 +1528,25 @@
                 this.updateWorkItemsCount();
             }
 
+            getRealAzureDevOpsId(item) {
+                // Simple function - just return the numeric ID
+                // All new data should have numeric IDs
+                if (item.raw_id) {
+                    return item.raw_id;
+                }
+                
+                if (typeof item.id === 'number') {
+                    return item.id;
+                }
+                
+                // Handle legacy WI- prefixed IDs
+                if (typeof item.id === 'string' && item.id.startsWith('WI-')) {
+                    return item.id.substring(3);
+                }
+                
+                return item.id;
+            }
+
             renderWorkItemRow(item) {
                 const workstreamClass = `workstream-${item.workstream.toLowerCase().replace(/[^a-z0-9]/g, '')}`;
                 const priorityClass = `priority-${item.priority}`;
@@ -1463,9 +1555,12 @@
                 const priorityText = ['', 'Critical', 'High', 'Medium', 'Low'][item.priority] || 'Medium';
                 const createdDate = new Date(item.created_date).toLocaleDateString();
                 
+                // Get the real Azure DevOps ID - use raw_id if available, otherwise extract from id
+                const adoId = this.getRealAzureDevOpsId(item);
+                
                 return `
                     <tr>
-                        <td><strong>${item.id}</strong></td>
+                        <td><strong>${adoId}</strong></td>
                         <td>
                             <div class="text-truncate" style="max-width: 200px;" title="${item.title}">
                                 ${item.title}
@@ -1588,7 +1683,7 @@
                 
                 this.filteredWorkItems.forEach(item => {
                     const row = [
-                        `"${item.id}"`,
+                        `"${this.getRealAzureDevOpsId(item)}"`,
                         `"${item.title.replace(/"/g, '""')}"`,
                         `"${item.type}"`,
                         `"${item.state}"`,

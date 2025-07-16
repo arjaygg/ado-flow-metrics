@@ -1,0 +1,56 @@
+{
+  "status": "PASSED",
+  "timestamp": "2025-07-14 13:02:22",
+  "summary": {
+    "total_errors": 0,
+    "total_warnings": 0
+  },
+  "errors": [],
+  "warnings": [],
+  "results": {
+    "config_files": {
+      "workflow_states": {
+        "file_exists": true,
+        "categories_count": 0,
+        "states_count": 0
+      },
+      "work_item_types": {
+        "file_exists": true,
+        "types_count": 16
+      },
+      "calculation_parameters": {
+        "file_exists": true,
+        "has_flow_metrics": true,
+        "has_thresholds": true
+      }
+    },
+    "config_validation": {
+      "workflow_states": true,
+      "work_item_types": true,
+      "calculation_parameters": true
+    },
+    "state_coverage": {
+      "total_actual_states": 63,
+      "total_configured_states": 63,
+      "coverage_percentage": 100.0,
+      "missing_states": [],
+      "extra_states": []
+    },
+    "type_coverage": {
+      "total_actual_types": 16,
+      "total_configured_types": 16,
+      "coverage_percentage": 100.0,
+      "missing_types": [],
+      "extra_types": []
+    },
+    "integration_tests": [
+      "state_categorization",
+      "type_behavior",
+      "calculation_parameters"
+    ],
+    "performance": {
+      "avg_load_time_ms": 0.0005006790161132812,
+      "avg_state_lookup_time_us": 0.5102157592773438
+    }
+  }
+}

@@ -13,11 +13,11 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent / "src"))
 
-from azure_devops_client import AzureDevOpsClient
-from calculator import FlowMetricsCalculator
-from mock_data import generate_mock_azure_devops_data
-from config_manager import config_manager
-from logging_setup import setup_logging
+from src.azure_devops_client import AzureDevOpsClient
+from src.calculator import FlowMetricsCalculator
+from src.mock_data import generate_mock_azure_devops_data
+from src.config_manager import get_settings
+from src.logging_setup import setup_logging
 
 
 def test_ado_client():
@@ -25,7 +25,7 @@ def test_ado_client():
     print(">> Testing Azure DevOps Client...")
 
     # Load configuration from the central manager
-    config = config_manager.settings
+    config = get_settings()
     ado_config = config.azure_devops
 
     # The PAT token must come from the environment for security
@@ -81,8 +81,8 @@ def test_complete_workflow():
 
     # Step 2: Calculate metrics
     print("Step 2: Calculate Flow Metrics")
-    config = config_manager.settings
-    calculator = FlowMetricsCalculator(work_items, config.model_dump())
+    config = get_settings()
+    calculator = FlowMetricsCalculator(work_items, config)
 
     try:
         report = calculator.generate_flow_metrics_report()

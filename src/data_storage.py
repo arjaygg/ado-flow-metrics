@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional
 
 from src.config_manager import FlowMetricsSettings
 from src.models import FlowMetrics, WorkItem
+from src.exceptions import DatabaseError, DataValidationError, ExportError
 
 
 class FlowMetricsDatabase:
@@ -160,10 +161,14 @@ class FlowMetricsDatabase:
             )
             conn.row_factory = sqlite3.Row
             yield conn
+        except sqlite3.Error as e:
+            if conn:
+                conn.rollback()
+            raise DatabaseError(f"Database operation failed: {e}") from e
         except Exception as e:
             if conn:
                 conn.rollback()
-            raise e
+            raise DatabaseError(f"Unexpected database error: {e}") from e
         finally:
             if conn:
                 conn.close()
@@ -445,32 +450,20 @@ class FlowMetricsDatabase:
             old_execution_ids = [row[0] for row in cursor.fetchall()]
 
             if old_execution_ids:
-                # Delete related data using safer SQL construction
+                # Delete related data using safe parameterized queries
                 placeholders = ",".join(["?"] * len(old_execution_ids))
-
-                # Use format() instead of f-strings for SQL construction
-                cursor.execute(
-                    "DELETE FROM state_transitions WHERE execution_id IN ({})".format(
-                        placeholders
-                    ),
-                    old_execution_ids,
-                )
-                cursor.execute(
-                    "DELETE FROM work_items WHERE execution_id IN ({})".format(
-                        placeholders
-                    ),
-                    old_execution_ids,
-                )
-                cursor.execute(
-                    "DELETE FROM flow_metrics WHERE execution_id IN ({})".format(
-                        placeholders
-                    ),
-                    old_execution_ids,
-                )
-                cursor.execute(
-                    "DELETE FROM executions WHERE id IN ({})".format(placeholders),
-                    old_execution_ids,
-                )
+                
+                # Build SQL queries with proper parameterization
+                state_transitions_sql = f"DELETE FROM state_transitions WHERE execution_id IN ({placeholders})"
+                work_items_sql = f"DELETE FROM work_items WHERE execution_id IN ({placeholders})"
+                flow_metrics_sql = f"DELETE FROM flow_metrics WHERE execution_id IN ({placeholders})"
+                executions_sql = f"DELETE FROM executions WHERE id IN ({placeholders})"
+                
+                # Execute with parameterized queries
+                cursor.execute(state_transitions_sql, old_execution_ids)
+                cursor.execute(work_items_sql, old_execution_ids)
+                cursor.execute(flow_metrics_sql, old_execution_ids)
+                cursor.execute(executions_sql, old_execution_ids)
 
                 conn.commit()
                 return len(old_execution_ids)
@@ -501,9 +494,8 @@ class FlowMetricsDatabase:
                 where_clause = ""
                 params = []
 
-            # Export executions and metrics
-            cursor.execute(
-                f"""
+            # Build SQL query with safe parameterization
+            export_sql = f"""
                 SELECT
                     e.*,
                     fm.period_start, fm.period_end, fm.total_items, fm.completed_items,
@@ -517,9 +509,10 @@ class FlowMetricsDatabase:
                 LEFT JOIN flow_metrics fm ON e.id = fm.execution_id
                 {where_clause}
                 ORDER BY e.timestamp
-            """,
-                params,
-            )
+            """
+            
+            # Export executions and metrics
+            cursor.execute(export_sql, params)
 
             export_data = {
                 "exported_at": datetime.now(timezone.utc).isoformat(),

@@ -4,11 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flow Metrics Dashboard</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4e73df">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
     <script src="js/workstream_config.js"></script>
     <script src="js/workstream-manager.js"></script>
+    <script src="js/predictive-analytics.js"></script>
+    <script src="js/time-series-analysis.js"></script>
+    <script src="js/enhanced-ux.js"></script>
+    <script src="js/advanced-filtering.js"></script>
+    <script src="js/export-collaboration.js"></script>
+    <script src="js/actionable-insights-engine.js"></script>
+    <script src="js/pwa-manager.js"></script>
+    <script src="js/dashboard.js"></script>
     <style>
         :root {
             --primary-color: #4e73df;
@@ -45,6 +55,420 @@
             padding: 1rem;
             margin-bottom: 1rem;
             box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        }
+        
+        .advanced-filtering-panel {
+            background: white;
+            border-radius: 0.35rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        }
+        
+        .filter-section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .filter-presets {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .preset-btn {
+            padding: 0.375rem 0.75rem;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+        }
+        
+        .preset-btn:hover {
+            background: #f8f9fa;
+            border-color: #adb5bd;
+        }
+        
+        .preset-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .filter-summary {
+            background: #f8f9fa;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--info-color);
+        }
+        
+        .filter-summary.active {
+            border-left-color: var(--success-color);
+        }
+        
+        .filter-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.375rem;
+            margin-top: 0.5rem;
+        }
+        
+        .filter-chip {
+            background: var(--info-color);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .filter-chip .remove-chip {
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        
+        .filter-chip .remove-chip:hover {
+            opacity: 1;
+        }
+        
+        .drill-down-breadcrumb {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 0.375rem;
+            padding: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .breadcrumb-item {
+            display: inline-block;
+            margin-right: 0.5rem;
+        }
+        
+        .breadcrumb-item:not(:last-child)::after {
+            content: '>';
+            margin-left: 0.5rem;
+            color: #6c757d;
+        }
+        
+        .breadcrumb-link {
+            color: var(--primary-color);
+            text-decoration: none;
+            cursor: pointer;
+        }
+        
+        .breadcrumb-link:hover {
+            text-decoration: underline;
+        }
+        
+        .filter-controls {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .filter-history-nav {
+            display: flex;
+            gap: 0.25rem;
+        }
+        
+        .filter-history-nav button {
+            padding: 0.25rem 0.5rem;
+            border: 1px solid #dee2e6;
+            background: white;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .filter-history-nav button:hover:not(:disabled) {
+            background: #f8f9fa;
+        }
+        
+        .filter-history-nav button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .filter-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+        }
+        
+        .filter-panel-collapsed .filter-content {
+            display: none;
+        }
+        
+        .multi-select {
+            position: relative;
+        }
+        
+        .multi-select-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .multi-select-option {
+            padding: 0.5rem 0.75rem;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .multi-select-option:hover {
+            background: #f8f9fa;
+        }
+        
+        .multi-select-option.selected {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .date-range-picker {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        
+        @media (max-width: 768px) {
+            .filter-presets {
+                flex-direction: column;
+            }
+            
+            .filter-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .date-range-picker {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+        
+        /* Export & Collaboration Styles */
+        .export-collaboration-panel {
+            background: white;
+            border-radius: 0.35rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        }
+        
+        .export-format-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .export-format-card {
+            border: 2px solid #dee2e6;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .export-format-card:hover {
+            border-color: var(--primary-color);
+            background: #f8f9fc;
+        }
+        
+        .export-format-card.selected {
+            border-color: var(--primary-color);
+            background: #e3f0ff;
+        }
+        
+        .export-format-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary-color);
+        }
+        
+        .export-format-name {
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+        
+        .export-format-description {
+            font-size: 0.875rem;
+            color: #6c757d;
+        }
+        
+        .export-options {
+            background: #f8f9fa;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .share-link-container {
+            background: #e7f3ff;
+            border: 1px solid #b8daff;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .share-link-input {
+            background: white;
+            border: 1px solid #ced4da;
+            border-radius: 0.375rem;
+            padding: 0.5rem;
+            width: 100%;
+            font-family: monospace;
+            font-size: 0.875rem;
+        }
+        
+        .collaboration-room {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .participant-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+        
+        .participant-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+        
+        .export-history-table {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .export-progress {
+            background: #f8f9fa;
+            border-radius: 0.375rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--info-color);
+        }
+        
+        .export-progress.success {
+            border-left-color: var(--success-color);
+            background: #d4edda;
+        }
+        
+        .export-progress.error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+        }
+        
+        .collaboration-message {
+            background: white;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            border-left: 3px solid var(--info-color);
+        }
+        
+        .collaboration-message.filter-change {
+            border-left-color: var(--warning-color);
+        }
+        
+        .collaboration-message.annotation {
+            border-left-color: var(--success-color);
+        }
+        
+        .message-sender {
+            font-weight: bold;
+            font-size: 0.875rem;
+            color: var(--primary-color);
+        }
+        
+        .message-timestamp {
+            font-size: 0.75rem;
+            color: #6c757d;
+            float: right;
+        }
+        
+        .message-content {
+            margin-top: 0.25rem;
+            font-size: 0.875rem;
+        }
+        
+        .export-collaboration-tabs {
+            display: flex;
+            border-bottom: 1px solid #dee2e6;
+            margin-bottom: 1.5rem;
+        }
+        
+        .tab-button {
+            background: none;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+        
+        .tab-button:hover {
+            background: #f8f9fa;
+        }
+        
+        .tab-button.active {
+            border-bottom-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @media (max-width: 768px) {
+            .export-format-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .export-collaboration-tabs {
+                flex-direction: column;
+            }
+            
+            .tab-button {
+                text-align: left;
+                border-bottom: 1px solid #dee2e6;
+                border-radius: 0;
+            }
         }
     </style>
 </head>
@@ -95,10 +519,16 @@
                     </div>
                 </div>
             </div>
+            <!-- Quick Filters Note -->
+            <div class="alert alert-info mb-3">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong>Tip:</strong> For comprehensive filtering including work item types, priorities, assignees, states, and more, use the <strong>Advanced Filtering & Drill-Down</strong> section below.
+            </div>
+            
             <!-- Work Item Type Filter -->
             <div class="row align-items-center mb-3">
                 <div class="col-md-6">
-                    <h6 class="mb-0">Work Item Type Filter</h6>
+                    <h6 class="mb-0">Work Item Type Filter (Basic)</h6>
                     <small class="text-muted" id="workItemTypeInfo">All types included</small>
                 </div>
                 <div class="col-md-6">
@@ -137,7 +567,7 @@
             <!-- Sprint Filter -->
             <div class="row align-items-center mb-3">
                 <div class="col-md-6">
-                    <h6 class="mb-0">Sprint Filter</h6>
+                    <h6 class="mb-0">Sprint Filter (Basic)</h6>
                     <small class="text-muted" id="sprintInfo">All sprints included</small>
                 </div>
                 <div class="col-md-6">
@@ -159,7 +589,7 @@
             <!-- Workstream Filter -->
             <div class="row align-items-center">
                 <div class="col-md-6">
-                    <h6 class="mb-0">Workstream Filter</h6>
+                    <h6 class="mb-0">Workstream Filter (Basic)</h6>
                     <small class="text-muted" id="workstreamInfo">All teams included</small>
                 </div>
                 <div class="col-md-6">
@@ -174,6 +604,429 @@
                             <li><hr class="dropdown-divider"></li>
                             <!-- Workstream options will be populated by JavaScript -->
                         </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advanced Filtering Panel -->
+        <div class="advanced-filtering-panel" id="advancedFilteringPanel">
+            <div class="filter-toggle" onclick="toggleFilterPanel()">
+                <h5 class="mb-0">
+                    <i class="fas fa-filter me-2"></i>
+                    Advanced Filtering & Drill-Down
+                </h5>
+                <i class="fas fa-chevron-up ms-auto" id="filterToggleIcon"></i>
+            </div>
+            
+            <div class="filter-content" id="filterContent" style="display: block;">
+                <!-- Filter Summary -->
+                <div class="filter-summary" id="filterSummary">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>Active Filters:</strong>
+                            <span id="filterCount">None</span>
+                        </div>
+                        <div class="filter-controls">
+                            <div class="filter-history-nav">
+                                <button type="button" id="filterBackBtn" onclick="goBackFilter()" disabled>
+                                    <i class="fas fa-arrow-left"></i>
+                                </button>
+                                <button type="button" id="filterForwardBtn" onclick="goForwardFilter()" disabled>
+                                    <i class="fas fa-arrow-right"></i>
+                                </button>
+                            </div>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="clearAllFilters()">
+                                <i class="fas fa-times me-1"></i>Clear All
+                            </button>
+                            <button class="btn btn-sm btn-outline-primary" onclick="shareFilters()">
+                                <i class="fas fa-share me-1"></i>Share
+                            </button>
+                        </div>
+                    </div>
+                    <div class="filter-chips" id="filterChips"></div>
+                </div>
+
+                <!-- Drill-down Breadcrumb -->
+                <div class="drill-down-breadcrumb" id="drillDownBreadcrumb" style="display: none;">
+                    <i class="fas fa-sitemap me-2"></i>
+                    <span class="text-muted">Drill-down Path:</span>
+                    <div class="breadcrumb-items" id="breadcrumbItems"></div>
+                </div>
+
+                <!-- Filter Presets -->
+                <div class="filter-section">
+                    <h6 class="mb-2">Quick Presets</h6>
+                    <div class="filter-presets" id="filterPresets">
+                        <button class="preset-btn" data-preset="last7days">Last 7 Days</button>
+                        <button class="preset-btn" data-preset="last30days">Last 30 Days</button>
+                        <button class="preset-btn" data-preset="current-sprint">Current Sprint</button>
+                        <button class="preset-btn" data-preset="high-priority">High Priority</button>
+                        <button class="preset-btn" data-preset="bugs-only">Bugs Only</button>
+                        <button class="preset-btn" data-preset="completed-items">Completed Items</button>
+                    </div>
+                </div>
+
+                <!-- Filter Controls -->
+                <div class="row">
+                    <!-- Date Range Filter -->
+                    <div class="col-md-6 filter-section">
+                        <h6 class="mb-2">Date Range</h6>
+                        <div class="date-range-picker">
+                            <input type="date" class="form-control" id="startDateFilter" placeholder="Start Date">
+                            <span class="align-self-center">to</span>
+                            <input type="date" class="form-control" id="endDateFilter" placeholder="End Date">
+                        </div>
+                    </div>
+
+                    <!-- Work Item Types Filter -->
+                    <div class="col-md-6 filter-section">
+                        <h6 class="mb-2">Work Item Types</h6>
+                        <div class="multi-select" id="workItemTypesFilter">
+                            <input type="text" class="form-control" placeholder="Select work item types..." readonly onclick="toggleMultiSelect('workItemTypes')">
+                            <div class="multi-select-dropdown" id="workItemTypesDropdown" style="display: none;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Priorities Filter -->
+                    <div class="col-md-6 filter-section">
+                        <h6 class="mb-2">Priorities</h6>
+                        <div class="multi-select" id="prioritiesFilter">
+                            <input type="text" class="form-control" placeholder="Select priorities..." readonly onclick="toggleMultiSelect('priorities')">
+                            <div class="multi-select-dropdown" id="prioritiesDropdown" style="display: none;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Assignees Filter -->
+                    <div class="col-md-6 filter-section">
+                        <h6 class="mb-2">Assignees</h6>
+                        <div class="multi-select" id="assigneesFilter">
+                            <input type="text" class="form-control" placeholder="Select assignees..." readonly onclick="toggleMultiSelect('assignees')">
+                            <div class="multi-select-dropdown" id="assigneesDropdown" style="display: none;"></div>
+                        </div>
+                    </div>
+
+                    <!-- States Filter -->
+                    <div class="col-md-6 filter-section">
+                        <h6 class="mb-2">States</h6>
+                        <div class="multi-select" id="statesFilter">
+                            <input type="text" class="form-control" placeholder="Select states..." readonly onclick="toggleMultiSelect('states')">
+                            <div class="multi-select-dropdown" id="statesDropdown" style="display: none;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Tags Filter -->
+                    <div class="col-md-6 filter-section">
+                        <h6 class="mb-2">Tags</h6>
+                        <div class="multi-select" id="tagsFilter">
+                            <input type="text" class="form-control" placeholder="Select tags..." readonly onclick="toggleMultiSelect('tags')">
+                            <div class="multi-select-dropdown" id="tagsDropdown" style="display: none;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Save Custom Preset -->
+                <div class="filter-section">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <input type="text" class="form-control" id="customPresetName" placeholder="Save current filters as preset...">
+                        </div>
+                        <div class="col-md-4">
+                            <button class="btn btn-outline-success w-100" onclick="saveCustomPreset()">
+                                <i class="fas fa-save me-1"></i>Save Preset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export & Collaboration Panel -->
+        <div class="export-collaboration-panel" id="exportCollaborationPanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">
+                    <i class="fas fa-download me-2"></i>
+                    Export & Collaboration
+                </h5>
+                <button class="btn btn-sm btn-outline-primary" onclick="toggleExportPanel()">
+                    <i class="fas fa-chevron-down" id="exportToggleIcon"></i>
+                </button>
+            </div>
+            
+            <div class="export-content" id="exportContent">
+                <!-- Tabs -->
+                <div class="export-collaboration-tabs">
+                    <button class="tab-button active" onclick="switchExportTab('export')">
+                        <i class="fas fa-file-export me-1"></i>Export
+                    </button>
+                    <button class="tab-button" onclick="switchExportTab('share')">
+                        <i class="fas fa-share-alt me-1"></i>Share
+                    </button>
+                    <button class="tab-button" onclick="switchExportTab('collaborate')">
+                        <i class="fas fa-users me-1"></i>Collaborate
+                    </button>
+                    <button class="tab-button" onclick="switchExportTab('history')">
+                        <i class="fas fa-history me-1"></i>History
+                    </button>
+                </div>
+
+                <!-- Export Tab -->
+                <div class="tab-content active" id="exportTab">
+                    <div class="export-progress" id="exportProgress" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>Preparing export...</span>
+                            <div class="spinner-border spinner-border-sm" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                        <div class="progress mt-2" style="height: 6px;">
+                            <div class="progress-bar" id="exportProgressBar" role="progressbar" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div class="export-format-grid" id="exportFormatGrid">
+                        <div class="export-format-card" data-format="pdf" onclick="selectExportFormat('pdf')">
+                            <div class="export-format-icon">
+                                <i class="fas fa-file-pdf"></i>
+                            </div>
+                            <div class="export-format-name">PDF Report</div>
+                            <div class="export-format-description">Comprehensive report with charts and metrics</div>
+                        </div>
+
+                        <div class="export-format-card" data-format="excel" onclick="selectExportFormat('excel')">
+                            <div class="export-format-icon">
+                                <i class="fas fa-file-excel"></i>
+                            </div>
+                            <div class="export-format-name">Excel Spreadsheet</div>
+                            <div class="export-format-description">Raw data and metrics for analysis</div>
+                        </div>
+
+                        <div class="export-format-card" data-format="csv" onclick="selectExportFormat('csv')">
+                            <div class="export-format-icon">
+                                <i class="fas fa-file-csv"></i>
+                            </div>
+                            <div class="export-format-name">CSV Data</div>
+                            <div class="export-format-description">Comma-separated values for import</div>
+                        </div>
+
+                        <div class="export-format-card" data-format="json" onclick="selectExportFormat('json')">
+                            <div class="export-format-icon">
+                                <i class="fas fa-file-code"></i>
+                            </div>
+                            <div class="export-format-name">JSON Data</div>
+                            <div class="export-format-description">Structured data in JSON format</div>
+                        </div>
+
+                        <div class="export-format-card" data-format="png" onclick="selectExportFormat('png')">
+                            <div class="export-format-icon">
+                                <i class="fas fa-image"></i>
+                            </div>
+                            <div class="export-format-name">PNG Image</div>
+                            <div class="export-format-description">Dashboard screenshot</div>
+                        </div>
+                    </div>
+
+                    <div class="export-options" id="exportOptions" style="display: none;">
+                        <h6>Export Options</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="exportTitle" class="form-label">Report Title</label>
+                                    <input type="text" class="form-control" id="exportTitle" value="Flow Metrics Dashboard Report">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="exportSubtitle" class="form-label">Subtitle</label>
+                                    <input type="text" class="form-control" id="exportSubtitle" value="">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="includeCharts" checked>
+                                    <label class="form-check-label" for="includeCharts">Include Charts</label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="includeData" checked>
+                                    <label class="form-check-label" for="includeData">Include Raw Data</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="includeMetrics" checked>
+                                    <label class="form-check-label" for="includeMetrics">Include Metrics Summary</label>
+                                </div>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="includeInsights" checked>
+                                    <label class="form-check-label" for="includeInsights">Include Insights</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <button class="btn btn-secondary me-2" onclick="cancelExport()">Cancel</button>
+                            <button class="btn btn-primary" onclick="performExport()">
+                                <i class="fas fa-download me-1"></i>Export Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Share Tab -->
+                <div class="tab-content" id="shareTab">
+                    <div class="mb-3">
+                        <h6>Dashboard Sharing</h6>
+                        <p class="text-muted">Generate a shareable link for this dashboard view.</p>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="shareTitle" class="form-label">Share Title</label>
+                            <input type="text" class="form-control" id="shareTitle" value="Flow Metrics Dashboard">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="shareExpiry" class="form-label">Expires In</label>
+                            <select class="form-select" id="shareExpiry">
+                                <option value="1">1 Day</option>
+                                <option value="7" selected>7 Days</option>
+                                <option value="30">30 Days</option>
+                                <option value="never">Never</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="allowEdit">
+                                <label class="form-check-label" for="allowEdit">Allow editing</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="requirePassword">
+                                <label class="form-check-label" for="requirePassword">Require password</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3" id="passwordSection" style="display: none;">
+                        <label for="sharePassword" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="sharePassword" placeholder="Enter password">
+                    </div>
+
+                    <div class="text-end mb-3">
+                        <button class="btn btn-primary" onclick="generateShareLink()">
+                            <i class="fas fa-link me-1"></i>Generate Share Link
+                        </button>
+                    </div>
+
+                    <div class="share-link-container" id="shareLinkContainer" style="display: none;">
+                        <h6><i class="fas fa-link me-2"></i>Shareable Link</h6>
+                        <div class="input-group">
+                            <input type="text" class="share-link-input" id="shareLinkInput" readonly>
+                            <button class="btn btn-outline-secondary" onclick="copyShareLink()">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                        <small class="text-muted mt-1 d-block">Anyone with this link can view your dashboard</small>
+                    </div>
+                </div>
+
+                <!-- Collaborate Tab -->
+                <div class="tab-content" id="collaborateTab">
+                    <div class="mb-3">
+                        <h6>Team Collaboration</h6>
+                        <p class="text-muted">Create or join collaboration rooms for real-time team insights.</p>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <input type="text" class="form-control" id="collaborationRoomName" placeholder="Enter room name or ID">
+                        </div>
+                        <div class="col-md-4">
+                            <div class="btn-group w-100">
+                                <button class="btn btn-primary" onclick="createCollaborationRoom()">
+                                    <i class="fas fa-plus me-1"></i>Create
+                                </button>
+                                <button class="btn btn-outline-primary" onclick="joinCollaborationRoom()">
+                                    <i class="fas fa-sign-in-alt me-1"></i>Join
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="collaboration-room" id="activeRoom" style="display: none;">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="mb-0">
+                                <i class="fas fa-users me-2"></i>
+                                <span id="roomName">Collaboration Room</span>
+                            </h6>
+                            <button class="btn btn-sm btn-outline-danger" onclick="leaveCollaborationRoom()">
+                                <i class="fas fa-sign-out-alt me-1"></i>Leave
+                            </button>
+                        </div>
+                        
+                        <div class="mb-2">
+                            <small class="text-muted">Room ID: <span id="roomId"></span></small>
+                        </div>
+                        
+                        <div class="mb-2">
+                            <strong>Participants (<span id="participantCount">0</span>):</strong>
+                            <div class="participant-list" id="participantList"></div>
+                        </div>
+                    </div>
+
+                    <div class="collaboration-messages" id="collaborationMessages" style="display: none;">
+                        <h6>Recent Activity</h6>
+                        <div class="collaboration-message-list" id="messageList" style="max-height: 200px; overflow-y: auto;">
+                            <!-- Messages will be populated here -->
+                        </div>
+                        
+                        <div class="mt-2">
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="messageInput" placeholder="Send a message...">
+                                <button class="btn btn-outline-primary" onclick="sendCollaborationMessage()">
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- History Tab -->
+                <div class="tab-content" id="historyTab">
+                    <div class="mb-3">
+                        <h6>Export History</h6>
+                        <p class="text-muted">Recent exports and downloads</p>
+                    </div>
+
+                    <div class="export-history-table">
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Format</th>
+                                        <th>Title</th>
+                                        <th>Size</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="exportHistoryTableBody">
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">No exports yet</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="text-end">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="clearExportHistory()">
+                            <i class="fas fa-trash me-1"></i>Clear History
+                        </button>
                     </div>
                 </div>
             </div>
@@ -282,6 +1135,133 @@
             </div>
         </div>
 
+        <!-- Predictive Analytics Section -->
+        <div class="row mb-4">
+            <div class="col-lg-8">
+                <div class="chart-container">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="text-primary mb-0">Delivery Forecast</h6>
+                        <div class="d-flex gap-2">
+                            <select id="forecastItems" class="form-select form-select-sm" style="width: auto;">
+                                <option value="10">10 items</option>
+                                <option value="20" selected>20 items</option>
+                                <option value="50">50 items</option>
+                                <option value="100">100 items</option>
+                            </select>
+                            <button id="updateForecast" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-sync"></i> Update
+                            </button>
+                        </div>
+                    </div>
+                    <div id="forecastChart" style="height: 300px;"></div>
+                    <div class="row mt-3">
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <div class="text-success fw-bold" id="optimisticDate">--</div>
+                                <small class="text-muted">Optimistic (10%)</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <div class="text-primary fw-bold" id="realisticDate">--</div>
+                                <small class="text-muted">Realistic (50%)</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <div class="text-warning fw-bold" id="pessimisticDate">--</div>
+                                <small class="text-muted">Pessimistic (90%)</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="chart-container">
+                    <h6 class="text-primary mb-3">Velocity Trend</h6>
+                    <div id="velocityTrendChart" style="height: 200px;"></div>
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">Trend Direction</span>
+                            <span id="trendDirection" class="badge bg-secondary">--</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">Risk Level</span>
+                            <span id="riskLevel" class="badge bg-secondary">--</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">Confidence</span>
+                            <span id="forecastConfidence" class="fw-bold">--%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Insights and Recommendations -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="chart-container">
+                    <h6 class="text-primary mb-3">
+                        <i class="fas fa-lightbulb me-2"></i>Insights & Recommendations
+                    </h6>
+                    <div id="insightsContainer">
+                        <div class="row" id="insightCards">
+                            <!-- Insight cards will be populated dynamically -->
+                        </div>
+                        <div class="mt-3">
+                            <h6 class="text-secondary mb-2">Recommendations</h6>
+                            <ul id="recommendationsList" class="list-unstyled">
+                                <!-- Recommendations will be populated dynamically -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Time Series Analysis -->
+        <div class="row mb-4">
+            <div class="col-lg-6">
+                <div class="chart-container">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="text-primary mb-0">Moving Averages</h6>
+                        <div class="btn-group btn-group-sm" role="group">
+                            <input type="radio" class="btn-check" name="maMetric" id="ma-leadtime" value="leadTime" checked>
+                            <label class="btn btn-outline-primary" for="ma-leadtime">Lead Time</label>
+                            <input type="radio" class="btn-check" name="maMetric" id="ma-cycletime" value="cycleTime">
+                            <label class="btn btn-outline-primary" for="ma-cycletime">Cycle Time</label>
+                            <input type="radio" class="btn-check" name="maMetric" id="ma-throughput" value="throughput">
+                            <label class="btn btn-outline-primary" for="ma-throughput">Throughput</label>
+                        </div>
+                    </div>
+                    <div id="movingAveragesChart" style="height: 300px;"></div>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="chart-container">
+                    <h6 class="text-primary mb-3">Period Comparison</h6>
+                    <div id="periodComparisonChart" style="height: 300px;"></div>
+                    <div class="mt-3">
+                        <div class="row text-center">
+                            <div class="col">
+                                <div class="text-primary fw-bold" id="currentPeriodValue">--</div>
+                                <small class="text-muted">Current Period</small>
+                            </div>
+                            <div class="col">
+                                <div class="text-secondary fw-bold" id="previousPeriodValue">--</div>
+                                <small class="text-muted">Previous Period</small>
+                            </div>
+                            <div class="col">
+                                <div id="periodChange" class="fw-bold">--%</div>
+                                <small class="text-muted">Change</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Team Table -->
         <div class="row">
             <div class="col-12">
@@ -312,831 +1292,6 @@
     <input type="file" id="fileInput" accept=".json" style="display: none;">
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Simple Flow Metrics Dashboard
-        class FlowDashboard {
-            constructor() {
-                this.data = null;
-                this.dbName = 'FlowMetricsDB';
-                this.dbVersion = 1;
-                this.db = null;
-                this.autoRefreshTimer = null;
-                this.autoRefreshInterval = 30000; // 30 seconds
-                this.lastDataSource = null;
-                this.workstreamManager = new WorkstreamManager();
-                this.selectedWorkstreams = ['All Teams'];
-                this.selectedWorkItemTypes = ['All Types'];
-                this.selectedSprints = ['All Sprints'];
-                this.availableSprints = [];
-                this.init();
-            }
-
-            async init() {
-                await this.initIndexedDB();
-                await this.initWorkstreams();
-                this.setupEventListeners();
-                this.loadData();
-            }
-
-            async initWorkstreams() {
-                try {
-                    await this.workstreamManager.init();
-                    this.populateWorkstreamFilter();
-                    console.log('Workstream filtering initialized');
-                } catch (error) {
-                    console.error('Failed to initialize workstream filtering:', error);
-                }
-            }
-
-            populateWorkstreamFilter() {
-                const menu = document.getElementById('workstreamDropdownMenu');
-                const workstreams = this.workstreamManager.getAvailableWorkstreams();
-
-                // Clear existing workstream items (keep All Teams)
-                const existingItems = menu.querySelectorAll('[data-workstream]:not([data-workstream="All Teams"])');
-                existingItems.forEach(item => item.parentElement.remove());
-
-                // Add workstream options
-                workstreams.forEach(workstream => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `
-                        <a class="dropdown-item" href="#" data-workstream="${workstream}">
-                            <input type="checkbox" class="form-check-input me-2"> ${workstream}
-                        </a>
-                    `;
-                    menu.appendChild(li);
-                });
-            }
-
-            // IndexedDB initialization
-            async initIndexedDB() {
-                return new Promise((resolve, reject) => {
-                    const request = indexedDB.open(this.dbName, this.dbVersion);
-
-                    request.onerror = () => reject(request.error);
-                    request.onsuccess = () => {
-                        this.db = request.result;
-                        resolve();
-                    };
-
-                    request.onupgradeneeded = (event) => {
-                        const db = event.target.result;
-                        if (!db.objectStoreNames.contains('metrics')) {
-                            const store = db.createObjectStore('metrics', { keyPath: 'id' });
-                            store.createIndex('timestamp', 'timestamp', { unique: false });
-                        }
-                    };
-                });
-            }
-
-            // Save data to IndexedDB
-            async saveToIndexedDB(data) {
-                const transaction = this.db.transaction(['metrics'], 'readwrite');
-                const store = transaction.objectStore('metrics');
-                const record = {
-                    id: 'latest',
-                    timestamp: new Date().toISOString(),
-                    data: data
-                };
-                await store.put(record);
-            }
-
-            // Load data from IndexedDB
-            async loadFromIndexedDB() {
-                const transaction = this.db.transaction(['metrics'], 'readonly');
-                const store = transaction.objectStore('metrics');
-                return new Promise((resolve) => {
-                    const request = store.get('latest');
-                    request.onsuccess = () => {
-                        resolve(request.result ? request.result.data : null);
-                    };
-                    request.onerror = () => resolve(null);
-                });
-            }
-
-            setupEventListeners() {
-                // Refresh button
-                document.getElementById('refreshBtn').addEventListener('click', () => {
-                    this.loadData();
-                });
-
-                // Load file button
-                document.getElementById('loadFileBtn').addEventListener('click', () => {
-                    document.getElementById('fileInput').click();
-                });
-
-                // File input
-                document.getElementById('fileInput').addEventListener('change', (e) => {
-                    this.handleFileLoad(e);
-                });
-
-                // Data source radio buttons
-                document.querySelectorAll('input[name="dataSource"]').forEach(radio => {
-                    radio.addEventListener('change', () => this.loadData());
-                });
-
-                // Workstream filter
-                document.getElementById('workstreamDropdownMenu').addEventListener('click', (e) => {
-                    this.handleWorkstreamFilter(e);
-                });
-
-                // Work Item Type filter
-                document.getElementById('workItemTypeDropdownMenu').addEventListener('click', (e) => {
-                    this.handleWorkItemTypeFilter(e);
-                });
-
-                // Sprint filter
-                document.getElementById('sprintDropdownMenu').addEventListener('click', (e) => {
-                    this.handleSprintFilter(e);
-                });
-
-                // Auto-refresh toggle
-                document.getElementById('autoRefreshToggle').addEventListener('change', (e) => {
-                    this.toggleAutoRefresh(e.target.checked);
-                });
-            }
-
-            async loadData() {
-                const selectedSource = document.querySelector('input[name="dataSource"]:checked').id;
-
-                try {
-                    let data = null;
-
-                    switch (selectedSource) {
-                        case 'mockData':
-                            data = this.generateMockData();
-                            this.updateDataSourceInfo('Mock data generated');
-                            break;
-                        case 'jsonFile':
-                            data = this.data; // Use last loaded file
-                            this.updateDataSourceInfo(data ? 'JSON file loaded' : 'No JSON file loaded');
-                            break;
-                        case 'indexedDB':
-                            data = await this.loadFromIndexedDB();
-                            this.updateDataSourceInfo(data ? 'Data loaded from IndexedDB' : 'No data in IndexedDB');
-                            break;
-                        case 'cliData':
-                            data = await this.loadFromCLI();
-                            this.updateDataSourceInfo(data ? 'CLI data loaded' : 'No CLI data available');
-                            break;
-                    }
-
-                    if (data) {
-                        this.data = data;
-                        this.lastDataSource = selectedSource;
-                        this.populateSprintFilter(data);
-                        this.updateDashboard(data);
-
-                        // Auto-save to IndexedDB for future use
-                        if (selectedSource !== 'indexedDB') {
-                            await this.saveToIndexedDB(data);
-                        }
-                    } else {
-                        this.showNoDataMessage();
-                    }
-                } catch (error) {
-                    console.error('Error loading data:', error);
-                    this.showErrorMessage(error.message);
-                }
-            }
-
-            // Load data from CLI-generated files
-            async loadFromCLI() {
-                try {
-                    // Try multiple CLI data locations
-                    const dataSources = [
-                        './data/dashboard_data.json',
-                        './data/flow_metrics_report.json',
-                        './data/test_report.json',
-                        './data/test_metrics_report.json'
-                    ];
-
-                    for (const source of dataSources) {
-                        try {
-                            const response = await fetch(source);
-                            if (response.ok) {
-                                const data = await response.json();
-                                console.log(`Successfully loaded data from ${source}`);
-
-                                // Handle different data formats
-                                if (data.data) {
-                                    return data.data; // Dashboard format
-                                } else if (data.summary || data.lead_time || data.cycle_time) {
-                                    return data; // Direct metrics format
-                                }
-                            }
-                        } catch (err) {
-                            console.log(`Failed to load from ${source}: ${err.message}`);
-                        }
-                    }
-
-                    console.log('No CLI data found in any location');
-                    return null;
-                } catch (error) {
-                    console.log('CLI data loading error:', error.message);
-                    return null;
-                }
-            }
-
-            handleFileLoad(event) {
-                const file = event.target.files[0];
-                if (!file) return;
-
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    try {
-                        const data = JSON.parse(e.target.result);
-                        this.data = data;
-                        document.getElementById('jsonFile').checked = true;
-                        this.updateDataSourceInfo(`File: ${file.name} (${file.size} bytes)`);
-                        this.updateDashboard(data);
-
-                        // Save to IndexedDB
-                        this.saveToIndexedDB(data);
-                    } catch (error) {
-                        alert('Error parsing JSON file: ' + error.message);
-                    }
-                };
-                reader.readAsText(file);
-            }
-
-            updateDataSourceInfo(message) {
-                document.getElementById('dataSourceInfo').textContent = message + ' - ' + new Date().toLocaleTimeString();
-            }
-
-            updateDashboard(data) {
-                this.updateMetricsCards(data);
-                this.updateCharts(data);
-                this.updateTeamTable(data);
-            }
-
-            updateMetricsCards(data) {
-                const summary = data.summary || {};
-                let leadTime = data.lead_time || {};
-                let cycleTime = data.cycle_time || {};
-                let throughput = data.throughput || {};
-                let wip = data.work_in_progress || {};
-
-                // Apply workstream filtering to metrics if workstream filter is active
-                if (!this.selectedWorkstreams.includes('All Teams')) {
-                    const filteredTeamMetrics = this.workstreamManager.filterTeamMetrics(data.team_metrics || {}, this.selectedWorkstreams);
-
-                    // Recalculate metrics for filtered teams
-                    if (Object.keys(filteredTeamMetrics).length > 0) {
-                        const metrics = Object.values(filteredTeamMetrics);
-
-                        // Recalculate lead time
-                        const leadTimes = metrics.map(m => m.average_lead_time || 0).filter(t => t > 0);
-                        if (leadTimes.length > 0) {
-                            leadTime = {
-                                average_days: leadTimes.reduce((a, b) => a + b, 0) / leadTimes.length,
-                                median_days: leadTimes.sort((a, b) => a - b)[Math.floor(leadTimes.length / 2)]
-                            };
-                        }
-
-                        // Recalculate cycle time
-                        const cycleTimes = metrics.map(m => m.average_cycle_time || 0).filter(t => t > 0);
-                        if (cycleTimes.length > 0) {
-                            cycleTime = {
-                                average_days: cycleTimes.reduce((a, b) => a + b, 0) / cycleTimes.length,
-                                median_days: cycleTimes.sort((a, b) => a - b)[Math.floor(cycleTimes.length / 2)]
-                            };
-                        }
-
-                        // Recalculate throughput
-                        const completedItems = metrics.reduce((sum, m) => sum + (m.completed_items || 0), 0);
-                        throughput = { items_per_period: completedItems };
-
-                        // Recalculate WIP
-                        const activeItems = metrics.reduce((sum, m) => sum + (m.active_items || 0), 0);
-                        wip = { total_wip: activeItems };
-                    }
-                }
-
-                // Lead time
-                document.getElementById('leadTimeAvg').textContent = `${(leadTime.average_days || 0).toFixed(1)} days`;
-                document.getElementById('leadTimeMedian').textContent = `Median: ${(leadTime.median_days || 0).toFixed(1)} days`;
-
-                // Cycle time
-                document.getElementById('cycleTimeAvg').textContent = `${(cycleTime.average_days || 0).toFixed(1)} days`;
-                document.getElementById('cycleTimeMedian').textContent = `Median: ${(cycleTime.median_days || 0).toFixed(1)} days`;
-
-                // Throughput
-                document.getElementById('throughputValue').textContent = `${(throughput.items_per_period || 0).toFixed(1)}`;
-
-                // WIP
-                document.getElementById('wipValue').textContent = wip.total_wip || 0;
-            }
-
-            updateCharts(data) {
-                this.updateLeadCycleChart(data);
-                this.updateWipChart(data);
-                this.updateTeamChart(data);
-                this.updateEfficiencyChart(data);
-            }
-
-            updateLeadCycleChart(data) {
-                let leadTime = data.lead_time || {};
-                let cycleTime = data.cycle_time || {};
-
-                // Apply workstream filtering to lead/cycle times
-                if (!this.selectedWorkstreams.includes('All Teams')) {
-                    const filteredTeamMetrics = this.workstreamManager.filterTeamMetrics(data.team_metrics || {}, this.selectedWorkstreams);
-
-                    if (Object.keys(filteredTeamMetrics).length > 0) {
-                        const metrics = Object.values(filteredTeamMetrics);
-
-                        // Recalculate lead time for filtered teams
-                        const leadTimes = metrics.map(m => m.average_lead_time || 0).filter(t => t > 0);
-                        if (leadTimes.length > 0) {
-                            leadTime = {
-                                average_days: leadTimes.reduce((a, b) => a + b, 0) / leadTimes.length,
-                                median_days: leadTimes.sort((a, b) => a - b)[Math.floor(leadTimes.length / 2)]
-                            };
-                        }
-
-                        // Recalculate cycle time for filtered teams
-                        const cycleTimes = metrics.map(m => m.average_cycle_time || 0).filter(t => t > 0);
-                        if (cycleTimes.length > 0) {
-                            cycleTime = {
-                                average_days: cycleTimes.reduce((a, b) => a + b, 0) / cycleTimes.length,
-                                median_days: cycleTimes.sort((a, b) => a - b)[Math.floor(cycleTimes.length / 2)]
-                            };
-                        }
-                    }
-                }
-
-                const chartData = [
-                    {
-                        x: ['Average', 'Median'],
-                        y: [leadTime.average_days || 0, leadTime.median_days || 0],
-                        name: 'Lead Time',
-                        type: 'bar',
-                        marker: { color: '#4e73df' }
-                    },
-                    {
-                        x: ['Average', 'Median'],
-                        y: [cycleTime.average_days || 0, cycleTime.median_days || 0],
-                        name: 'Cycle Time',
-                        type: 'bar',
-                        marker: { color: '#1cc88a' }
-                    }
-                ];
-
-                const layout = {
-                    margin: { l: 50, r: 50, t: 20, b: 50 },
-                    yaxis: { title: 'Days' },
-                    showlegend: true
-                };
-
-                Plotly.newPlot('leadCycleChart', chartData, layout, { responsive: true });
-            }
-
-            updateWipChart(data) {
-                let wip = data.work_in_progress || {};
-                let wipByState = wip.wip_by_state || {};
-
-                // Apply workstream filtering to WIP data
-                if (!this.selectedWorkstreams.includes('All Teams')) {
-                    const filteredTeamMetrics = this.workstreamManager.filterTeamMetrics(data.team_metrics || {}, this.selectedWorkstreams);
-
-                    if (Object.keys(filteredTeamMetrics).length > 0) {
-                        // Recalculate WIP by state for filtered teams
-                        const activeItems = Object.values(filteredTeamMetrics).reduce((sum, m) => sum + (m.active_items || 0), 0);
-                        const blockedItems = Object.values(filteredTeamMetrics).reduce((sum, m) => sum + (m.blocked_items || 0), 0);
-
-                        wipByState = {
-                            'Active': activeItems,
-                            'Blocked': blockedItems
-                        };
-                    }
-                }
-
-                if (Object.keys(wipByState).length === 0) {
-                    document.getElementById('wipChart').innerHTML = '<p class="text-center text-muted">No WIP data</p>';
-                    return;
-                }
-
-                const chartData = [{
-                    labels: Object.keys(wipByState),
-                    values: Object.values(wipByState),
-                    type: 'pie',
-                    hole: 0.4,
-                    marker: { colors: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e'] }
-                }];
-
-                const layout = {
-                    margin: { l: 20, r: 20, t: 20, b: 20 },
-                    showlegend: true
-                };
-
-                Plotly.newPlot('wipChart', chartData, layout, { responsive: true });
-            }
-
-            updateTeamChart(data) {
-                let teamMetrics = data.team_metrics || {};
-
-                // Apply workstream filtering
-                teamMetrics = this.workstreamManager.filterTeamMetrics(teamMetrics, this.selectedWorkstreams);
-
-                if (Object.keys(teamMetrics).length === 0) {
-                    document.getElementById('teamChart').innerHTML = '<p class="text-center text-muted">No team data</p>';
-                    return;
-                }
-
-                const sortedTeam = Object.entries(teamMetrics)
-                    .sort(([,a], [,b]) => (b.completed_items || 0) - (a.completed_items || 0))
-                    .slice(0, 10);
-
-                const chartData = [{
-                    x: sortedTeam.map(([name]) => name),
-                    y: sortedTeam.map(([, metrics]) => metrics.completed_items || 0),
-                    type: 'bar',
-                    marker: { color: '#4e73df' }
-                }];
-
-                const layout = {
-                    margin: { l: 50, r: 50, t: 20, b: 100 },
-                    xaxis: { tickangle: -45 },
-                    yaxis: { title: 'Completed Items' }
-                };
-
-                Plotly.newPlot('teamChart', chartData, layout, { responsive: true });
-            }
-
-            updateEfficiencyChart(data) {
-                let flowEfficiency = data.flow_efficiency || {};
-                let efficiency = (flowEfficiency.average_efficiency || 0) * 100;
-
-                // Apply workstream filtering to efficiency calculation
-                if (!this.selectedWorkstreams.includes('All Teams')) {
-                    const filteredTeamMetrics = this.workstreamManager.filterTeamMetrics(data.team_metrics || {}, this.selectedWorkstreams);
-
-                    if (Object.keys(filteredTeamMetrics).length > 0) {
-                        // Recalculate efficiency for filtered teams
-                        const metrics = Object.values(filteredTeamMetrics);
-                        const efficiencies = metrics.map(m => m.flow_efficiency || 0).filter(e => e > 0);
-
-                        if (efficiencies.length > 0) {
-                            efficiency = (efficiencies.reduce((a, b) => a + b, 0) / efficiencies.length) * 100;
-                        }
-                    }
-                }
-
-                const chartData = [{
-                    domain: { x: [0, 1], y: [0, 1] },
-                    value: efficiency,
-                    title: { text: "%" },
-                    type: "indicator",
-                    mode: "gauge+number",
-                    gauge: {
-                        axis: { range: [null, 100] },
-                        bar: { color: "#4e73df" },
-                        steps: [
-                            { range: [0, 50], color: "lightgray" },
-                            { range: [50, 80], color: "#f6c23e" },
-                            { range: [80, 100], color: "#1cc88a" }
-                        ]
-                    }
-                }];
-
-                const layout = {
-                    margin: { l: 20, r: 20, t: 20, b: 20 }
-                };
-
-                Plotly.newPlot('efficiencyChart', chartData, layout, { responsive: true });
-            }
-
-            updateTeamTable(data) {
-                let teamMetrics = data.team_metrics || {};
-                const tbody = document.getElementById('teamTableBody');
-
-                // Apply workstream filtering
-                teamMetrics = this.workstreamManager.filterTeamMetrics(teamMetrics, this.selectedWorkstreams);
-
-                if (Object.keys(teamMetrics).length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No team data</td></tr>';
-                    return;
-                }
-
-                const sortedTeam = Object.entries(teamMetrics)
-                    .sort(([,a], [,b]) => (b.completion_rate || 0) - (a.completion_rate || 0))
-                    .slice(0, 10);
-
-                const rows = sortedTeam.map(([name, metrics]) => `
-                    <tr>
-                        <td>${name}</td>
-                        <td>${metrics.completed_items || 0}</td>
-                        <td>${metrics.active_items || 0}</td>
-                        <td>${(metrics.completion_rate || 0).toFixed(1)}%</td>
-                        <td>${(metrics.average_lead_time || 0).toFixed(1)} days</td>
-                    </tr>
-                `).join('');
-
-                tbody.innerHTML = rows;
-            }
-
-            generateMockData() {
-                return {
-                    summary: {
-                        total_work_items: 200,
-                        completed_items: 129,
-                        completion_rate: 64.5
-                    },
-                    lead_time: {
-                        average_days: 11.3,
-                        median_days: 12.0,
-                        count: 129
-                    },
-                    cycle_time: {
-                        average_days: 8.8,
-                        median_days: 9.0,
-                        count: 129
-                    },
-                    throughput: {
-                        items_per_period: 19.4,
-                        period_days: 30
-                    },
-                    work_in_progress: {
-                        total_wip: 50,
-                        wip_by_state: {
-                            "Active": 37,
-                            "Resolved": 13
-                        }
-                    },
-                    flow_efficiency: {
-                        average_efficiency: 0.625
-                    },
-                    team_metrics: {
-                        "Alice Johnson": { completed_items: 15, active_items: 3, completion_rate: 85.2, average_lead_time: 10.5 },
-                        "Bob Smith": { completed_items: 12, active_items: 2, completion_rate: 92.1, average_lead_time: 8.3 },
-                        "Carol Davis": { completed_items: 10, active_items: 4, completion_rate: 72.4, average_lead_time: 13.2 },
-                        "David Wilson": { completed_items: 8, active_items: 1, completion_rate: 88.9, average_lead_time: 9.7 }
-                    },
-                    // Enhanced mock data with filtering information
-                    items_by_type: {
-                        "User Story": 85,
-                        "Bug": 32,
-                        "Task": 58,
-                        "Feature": 18,
-                        "Epic": 7
-                    },
-                    items_by_sprint: {
-                        "Sprint 24.1": 45,
-                        "Sprint 24.2": 52,
-                        "Sprint 24.3": 48,
-                        "Sprint 24.4": 38,
-                        "Backlog": 17
-                    },
-                    sprints: ["Sprint 24.1", "Sprint 24.2", "Sprint 24.3", "Sprint 24.4", "Backlog"]
-                };
-            }
-
-            showNoDataMessage() {
-                document.getElementById('leadTimeAvg').textContent = 'No Data';
-                document.getElementById('cycleTimeAvg').textContent = 'No Data';
-                document.getElementById('throughputValue').textContent = 'No Data';
-                document.getElementById('wipValue').textContent = 'No Data';
-            }
-
-            showErrorMessage(message) {
-                this.updateDataSourceInfo('Error: ' + message);
-            }
-
-            handleWorkstreamFilter(event) {
-                event.preventDefault();
-                const target = event.target.closest('[data-workstream]');
-                if (!target) return;
-
-                const workstream = target.getAttribute('data-workstream');
-                const checkbox = target.querySelector('input[type="checkbox"]');
-
-                if (workstream === 'All Teams') {
-                    // Toggle all teams
-                    if (checkbox.checked) {
-                        this.selectedWorkstreams = ['All Teams'];
-                        // Uncheck all other checkboxes
-                        document.querySelectorAll('#workstreamDropdownMenu input[type="checkbox"]').forEach(cb => {
-                            cb.checked = cb.closest('[data-workstream]').getAttribute('data-workstream') === 'All Teams';
-                        });
-                    } else {
-                        checkbox.checked = true; // Keep All Teams checked if trying to uncheck
-                        return;
-                    }
-                } else {
-                    // Toggle specific workstream
-                    const allTeamsCheckbox = document.querySelector('[data-workstream="All Teams"] input');
-
-                    if (checkbox.checked) {
-                        // Add to selection
-                        if (this.selectedWorkstreams.includes('All Teams')) {
-                            this.selectedWorkstreams = [workstream];
-                            allTeamsCheckbox.checked = false;
-                        } else if (!this.selectedWorkstreams.includes(workstream)) {
-                            this.selectedWorkstreams.push(workstream);
-                        }
-                    } else {
-                        // Remove from selection
-                        this.selectedWorkstreams = this.selectedWorkstreams.filter(w => w !== workstream);
-                        if (this.selectedWorkstreams.length === 0) {
-                            // If no workstreams selected, default to All Teams
-                            this.selectedWorkstreams = ['All Teams'];
-                            allTeamsCheckbox.checked = true;
-                        }
-                    }
-                }
-
-                this.updateWorkstreamDisplay();
-                this.updateDashboard(this.data);
-            }
-
-            updateWorkstreamDisplay() {
-                const button = document.getElementById('workstreamDropdown');
-                const info = document.getElementById('workstreamInfo');
-
-                if (this.selectedWorkstreams.includes('All Teams')) {
-                    button.innerHTML = '<i class="fas fa-users me-2"></i>All Teams';
-                    info.textContent = 'All teams included';
-                } else if (this.selectedWorkstreams.length === 1) {
-                    button.innerHTML = `<i class="fas fa-users me-2"></i>${this.selectedWorkstreams[0]}`;
-                    info.textContent = `Filtered to ${this.selectedWorkstreams[0]} workstream`;
-                } else {
-                    button.innerHTML = `<i class="fas fa-users me-2"></i>${this.selectedWorkstreams.length} Workstreams`;
-                    info.textContent = `Filtered to ${this.selectedWorkstreams.length} workstreams: ${this.selectedWorkstreams.join(', ')}`;
-                }
-            }
-
-            populateSprintFilter(data) {
-                const menu = document.getElementById('sprintDropdownMenu');
-                const sprints = data.sprints || Object.keys(data.items_by_sprint || {});
-                
-                this.availableSprints = sprints;
-
-                // Clear existing sprint items (keep All Sprints)
-                const existingItems = menu.querySelectorAll('[data-sprint]:not([data-sprint="All Sprints"])');
-                existingItems.forEach(item => item.parentElement.remove());
-
-                // Add sprint options
-                sprints.forEach(sprint => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `
-                        <a class="dropdown-item" href="#" data-sprint="${sprint}">
-                            <input type="checkbox" class="form-check-input me-2"> ${sprint}
-                        </a>
-                    `;
-                    menu.appendChild(li);
-                });
-            }
-
-            handleWorkItemTypeFilter(event) {
-                event.preventDefault();
-                const target = event.target.closest('[data-work-item-type]');
-                if (!target) return;
-
-                const workItemType = target.getAttribute('data-work-item-type');
-                const checkbox = target.querySelector('input[type="checkbox"]');
-
-                if (workItemType === 'All Types') {
-                    // Toggle all types
-                    if (checkbox.checked) {
-                        this.selectedWorkItemTypes = ['All Types'];
-                        // Uncheck all other checkboxes
-                        document.querySelectorAll('#workItemTypeDropdownMenu input[type="checkbox"]').forEach(cb => {
-                            cb.checked = cb.closest('[data-work-item-type]').getAttribute('data-work-item-type') === 'All Types';
-                        });
-                    } else {
-                        checkbox.checked = true; // Keep All Types checked if trying to uncheck
-                        return;
-                    }
-                } else {
-                    // Toggle specific work item type
-                    const allTypesCheckbox = document.querySelector('[data-work-item-type="All Types"] input');
-
-                    if (checkbox.checked) {
-                        // Add to selection
-                        if (this.selectedWorkItemTypes.includes('All Types')) {
-                            this.selectedWorkItemTypes = [workItemType];
-                            allTypesCheckbox.checked = false;
-                        } else if (!this.selectedWorkItemTypes.includes(workItemType)) {
-                            this.selectedWorkItemTypes.push(workItemType);
-                        }
-                    } else {
-                        // Remove from selection
-                        this.selectedWorkItemTypes = this.selectedWorkItemTypes.filter(w => w !== workItemType);
-                        if (this.selectedWorkItemTypes.length === 0) {
-                            // If no types selected, default to All Types
-                            this.selectedWorkItemTypes = ['All Types'];
-                            allTypesCheckbox.checked = true;
-                        }
-                    }
-                }
-
-                this.updateWorkItemTypeDisplay();
-                this.updateDashboard(this.data);
-            }
-
-            handleSprintFilter(event) {
-                event.preventDefault();
-                const target = event.target.closest('[data-sprint]');
-                if (!target) return;
-
-                const sprint = target.getAttribute('data-sprint');
-                const checkbox = target.querySelector('input[type="checkbox"]');
-
-                if (sprint === 'All Sprints') {
-                    // Toggle all sprints
-                    if (checkbox.checked) {
-                        this.selectedSprints = ['All Sprints'];
-                        // Uncheck all other checkboxes
-                        document.querySelectorAll('#sprintDropdownMenu input[type="checkbox"]').forEach(cb => {
-                            cb.checked = cb.closest('[data-sprint]').getAttribute('data-sprint') === 'All Sprints';
-                        });
-                    } else {
-                        checkbox.checked = true; // Keep All Sprints checked if trying to uncheck
-                        return;
-                    }
-                } else {
-                    // Toggle specific sprint
-                    const allSprintsCheckbox = document.querySelector('[data-sprint="All Sprints"] input');
-
-                    if (checkbox.checked) {
-                        // Add to selection
-                        if (this.selectedSprints.includes('All Sprints')) {
-                            this.selectedSprints = [sprint];
-                            allSprintsCheckbox.checked = false;
-                        } else if (!this.selectedSprints.includes(sprint)) {
-                            this.selectedSprints.push(sprint);
-                        }
-                    } else {
-                        // Remove from selection
-                        this.selectedSprints = this.selectedSprints.filter(s => s !== sprint);
-                        if (this.selectedSprints.length === 0) {
-                            // If no sprints selected, default to All Sprints
-                            this.selectedSprints = ['All Sprints'];
-                            allSprintsCheckbox.checked = true;
-                        }
-                    }
-                }
-
-                this.updateSprintDisplay();
-                this.updateDashboard(this.data);
-            }
-
-            updateWorkItemTypeDisplay() {
-                const button = document.getElementById('workItemTypeDropdown');
-                const info = document.getElementById('workItemTypeInfo');
-
-                if (this.selectedWorkItemTypes.includes('All Types')) {
-                    button.innerHTML = '<i class="fas fa-tags me-2"></i>All Types';
-                    info.textContent = 'All types included';
-                } else if (this.selectedWorkItemTypes.length === 1) {
-                    button.innerHTML = `<i class="fas fa-tags me-2"></i>${this.selectedWorkItemTypes[0]}`;
-                    info.textContent = `Filtered to ${this.selectedWorkItemTypes[0]} items`;
-                } else {
-                    button.innerHTML = `<i class="fas fa-tags me-2"></i>${this.selectedWorkItemTypes.length} Types`;
-                    info.textContent = `Filtered to ${this.selectedWorkItemTypes.length} types: ${this.selectedWorkItemTypes.join(', ')}`;
-                }
-            }
-
-            updateSprintDisplay() {
-                const button = document.getElementById('sprintDropdown');
-                const info = document.getElementById('sprintInfo');
-
-                if (this.selectedSprints.includes('All Sprints')) {
-                    button.innerHTML = '<i class="fas fa-running me-2"></i>All Sprints';
-                    info.textContent = 'All sprints included';
-                } else if (this.selectedSprints.length === 1) {
-                    button.innerHTML = `<i class="fas fa-running me-2"></i>${this.selectedSprints[0]}`;
-                    info.textContent = `Filtered to ${this.selectedSprints[0]}`;
-                } else {
-                    button.innerHTML = `<i class="fas fa-running me-2"></i>${this.selectedSprints.length} Sprints`;
-                    info.textContent = `Filtered to ${this.selectedSprints.length} sprints: ${this.selectedSprints.join(', ')}`;
-                }
-            }
-
-            toggleAutoRefresh(enabled) {
-                if (enabled) {
-                    this.autoRefreshTimer = setInterval(() => {
-                        if (this.lastDataSource === 'cliData') {
-                            console.log('Auto-refreshing CLI data...');
-                            this.loadData();
-                        }
-                    }, this.autoRefreshInterval);
-                    console.log('Auto-refresh enabled (30s interval)');
-                } else {
-                    if (this.autoRefreshTimer) {
-                        clearInterval(this.autoRefreshTimer);
-                        this.autoRefreshTimer = null;
-                    }
-                    console.log('Auto-refresh disabled');
-                }
-            }
-        }
-
-        // Initialize dashboard when page loads
-        document.addEventListener('DOMContentLoaded', () => {
-            new FlowDashboard();
-        });
-    </script>
+    <!-- FlowDashboard class now loaded from external js/dashboard.js file -->
 </body>
 </html>
