@@ -1,0 +1,47 @@
+{
+  "name": "ado-flow-metrics",
+  "version": "1.0.0",
+  "description": "Azure DevOps Flow Metrics Calculator - A comprehensive tool for analyzing and visualizing flow metrics from Azure DevOps work items",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"No Node.js tests configured - this is a Python project\"",
+    "lint": "echo \"Use Python linting tools: black, isort, flake8, mypy\"",
+    "format": "echo \"Use Python formatting tools: black, isort\"",
+    "build": "echo \"Python build managed by setup.py\"",
+    "dev": "echo \"Use Python development tools\"",
+    "docs": "echo \"Documentation in docs/ directory\"",
+    "clean": "find . -name '*.pyc' -delete && find . -name '__pycache__' -type d -exec rm -rf {} +",
+    "setup": "pip install -r requirements.txt && pre-commit install"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arjaygg/ado-flow-metrics.git"
+  },
+  "keywords": [
+    "azure-devops",
+    "flow-metrics",
+    "kanban",
+    "agile",
+    "metrics",
+    "dashboard",
+    "python",
+    "analytics"
+  ],
+  "author": "arjaygg",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/arjaygg/ado-flow-metrics/issues"
+  },
+  "homepage": "https://github.com/arjaygg/ado-flow-metrics#readme",
+  "devDependencies": {},
+  "dependencies": {},
+  "engines": {
+    "node": ">=14.0.0",
+    "npm": ">=6.0.0"
+  },
+  "browserslist": [
+    "last 2 versions",
+    "not dead",
+    "not ie 11"
+  ]
+}
