@@ -292,12 +292,27 @@ class ConfigManager:
         if config_path and config_path.exists():
             self._settings = FlowMetricsSettings.from_file(config_path)
         else:
-            # Load from environment variables or use defaults
-            # This requires proper environment setup
-            raise ValueError(
-                "No configuration file found. Please create config/config.json "
-                "from config.sample.json or set environment variables."
-            )
+            # Try to load from environment variables first
+            try:
+                self._settings = FlowMetricsSettings()
+                # Validate that we have proper configuration
+                if (not self._settings.azure_devops.org_url or 
+                    "your-org" in self._settings.azure_devops.org_url or
+                    not self._settings.azure_devops.default_project or
+                    "your-project" in self._settings.azure_devops.default_project.lower()):
+                    raise ValueError("Configuration contains placeholder values")
+            except:
+                # Load from environment variables or use defaults
+                # This requires proper environment setup
+                raise ValueError(
+                    "No valid configuration found. Please either:\n"
+                    "1. Create config/config.json from config.sample.json with actual values\n"
+                    "2. Set environment variables:\n"
+                    "   export AZURE_DEVOPS_PAT='your-token'\n"
+                    "   export AZURE_DEVOPS_ORG='https://dev.azure.com/YOUR_ORG'\n"
+                    "   export AZURE_DEVOPS_PROJECT='YourProject'\n"
+                    "3. Ensure placeholder values like 'your-org' are replaced"
+                )
 
         return self._settings
 

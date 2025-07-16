@@ -22,7 +22,25 @@ def demo_live_integration():
     # Step 1: Check Environment Setup
     print("\n📋 Step 1: Environment Configuration")
     pat_token = os.getenv("AZURE_DEVOPS_PAT")
-    org_url = os.getenv("AZURE_DEVOPS_ORG", "https://dev.azure.com/your-org")
+    # Get org URL from environment or config, with better error handling
+    org_url = os.getenv("AZURE_DEVOPS_ORG")
+    if not org_url:
+        # Try to load from config file
+        try:
+            import sys
+            from pathlib import Path
+            sys.path.insert(0, str(Path(__file__).parent / "src"))
+            from config_manager import get_settings
+            settings = get_settings()
+            org_url = settings.azure_devops.org_url
+            # If config contains placeholder, warn user
+            if "your-org" in org_url or org_url == "https://dev.azure.com":
+                org_url = None
+        except:
+            org_url = None
+    
+    if not org_url:
+        org_url = "https://dev.azure.com/YOUR_ORG_HERE"  # Clear placeholder
     project = os.getenv("AZURE_DEVOPS_PROJECT", "YourProject")
 
     print(f"   • Organization: {org_url}")
@@ -31,12 +49,14 @@ def demo_live_integration():
         f"   • PAT Token: {'✅ Set' if pat_token and pat_token != 'your-token' else '❌ Not Set'}"
     )
 
-    if not pat_token or pat_token == "your-token":
-        print("\n⚠️  AZURE_DEVOPS_PAT not configured - will demonstrate with mock data")
+    if not pat_token or pat_token == "your-token" or not org_url or "YOUR_ORG_HERE" in org_url or "your-org" in org_url:
+        print("\n⚠️  Azure DevOps configuration incomplete - will demonstrate with mock data")
         print("\n🔧 To use live data, set environment variables:")
         print("   export AZURE_DEVOPS_PAT='your-personal-access-token'")
-        print("   export AZURE_DEVOPS_ORG='https://dev.azure.com/your-org'")
-        print("   export AZURE_DEVOPS_PROJECT='YourProject'")
+        print("   export AZURE_DEVOPS_ORG='https://dev.azure.com/YOUR_ACTUAL_ORG_NAME'")
+        print("   export AZURE_DEVOPS_PROJECT='YourActualProjectName'")
+        print("\n💡 Or create a proper config/config.json file from config.sample.json")
+        print("   and replace placeholder values with your actual organization and project names")
         use_live_data = False
     else:
         use_live_data = True

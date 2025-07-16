@@ -185,7 +185,7 @@ def display_integration_summary():
 
     print("\n🔧 ENVIRONMENT SETUP:")
     print("   export AZURE_DEVOPS_PAT='your-pat-token'")
-    print("   export AZURE_DEVOPS_ORG='https://dev.azure.com/your-org'")
+    print("   export AZURE_DEVOPS_ORG='https://dev.azure.com/YOUR_ACTUAL_ORG_NAME'")
     print("   export AZURE_DEVOPS_PROJECT='YourProject'")
 
     print("\n[STATS] WORKFLOW COMMANDS:")
