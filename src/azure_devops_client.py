@@ -12,12 +12,12 @@ import requests
 
 from .exceptions import (
     ADOFlowException,
+    APIError,
     AuthenticationError,
     AuthorizationError,
-    APIError,
-    NetworkError,
     ConfigurationError,
-    WorkItemError
+    NetworkError,
+    WorkItemError,
 )
 
 logger = logging.getLogger(__name__)
@@ -39,7 +39,7 @@ class AzureDevOpsClient:
         try:
             # Test basic project access
             project_url = (
-                f"{self.org_url}/_apis/projects/{self.project}?api-version=7.0"
+                f"{self.org_url}/_apis/projects/{self.project}?api-version=7.1"
             )
             logger.info(f"Testing connection to: {project_url}")
             response = requests.get(project_url, headers=self.headers, timeout=30)
@@ -81,51 +81,54 @@ class AzureDevOpsClient:
         history_limit: Optional[int] = None,
     ) -> List[Dict]:
         """Fetch work items from Azure DevOps with enhanced progress tracking"""
+        from .error_handler import error_handler
+
         try:
-            if progress_callback:
-                progress_callback("phase", "Initializing Azure DevOps connection...")
-
-            logger.debug(
-                f"Fetching work items from the last {days_back} days for project '{self.project}'."
+            return self._execute_work_items_fetch(
+                days_back, progress_callback, history_limit
             )
-
-            # Verify connection first to provide better error diagnostics
-            if not self._validate_connection_and_project():
-                return []
-
-            # Get work item IDs using WIQL query
-            work_item_ids = self._query_work_item_ids(days_back, progress_callback)
-            if not work_item_ids:
-                return []
-
-            # Fetch detailed work item information
-            work_items = self._fetch_work_item_details(work_item_ids, progress_callback)
-            if not work_items:
-                return []
-
-            # Transform and enrich with state history
-            return self._transform_and_enrich_work_items(work_items, progress_callback, history_limit)
-
-        except requests.exceptions.Timeout as e:
-            logger.error(f"Request timeout while fetching work items: {e}")
-            return []
-        except requests.exceptions.ConnectionError as e:
-            logger.error(f"Connection error while fetching work items: {e}")
-            return []
-        except requests.exceptions.HTTPError as http_err:
-            logger.error(f"HTTP error occurred: {http_err}")
-            return []
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Request exception while fetching work items: {e}")
-            return []
-        except ADOFlowException as e:
-            logger.error(f"ADO Flow error: {e.message}")
-            return []
         except Exception as e:
-            logger.exception(
-                f"Unexpected error occurred while fetching work items: {e}"
-            )
+            error_handler.handle_api_error(e, "Azure DevOps")
             return []
+
+    def _execute_work_items_fetch(
+        self,
+        days_back: int,
+        progress_callback: Optional[Callable],
+        history_limit: Optional[int],
+    ) -> List[Dict]:
+        """Execute the work items fetch workflow."""
+        self._report_progress(
+            progress_callback, "phase", "Initializing Azure DevOps connection..."
+        )
+
+        logger.debug(
+            f"Fetching work items from the last {days_back} days for project '{self.project}'."
+        )
+
+        # Verify connection first to provide better error diagnostics
+        if not self._validate_connection_and_project():
+            return []
+
+        # Get work item IDs using WIQL query
+        work_item_ids = self._query_work_item_ids(days_back, progress_callback)
+        if not work_item_ids:
+            return []
+
+        # Fetch detailed work item information
+        work_items = self._fetch_work_item_details(work_item_ids, progress_callback)
+        if not work_items:
+            return []
+
+        # Transform and enrich with state history
+        return self._transform_and_enrich_work_items(
+            work_items, progress_callback, history_limit
+        )
+
+    def _report_progress(self, progress_callback: Optional[Callable], *args) -> None:
+        """Helper method to report progress if callback is provided."""
+        if progress_callback:
+            progress_callback(*args)
 
     def _validate_connection_and_project(self) -> bool:
         """Validate Azure DevOps connection and project configuration."""
@@ -141,7 +144,9 @@ class AzureDevOpsClient:
 
         return True
 
-    def _query_work_item_ids(self, days_back: int, progress_callback: Optional[Callable] = None) -> List[int]:
+    def _query_work_item_ids(
+        self, days_back: int, progress_callback: Optional[Callable] = None
+    ) -> List[int]:
         """Query work item IDs using WIQL with proper project scoping."""
         if progress_callback:
             progress_callback("phase", "Querying work item IDs...")
@@ -160,7 +165,7 @@ class AzureDevOpsClient:
 
         response = self._execute_wiql_query(wiql_query)
         work_item_refs = self._parse_wiql_response(response)
-        
+
         if progress_callback:
             progress_callback("count", len(work_item_refs))
 
@@ -172,9 +177,9 @@ class AzureDevOpsClient:
 
     def _execute_wiql_query(self, wiql_query: Dict) -> requests.Response:
         """Execute WIQL query with proper error handling."""
-        wiql_url = f"{self.org_url}/{self.project}/_apis/wit/wiql?api-version=7.0"
+        wiql_url = f"{self.org_url}/{self.project}/_apis/wit/wiql?api-version=7.1"
         logger.debug(f"Making WIQL request to: {wiql_url}")
-        
+
         response = requests.post(
             wiql_url, json=wiql_query, headers=self.headers, timeout=30
         )
@@ -190,7 +195,7 @@ class AzureDevOpsClient:
             logger.error(f"Request body: {wiql_query}")
             raise APIError(
                 "Azure DevOps API returned 405 Method Not Allowed. This usually indicates an incorrect API endpoint or authentication issue.",
-                status_code=405
+                status_code=405,
             )
 
         response.raise_for_status()
@@ -207,15 +212,22 @@ class AzureDevOpsClient:
             logger.error(f"Response status: {response.status_code}")
             logger.error(f"Response headers: {dict(response.headers)}")
             logger.error(f"Response content (first 500 chars): {response.text[:500]}")
-            
+
             # Check if it's an HTML error page (common with auth issues)
-            if response.text.strip().startswith('<'):
-                logger.error("Response appears to be HTML, likely an authentication or access error")
+            if response.text.strip().startswith("<"):
+                logger.error(
+                    "Response appears to be HTML, likely an authentication or access error"
+                )
                 if "conditional access" in response.text.lower():
-                    logger.error("Conditional Access Policy detected - use --use-mock flag for testing")
-                elif "sign in" in response.text.lower() or "login" in response.text.lower():
+                    logger.error(
+                        "Conditional Access Policy detected - use --use-mock flag for testing"
+                    )
+                elif (
+                    "sign in" in response.text.lower()
+                    or "login" in response.text.lower()
+                ):
                     logger.error("Authentication required - check your PAT token")
-            
+
             if response.status_code == 401:
                 raise AuthenticationError(
                     "Authentication failed - check your PAT token"
@@ -228,10 +240,12 @@ class AzureDevOpsClient:
                 raise APIError(
                     f"Azure DevOps API returned invalid JSON. Response status: {response.status_code}. Use --use-mock flag to generate test data instead.",
                     status_code=response.status_code,
-                    response_text=response.text[:500]
+                    response_text=response.text[:500],
                 ) from json_error
 
-    def _fetch_work_item_details(self, work_item_ids: List[int], progress_callback: Optional[Callable] = None) -> List[Dict]:
+    def _fetch_work_item_details(
+        self, work_item_ids: List[int], progress_callback: Optional[Callable] = None
+    ) -> List[Dict]:
         """Fetch detailed work item information in batches."""
         batch_size = 200  # Azure DevOps API limit
         batches = [
@@ -246,18 +260,18 @@ class AzureDevOpsClient:
 
         # Use concurrent processing for better performance
         work_items = self._fetch_work_items_concurrent(batches, progress_callback)
-        
+
         logger.debug(
             f"Successfully fetched details for {len(work_items)} work items in total."
         )
-        
+
         return work_items
 
     def _transform_and_enrich_work_items(
-        self, 
-        work_items: List[Dict], 
-        progress_callback: Optional[Callable] = None, 
-        history_limit: Optional[int] = None
+        self,
+        work_items: List[Dict],
+        progress_callback: Optional[Callable] = None,
+        history_limit: Optional[int] = None,
     ) -> List[Dict]:
         """Transform work items to our format and enrich with state history."""
         if progress_callback:
@@ -265,14 +279,16 @@ class AzureDevOpsClient:
 
         # First, prepare all work items without state history
         work_items_to_process = self._transform_work_items(work_items)
-        
+
         # Then enrich with state history concurrently
-        return self._enrich_with_state_history(work_items_to_process, progress_callback, history_limit)
+        return self._enrich_with_state_history(
+            work_items_to_process, progress_callback, history_limit
+        )
 
     def _transform_work_items(self, work_items: List[Dict]) -> List[Dict]:
         """Transform raw work items to our standardized format."""
         work_items_to_process = []
-        
+
         for item in work_items:
             fields = item.get("fields", {})
 
@@ -282,10 +298,15 @@ class AzureDevOpsClient:
             web_link = None
             if self.org_url and self.project and item["id"]:
                 # Extract org name from the org URL
-                org_name = self.org_url.replace("https://dev.azure.com/", "").replace("https://", "").replace(".visualstudio.com", "").rstrip("/")
+                org_name = (
+                    self.org_url.replace("https://dev.azure.com/", "")
+                    .replace("https://", "")
+                    .replace(".visualstudio.com", "")
+                    .rstrip("/")
+                )
                 # Use the actual project name from configuration
                 web_link = f"https://{org_name}.visualstudio.com/{self.project}/_workitems/edit/{item['id']}"
-            
+
             # Build transformed item without state history (will be fetched concurrently)
             transformed_item = {
                 "id": item["id"],  # Use real Azure DevOps numeric ID directly
@@ -294,12 +315,18 @@ class AzureDevOpsClient:
                 "type": fields.get("System.WorkItemType") or "Unknown",
                 "priority": fields.get("Microsoft.VSTS.Common.Priority") or "Medium",
                 "created_date": fields.get("System.CreatedDate") or "",
-                "created_by": self._extract_display_name(fields.get("System.CreatedBy")) or "Unknown",
-                "assigned_to": self._extract_display_name(fields.get("System.AssignedTo")) or "Unassigned",
+                "created_by": self._extract_display_name(fields.get("System.CreatedBy"))
+                or "Unknown",
+                "assigned_to": self._extract_display_name(
+                    fields.get("System.AssignedTo")
+                )
+                or "Unassigned",
                 "current_state": fields.get("System.State") or "New",
                 "state_transitions": [],  # Will be populated concurrently
                 "story_points": fields.get("Microsoft.VSTS.Scheduling.StoryPoints"),
-                "effort_hours": fields.get("Microsoft.VSTS.Scheduling.OriginalEstimate"),
+                "effort_hours": fields.get(
+                    "Microsoft.VSTS.Scheduling.OriginalEstimate"
+                ),
                 "tags": self._parse_tags(fields.get("System.Tags")),
                 # Preserve Azure DevOps API fields
                 "url": item.get("url"),  # Direct API endpoint
@@ -316,7 +343,7 @@ class AzureDevOpsClient:
                 continue
 
             work_items_to_process.append(transformed_item)
-            
+
         return work_items_to_process
 
     def _extract_display_name(self, field_value) -> str:
@@ -332,10 +359,10 @@ class AzureDevOpsClient:
         return tags_value.split(";")
 
     def _enrich_with_state_history(
-        self, 
-        work_items_to_process: List[Dict], 
-        progress_callback: Optional[Callable] = None, 
-        history_limit: Optional[int] = None
+        self,
+        work_items_to_process: List[Dict],
+        progress_callback: Optional[Callable] = None,
+        history_limit: Optional[int] = None,
     ) -> List[Dict]:
         """Enrich work items with state history using concurrent processing."""
         if progress_callback:
@@ -346,17 +373,17 @@ class AzureDevOpsClient:
 
         # Use ThreadPoolExecutor for concurrent state history fetching
         max_workers = min(5, len(work_items_to_process))  # Limit concurrent requests
-        
+
         if not work_items_to_process or max_workers <= 0:
             return work_items_to_process
 
         transformed_items = []
-        
+
         # Thread-safe counter for progress tracking
         progress_lock = threading.Lock()
         completed = 0
         total = len(work_items_to_process)
-        
+
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             # Submit all state history requests
             future_to_item = {
@@ -380,9 +407,7 @@ class AzureDevOpsClient:
                         f.cancel()
                     raise
                 except Exception as e:
-                    logger.warning(
-                        f"Failed to get state history for {item['id']}: {e}"
-                    )
+                    logger.warning(f"Failed to get state history for {item['id']}: {e}")
                     item["state_transitions"] = []
 
                 # Thread-safe progress update
@@ -397,7 +422,7 @@ class AzureDevOpsClient:
             for item in work_items_to_process:
                 item.pop("raw_id", None)
                 transformed_items.append(item)
-                
+
         return transformed_items
 
     def _fetch_work_items_concurrent(
@@ -418,7 +443,7 @@ class AzureDevOpsClient:
             for attempt in range(max_retries):
                 try:
                     ids_string = ",".join(map(str, batch_ids))
-                    details_url = f"{self.org_url}/{self.project}/_apis/wit/workitems?ids={ids_string}&$expand=relations&api-version=7.0"
+                    details_url = f"{self.org_url}/{self.project}/_apis/wit/workitems?ids={ids_string}&$expand=relations&api-version=7.1"
 
                     logger.debug(
                         f"Fetching batch {batch_num + 1}/{total_batches} (attempt {attempt + 1})"
@@ -515,7 +540,7 @@ class AzureDevOpsClient:
         try:
             # Add limit parameter for performance optimization during testing
             limit_param = f"&$top={limit}" if limit else ""
-            updates_url = f"{self.org_url}/{self.project}/_apis/wit/workitems/{work_item_id}/updates?api-version=7.0{limit_param}"
+            updates_url = f"{self.org_url}/_apis/wit/workitems/{work_item_id}/updates?api-version=7.1{limit_param}"
             response = requests.get(updates_url, headers=self.headers, timeout=30)
 
             if response.status_code == 405:

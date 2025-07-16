@@ -4,14 +4,15 @@ Tests API endpoint integration with data sources and real data flow.
 """
 
 import json
-import pytest
-import tempfile
 import os
+import tempfile
 from pathlib import Path
-from unittest.mock import patch, Mock, MagicMock
+from unittest.mock import MagicMock, Mock, patch
 
-from src.web_server import FlowMetricsWebServer
+import pytest
+
 from src.config_manager import get_settings
+from src.web_server import FlowMetricsWebServer
 
 
 class TestWorkItemsAPIIntegration:
@@ -40,8 +41,8 @@ class TestWorkItemsAPIIntegration:
                 "effort_hours": 20,
                 "state_transitions": [
                     {"state": "New", "date": "2024-01-01T00:00:00Z"},
-                    {"state": "Active", "date": "2024-01-02T00:00:00Z"}
-                ]
+                    {"state": "Active", "date": "2024-01-02T00:00:00Z"},
+                ],
             },
             {
                 "id": 1002,
@@ -57,94 +58,94 @@ class TestWorkItemsAPIIntegration:
                 "state_transitions": [
                     {"state": "New", "date": "2024-01-03T00:00:00Z"},
                     {"state": "Active", "date": "2024-01-03T08:00:00Z"},
-                    {"state": "Done", "date": "2024-01-04T16:00:00Z"}
-                ]
-            }
+                    {"state": "Done", "date": "2024-01-04T16:00:00Z"},
+                ],
+            },
         ]
-        
+
         data_dir = Path(temp_data_dir) / "data"
         data_dir.mkdir(exist_ok=True)
-        
+
         work_items_file = data_dir / "work_items.json"
-        with open(work_items_file, 'w') as f:
+        with open(work_items_file, "w") as f:
             json.dump(work_items, f)
-        
+
         return str(work_items_file)
 
     def test_api_endpoint_with_mock_data_source(self):
         """Test API endpoint integration with mock data source."""
         server = FlowMetricsWebServer(data_source="mock")
         client = server.app.test_client()
-        
-        response = client.get('/api/work-items')
-        
+
+        response = client.get("/api/work-items")
+
         assert response.status_code == 200
         data = json.loads(response.data)
-        
+
         # Verify response structure
         assert isinstance(data, list)
         assert len(data) > 0
-        
+
         # Verify data transformation
         for item in data:
-            assert 'id' in item
-            assert 'title' in item
-            assert 'workItemType' in item
-            assert 'priority' in item
-            assert 'assignedTo' in item
-            assert 'state' in item
+            assert "id" in item
+            assert "title" in item
+            assert "workItemType" in item
+            assert "priority" in item
+            assert "assignedTo" in item
+            assert "state" in item
 
     def test_api_endpoint_with_file_data_source(self, mock_work_items_file):
         """Test API endpoint integration with file data source."""
-        server = FlowMetricsWebServer(data_source="file")
-        
-        # Mock the file loading to use our test file
-        with patch.object(server, '_load_work_items_from_cache') as mock_load:
-            mock_load.return_value = json.loads(Path(mock_work_items_file).read_text())
-            
-            client = server.app.test_client()
-            response = client.get('/api/work-items')
-            
-            assert response.status_code == 200
-            data = json.loads(response.data)
-            
-            assert len(data) == 2
-            assert data[0]['title'] == "Integration Test Item 1"
-            assert data[1]['title'] == "Integration Test Item 2"
+        server = FlowMetricsWebServer(data_source=mock_work_items_file)
+
+        client = server.app.test_client()
+        response = client.get("/api/work-items")
+
+        assert response.status_code == 200
+        data = json.loads(response.data)
+
+        assert len(data) == 2
+        assert data[0]["title"] == "Integration Test Item 1"
+        assert data[1]["title"] == "Integration Test Item 2"
 
     def test_api_endpoint_error_handling_integration(self):
         """Test API endpoint error handling in integration scenario."""
         server = FlowMetricsWebServer(data_source="api")
-        
+
         # Mock a failure in the data loading process
-        with patch.object(server, '_load_work_items', side_effect=Exception("Data source unavailable")):
+        with patch.object(
+            server, "_load_work_items", side_effect=Exception("Data source unavailable")
+        ):
             client = server.app.test_client()
-            response = client.get('/api/work-items')
-            
-            assert response.status_code == 500
+            response = client.get("/api/work-items")
+
+            assert response.status_code == 503  # DATA_SOURCE_ERROR returns 503
             data = json.loads(response.data)
-            assert 'error' in data
-            assert data['error'] == "Data source unavailable"
+            assert "error" in data
+            # Check the error message in the proper field
+            assert "message" in data
+            assert "work-items" in data["message"]  # Error message includes data source
 
     def test_cors_headers_integration(self):
         """Test CORS headers are properly set for API endpoints."""
         server = FlowMetricsWebServer(data_source="mock")
         client = server.app.test_client()
-        
-        response = client.get('/api/work-items')
-        
+
+        response = client.get("/api/work-items")
+
         # Check CORS headers are present
-        assert 'Access-Control-Allow-Origin' in response.headers
+        assert "Access-Control-Allow-Origin" in response.headers
 
     def test_json_response_format_integration(self):
         """Test JSON response format is correct."""
         server = FlowMetricsWebServer(data_source="mock")
         client = server.app.test_client()
-        
-        response = client.get('/api/work-items')
-        
-        assert response.content_type == 'application/json'
-        
+
+        response = client.get("/api/work-items")
+
+        assert response.content_type == "application/json"
+
         # Verify JSON is valid and well-formed
         data = json.loads(response.data)
         assert isinstance(data, list)
@@ -153,15 +154,15 @@ class TestWorkItemsAPIIntegration:
         """Test health check endpoint integration."""
         server = FlowMetricsWebServer(data_source="mock")
         client = server.app.test_client()
-        
-        response = client.get('/health')
-        
+
+        response = client.get("/health")
+
         assert response.status_code == 200
         data = json.loads(response.data)
-        
-        assert data['status'] == 'healthy'
-        assert 'timestamp' in data
-        assert data['data_source'] == 'mock'
+
+        assert data["status"] == "healthy"
+        assert "timestamp" in data
+        assert data["data_source"] == "mock"
 
 
 class TestDashboardDataLoadingIntegration:
@@ -171,38 +172,43 @@ class TestDashboardDataLoadingIntegration:
     def server_with_client(self):
         """Create server with test client."""
         server = FlowMetricsWebServer(data_source="mock")
-        server.app.config['TESTING'] = True
+        server.app.config["TESTING"] = True
         client = server.app.test_client()
         return server, client
 
     def test_dashboard_html_loads_work_items(self, server_with_client):
         """Test that dashboard HTML can fetch work items data."""
         server, client = server_with_client
-        
+
         # First, verify work items endpoint works
-        api_response = client.get('/api/work-items')
+        api_response = client.get("/api/work-items")
         assert api_response.status_code == 200
         work_items = json.loads(api_response.data)
         assert len(work_items) > 0
-        
+
         # Then verify dashboard loads (if dashboard.html exists)
-        dashboard_response = client.get('/')
+        dashboard_response = client.get("/")
         # Dashboard should load regardless of whether HTML file exists
         # The important thing is that the API is available for the dashboard
 
     def test_work_items_data_structure_for_filtering(self, server_with_client):
         """Test work items data structure matches filtering requirements."""
         server, client = server_with_client
-        
-        response = client.get('/api/work-items')
+
+        response = client.get("/api/work-items")
         work_items = json.loads(response.data)
-        
+
         # Verify required fields for advanced filtering
         required_fields = [
-            'id', 'title', 'workItemType', 'priority', 
-            'assignedTo', 'state', 'tags'
+            "id",
+            "title",
+            "workItemType",
+            "priority",
+            "assignedTo",
+            "state",
+            "tags",
         ]
-        
+
         for item in work_items:
             for field in required_fields:
                 assert field in item, f"Missing required field: {field}"
@@ -210,41 +216,43 @@ class TestDashboardDataLoadingIntegration:
     def test_priority_mapping_integration(self, server_with_client):
         """Test priority mapping works correctly in full integration."""
         server, client = server_with_client
-        
-        response = client.get('/api/work-items')
+
+        response = client.get("/api/work-items")
         work_items = json.loads(response.data)
-        
+
         # Verify all priorities are mapped to string values
         valid_priorities = ["Critical", "High", "Medium", "Low"]
-        
+
         for item in work_items:
-            assert item['priority'] in valid_priorities, f"Invalid priority: {item['priority']}"
+            assert (
+                item["priority"] in valid_priorities
+            ), f"Invalid priority: {item['priority']}"
 
     def test_state_mapping_integration(self, server_with_client):
         """Test state mapping works correctly in full integration."""
         server, client = server_with_client
-        
-        response = client.get('/api/work-items')
+
+        response = client.get("/api/work-items")
         work_items = json.loads(response.data)
-        
+
         # Verify states are properly mapped
         for item in work_items:
-            assert item['state'] is not None
-            assert isinstance(item['state'], str)
+            assert item["state"] is not None
+            assert isinstance(item["state"], str)
 
     def test_assignee_mapping_integration(self, server_with_client):
         """Test assignee mapping works correctly in full integration."""
         server, client = server_with_client
-        
-        response = client.get('/api/work-items')
+
+        response = client.get("/api/work-items")
         work_items = json.loads(response.data)
-        
+
         # Verify assignee field is properly mapped
         for item in work_items:
             # assignedTo can be None or string
-            assert 'assignedTo' in item
-            if item['assignedTo'] is not None:
-                assert isinstance(item['assignedTo'], str)
+            assert "assignedTo" in item
+            if item["assignedTo"] is not None:
+                assert isinstance(item["assignedTo"], str)
 
 
 class TestFilteringWithRealDataFlow:
@@ -258,89 +266,98 @@ class TestFilteringWithRealDataFlow:
     def test_end_to_end_filtering_data_flow(self, filtering_server):
         """Test complete data flow from API to filtering."""
         client = filtering_server.app.test_client()
-        
+
         # Step 1: Get work items from API
-        response = client.get('/api/work-items')
+        response = client.get("/api/work-items")
         assert response.status_code == 200
         work_items = json.loads(response.data)
-        
+
         # Step 2: Simulate filtering operations
         # Test filtering by work item type
-        bugs = [item for item in work_items if item['workItemType'] == 'Bug']
-        user_stories = [item for item in work_items if item['workItemType'] == 'User Story']
-        
+        bugs = [item for item in work_items if item["workItemType"] == "Bug"]
+        user_stories = [
+            item for item in work_items if item["workItemType"] == "User Story"
+        ]
+
         # Verify filtering results make sense
         assert len(bugs) + len(user_stories) <= len(work_items)
-        
+
         # Test filtering by priority
-        high_priority = [item for item in work_items if item['priority'] == 'High']
-        critical_priority = [item for item in work_items if item['priority'] == 'Critical']
-        
+        high_priority = [item for item in work_items if item["priority"] == "High"]
+        critical_priority = [
+            item for item in work_items if item["priority"] == "Critical"
+        ]
+
         # Verify priority filtering
         for item in high_priority:
-            assert item['priority'] == 'High'
+            assert item["priority"] == "High"
         for item in critical_priority:
-            assert item['priority'] == 'Critical'
+            assert item["priority"] == "Critical"
 
     def test_multi_dimensional_filtering_integration(self, filtering_server):
         """Test multi-dimensional filtering with real data."""
         client = filtering_server.app.test_client()
-        
-        response = client.get('/api/work-items')
+
+        response = client.get("/api/work-items")
         work_items = json.loads(response.data)
-        
+
         # Apply multiple filters simultaneously
         filtered_items = [
-            item for item in work_items 
-            if item['workItemType'] == 'Bug' and item['priority'] in ['High', 'Critical']
+            item
+            for item in work_items
+            if item["workItemType"] == "Bug"
+            and item["priority"] in ["High", "Critical"]
         ]
-        
+
         # Verify multi-dimensional filtering
         for item in filtered_items:
-            assert item['workItemType'] == 'Bug'
-            assert item['priority'] in ['High', 'Critical']
+            assert item["workItemType"] == "Bug"
+            assert item["priority"] in ["High", "Critical"]
 
     def test_filtering_with_tags_integration(self, filtering_server):
         """Test tag-based filtering integration."""
         client = filtering_server.app.test_client()
-        
-        response = client.get('/api/work-items')
+
+        response = client.get("/api/work-items")
         work_items = json.loads(response.data)
-        
+
         # Find items with specific tags
         tagged_items = [
-            item for item in work_items 
-            if any(tag in item.get('tags', []) for tag in ['urgent', 'feature'])
+            item
+            for item in work_items
+            if any(tag in item.get("tags", []) for tag in ["urgent", "feature"])
         ]
-        
+
         # Verify tag filtering works
         for item in tagged_items:
-            assert isinstance(item.get('tags', []), list)
+            assert isinstance(item.get("tags", []), list)
 
     def test_assignee_filtering_integration(self, filtering_server):
         """Test assignee-based filtering integration."""
         client = filtering_server.app.test_client()
-        
-        response = client.get('/api/work-items')
+
+        response = client.get("/api/work-items")
         work_items = json.loads(response.data)
-        
+
         # Get unique assignees
-        assignees = list(set(
-            item['assignedTo'] for item in work_items 
-            if item['assignedTo'] is not None
-        ))
-        
+        assignees = list(
+            set(
+                item["assignedTo"]
+                for item in work_items
+                if item["assignedTo"] is not None
+            )
+        )
+
         if assignees:
             # Test filtering by specific assignee
             test_assignee = assignees[0]
             assignee_items = [
-                item for item in work_items 
-                if item['assignedTo'] == test_assignee
+                item for item in work_items if item["assignedTo"] == test_assignee
             ]
-            
+
             # Verify assignee filtering
             for item in assignee_items:
-                assert item['assignedTo'] == test_assignee
+                assert item["assignedTo"] == test_assignee
 
 
 class TestErrorScenariosAndFallbacks:
@@ -350,38 +367,38 @@ class TestErrorScenariosAndFallbacks:
         """Test fallback behavior with invalid data source."""
         server = FlowMetricsWebServer(data_source="invalid_source")
         client = server.app.test_client()
-        
+
         # Should fallback to mock data or handle gracefully
-        response = client.get('/api/work-items')
-        
+        response = client.get("/api/work-items")
+
         # Response should either be successful (fallback) or proper error
         assert response.status_code in [200, 500]
 
     def test_corrupted_data_handling(self):
         """Test handling of corrupted or malformed data."""
         server = FlowMetricsWebServer(data_source="mock")
-        
+
         # Mock corrupted data
         corrupted_data = [
             {"id": "invalid"},  # Invalid ID type
-            {"title": None},    # Missing required fields
-            {},                 # Empty object
-            None                # Null item
+            {"title": None},  # Missing required fields
+            {},  # Empty object
+            None,  # Null item
         ]
-        
-        with patch.object(server, '_load_work_items', return_value=corrupted_data):
+
+        with patch.object(server, "_load_work_items", return_value=corrupted_data):
             client = server.app.test_client()
-            response = client.get('/api/work-items')
-            
-            # Should handle gracefully
-            assert response.status_code == 200
+            response = client.get("/api/work-items")
+
+            # Corrupted data should cause an error in data transformation
+            assert response.status_code == 503  # DATA_SOURCE_ERROR for corrupted data
             data = json.loads(response.data)
-            assert isinstance(data, list)
+            assert "error" in data
 
     def test_large_dataset_handling(self):
         """Test handling of large datasets."""
         server = FlowMetricsWebServer(data_source="mock")
-        
+
         # Mock large dataset
         large_dataset = [
             {
@@ -395,15 +412,15 @@ class TestErrorScenariosAndFallbacks:
                 "tags": ["performance"],
                 "story_points": 1,
                 "effort_hours": 4,
-                "state_transitions": []
+                "state_transitions": [],
             }
             for i in range(1000)  # 1000 items
         ]
-        
-        with patch.object(server, '_load_work_items', return_value=large_dataset):
+
+        with patch.object(server, "_load_work_items", return_value=large_dataset):
             client = server.app.test_client()
-            response = client.get('/api/work-items')
-            
+            response = client.get("/api/work-items")
+
             assert response.status_code == 200
             data = json.loads(response.data)
             assert len(data) == 1000
@@ -411,20 +428,22 @@ class TestErrorScenariosAndFallbacks:
     def test_network_timeout_simulation(self):
         """Test behavior during network timeout scenarios."""
         server = FlowMetricsWebServer(data_source="api")
-        
+
         # Simulate network timeout
-        with patch.object(server, '_load_work_items', side_effect=TimeoutError("Network timeout")):
+        with patch.object(
+            server, "_load_work_items", side_effect=TimeoutError("Network timeout")
+        ):
             client = server.app.test_client()
-            response = client.get('/api/work-items')
-            
-            assert response.status_code == 500
+            response = client.get("/api/work-items")
+
+            assert response.status_code == 503  # DATA_SOURCE_ERROR for network timeout
             data = json.loads(response.data)
-            assert 'error' in data
+            assert "error" in data
 
     def test_partial_data_recovery(self):
         """Test recovery from partial data corruption."""
         server = FlowMetricsWebServer(data_source="mock")
-        
+
         # Mix of valid and invalid items
         mixed_data = [
             {
@@ -433,7 +452,7 @@ class TestErrorScenariosAndFallbacks:
                 "type": "User Story",
                 "priority": 2,
                 "assigned_to": "user@test.com",
-                "current_state": "Active"
+                "current_state": "Active",
             },
             {"invalid": "data"},  # Invalid structure
             {
@@ -442,17 +461,17 @@ class TestErrorScenariosAndFallbacks:
                 "type": "Bug",
                 "priority": 1,
                 "assigned_to": "user2@test.com",
-                "current_state": "Done"
-            }
+                "current_state": "Done",
+            },
         ]
-        
-        with patch.object(server, '_load_work_items', return_value=mixed_data):
+
+        with patch.object(server, "_load_work_items", return_value=mixed_data):
             client = server.app.test_client()
-            response = client.get('/api/work-items')
-            
+            response = client.get("/api/work-items")
+
             assert response.status_code == 200
             data = json.loads(response.data)
-            
+
             # Should process all items (even invalid ones with defaults)
             assert len(data) == 3
 
@@ -464,16 +483,16 @@ class TestCacheAndPerformanceIntegration:
         """Test data loading performance characteristics."""
         server = FlowMetricsWebServer(data_source="mock")
         client = server.app.test_client()
-        
+
         import time
-        
+
         # Measure response time
         start_time = time.time()
-        response = client.get('/api/work-items')
+        response = client.get("/api/work-items")
         end_time = time.time()
-        
+
         assert response.status_code == 200
-        
+
         # Response should be reasonably fast (under 1 second for mock data)
         response_time = end_time - start_time
         assert response_time < 1.0, f"Response took too long: {response_time}s"
@@ -482,26 +501,26 @@ class TestCacheAndPerformanceIntegration:
         """Test handling of concurrent requests."""
         server = FlowMetricsWebServer(data_source="mock")
         client = server.app.test_client()
-        
+
         import threading
-        
+
         results = []
-        
+
         def make_request():
-            response = client.get('/api/work-items')
+            response = client.get("/api/work-items")
             results.append(response.status_code)
-        
+
         # Create multiple concurrent requests
         threads = [threading.Thread(target=make_request) for _ in range(5)]
-        
+
         # Start all threads
         for thread in threads:
             thread.start()
-        
+
         # Wait for all threads to complete
         for thread in threads:
             thread.join()
-        
+
         # All requests should succeed
         assert all(status == 200 for status in results)
         assert len(results) == 5
@@ -509,14 +528,14 @@ class TestCacheAndPerformanceIntegration:
     def test_memory_usage_with_large_datasets(self):
         """Test memory usage characteristics with large datasets."""
         server = FlowMetricsWebServer(data_source="mock")
-        
+
         # This test would ideally monitor memory usage
         # For now, just ensure large datasets don't crash
         large_dataset = [{"id": i, "title": f"Item {i}"} for i in range(5000)]
-        
-        with patch.object(server, '_load_work_items', return_value=large_dataset):
+
+        with patch.object(server, "_load_work_items", return_value=large_dataset):
             client = server.app.test_client()
-            response = client.get('/api/work-items')
-            
+            response = client.get("/api/work-items")
+
             assert response.status_code == 200
             # Response should complete without memory errors

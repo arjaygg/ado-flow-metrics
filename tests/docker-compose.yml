@@ -1,0 +1,74 @@
+version: '3.8'
+
+services:
+  ui-tests:
+    build:
+      context: ..
+      dockerfile: tests/Dockerfile
+    volumes:
+      - ../test-results:/app/test-results
+      - ..:/app
+    environment:
+      - DISPLAY=:0
+      - PYTHONPATH=/app
+      - ADO_FLOW_METRICS_ENV=test
+    network_mode: host
+    depends_on:
+      - app-server
+    command: ["python", "-m", "pytest", "tests/e2e/", "-v", "--html=test-results/e2e-report.html", "--self-contained-html"]
+
+  app-server:
+    build:
+      context: ..
+      dockerfile: tests/Dockerfile
+    ports:
+      - "8050:8050"
+    environment:
+      - PYTHONPATH=/app
+      - ADO_FLOW_METRICS_ENV=test
+    command: ["python", "-m", "src.web_server"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8050/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  performance-tests:
+    build:
+      context: ..
+      dockerfile: tests/Dockerfile
+    volumes:
+      - ../test-results:/app/test-results
+      - ..:/app
+    environment:
+      - PYTHONPATH=/app
+      - ADO_FLOW_METRICS_ENV=test
+    depends_on:
+      - app-server
+    command: ["python", "-m", "pytest", "tests/", "-m", "performance", "-v", "--html=test-results/performance-report.html", "--self-contained-html"]
+
+  unit-tests:
+    build:
+      context: ..
+      dockerfile: tests/Dockerfile
+    volumes:
+      - ../test-results:/app/test-results
+      - ..:/app
+    environment:
+      - PYTHONPATH=/app
+      - ADO_FLOW_METRICS_ENV=test
+    command: ["python", "-m", "pytest", "tests/", "-m", "unit", "-v", "--cov=src", "--cov-report=html:test-results/coverage", "--html=test-results/unit-report.html", "--self-contained-html"]
+
+  integration-tests:
+    build:
+      context: ..
+      dockerfile: tests/Dockerfile
+    volumes:
+      - ../test-results:/app/test-results
+      - ..:/app
+    environment:
+      - PYTHONPATH=/app
+      - ADO_FLOW_METRICS_ENV=test
+    depends_on:
+      - app-server
+    command: ["python", "-m", "pytest", "tests/integration/", "-v", "--html=test-results/integration-report.html", "--self-contained-html"]
