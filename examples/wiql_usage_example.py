@@ -1,16 +1,8 @@
 """Example usage of WIQL filtering capabilities."""
 
-import json
-from datetime import datetime, timedelta
-from typing import Any, Dict, List
-
 from src.exceptions import WIQLError, WIQLValidationError
-from src.wiql_client import WIQLClient, create_wiql_client_from_config
-from src.wiql_parser import (
-    WIQLParser,
-    create_basic_work_items_query,
-    create_filtered_work_items_query,
-)
+from src.wiql_client import WIQLClient
+from src.wiql_parser import WIQLParser
 from src.wiql_transformer import TransformationConfig, WIQLTransformer
 
 
@@ -40,8 +32,10 @@ def example_basic_wiql_usage():
     print("\n2. Getting WIQL capabilities...")
     capabilities = client.get_wiql_capabilities()
     print(f"WIQL enabled: {capabilities['wiql_enabled']}")
-    print(f"Supported field types: {capabilities.get('field_types', [])}")
-    print(f"Supported operators: {capabilities.get('supported_operators', [])}")
+    field_types = capabilities.get('field_types', [])
+    operators = capabilities.get('supported_operators', [])
+    print(f"Supported field types: {field_types}")
+    print(f"Supported operators: {operators}")
 
     # Example 1: Basic work items query
     print("\n3. Basic work items query...")
@@ -56,7 +50,8 @@ def example_basic_wiql_usage():
         # Display first few items
         for item in work_items[:3]:
             print(
-                f"  - {item['id']}: {item['title']} ({item['type']}) - {item['current_state']}"
+                f"  - {item['id']}: {item['title']} ({item['type']}) - "
+                f"{item['current_state']}"
             )
 
     except Exception as e:
@@ -76,7 +71,8 @@ def example_custom_wiql_queries():
     # Example 1: Work items by priority
     print("\n1. High priority work items...")
     high_priority_query = """
-    SELECT [System.Id], [System.Title], [System.State], [Microsoft.VSTS.Common.Priority]
+    SELECT [System.Id], [System.Title], [System.State],
+           [Microsoft.VSTS.Common.Priority]
     FROM WorkItems
     WHERE [System.TeamProject] = 'your-project'
     AND [Microsoft.VSTS.Common.Priority] <= 2
@@ -157,10 +153,11 @@ def example_wiql_parser_usage():
 
     try:
         parsed_query = parser.parse_query(query_string)
-        print(f"✓ Query parsed successfully")
+        print("✓ Query parsed successfully")
         print(f"  - Select fields: {parsed_query.select_fields}")
         print(f"  - From clause: {parsed_query.from_clause}")
-        print(f"  - Number of conditions: {len(parsed_query.where_conditions)}")
+        condition_count = len(parsed_query.where_conditions)
+        print(f"  - Number of conditions: {condition_count}")
         print(f"  - Project filter: {parsed_query.project_filter}")
         print(f"  - Order by: {parsed_query.order_by}")
 
@@ -243,7 +240,9 @@ def example_wiql_transformer_usage():
 
     # Create transformer with configuration
     config = TransformationConfig(
-        include_custom_fields=True, validate_data=True, fill_missing_values=True
+        include_custom_fields=True,
+        validate_data=True,
+        fill_missing_values=True
     )
     transformer = WIQLTransformer(config)
 
@@ -297,7 +296,7 @@ def example_wiql_transformer_usage():
 
         # Display first item in metrics format
         if metrics_data:
-            print(f"Sample metrics item:")
+            print("Sample metrics item:")
             sample_item = metrics_data[0]
             for key, value in sample_item.items():
                 print(f"  {key}: {value}")
@@ -327,14 +326,15 @@ def example_wiql_statistics():
         print(f"By assignee: {stats['by_assignee']}")
 
         if stats["date_range"]["earliest"] and stats["date_range"]["latest"]:
-            print(
-                f"Date range: {stats['date_range']['earliest']} to {stats['date_range']['latest']}"
-            )
+            earliest = stats['date_range']['earliest']
+            latest = stats['date_range']['latest']
+            print(f"Date range: {earliest} to {latest}")
 
         # Get statistics with custom query
         print("\n2. Getting statistics for active work items...")
         active_query = """
-        SELECT [System.Id], [System.WorkItemType], [System.State], [System.AssignedTo]
+        SELECT [System.Id], [System.WorkItemType], [System.State],
+               [System.AssignedTo]
         FROM WorkItems
         WHERE [System.TeamProject] = 'your-project'
         AND [System.State] IN ('Active', 'Committed', 'In Progress')
@@ -383,7 +383,9 @@ def example_wiql_custom_fields():
         print(f"Total supported fields: {len(fields)}")
 
         # Show custom fields
-        custom_fields = {k: v for k, v in fields.items() if k.startswith("Custom.")}
+        custom_fields = {
+            k: v for k, v in fields.items() if k.startswith("Custom.")
+        }
         print(f"Custom fields: {list(custom_fields.keys())}")
 
     except Exception as e:
@@ -393,7 +395,8 @@ def example_wiql_custom_fields():
     print("\n2. Querying with custom fields...")
     try:
         custom_query = """
-        SELECT [System.Id], [System.Title], [Custom.BusinessValue], [Custom.CustomerImpact]
+        SELECT [System.Id], [System.Title], [Custom.BusinessValue],
+               [Custom.CustomerImpact]
         FROM WorkItems
         WHERE [System.TeamProject] = 'your-project'
         AND [Custom.BusinessValue] >= 50
@@ -451,9 +454,11 @@ def example_error_handling():
     # Example 3: Query validation without execution
     print("\n3. Testing query validation...")
     test_queries = [
-        "SELECT [System.Id] FROM WorkItems WHERE [System.TeamProject] = 'test'",  # Valid
+        "SELECT [System.Id] FROM WorkItems WHERE "
+        "[System.TeamProject] = 'test'",  # Valid
         "SELECT [Unknown.Field] FROM WorkItems",  # Invalid field
-        "SELECT [System.Id] FROM WorkItems WHERE [System.Id] LIKE 'test'",  # Invalid operator for field type
+        "SELECT [System.Id] FROM WorkItems WHERE "
+        "[System.Id] LIKE 'test'",  # Invalid operator for field type
     ]
 
     for i, query in enumerate(test_queries, 1):
@@ -462,7 +467,8 @@ def example_error_handling():
             if validation_result["valid"]:
                 print(f"  Query {i}: ✓ Valid")
             else:
-                print(f"  Query {i}: ✗ Invalid - {validation_result['errors'][0]}")
+                error_msg = validation_result['errors'][0]
+                print(f"  Query {i}: ✗ Invalid - {error_msg}")
         except Exception as e:
             print(f"  Query {i}: ✗ Error - {e}")
 
@@ -472,7 +478,8 @@ def main():
     print("WIQL Usage Examples")
     print("==================")
     print(
-        "Note: Replace 'your-org', 'your-project', and 'your-pat-token' with actual values"
+        "Note: Replace 'your-org', 'your-project', and 'your-pat-token' "
+        "with actual values"
     )
 
     # Run examples (commented out to avoid actual API calls)

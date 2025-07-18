@@ -1,7 +1,6 @@
 import base64
 import json
 import logging
-import signal
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -11,15 +10,12 @@ from typing import Any, Callable, Dict, List, Optional
 import requests
 
 from .exceptions import (
-    ADOFlowException,
     APIError,
     AuthenticationError,
     AuthorizationError,
     ConfigurationError,
-    NetworkError,
     WIQLError,
     WIQLValidationError,
-    WorkItemError,
 )
 
 logger = logging.getLogger(__name__)
@@ -30,8 +26,9 @@ class AzureDevOpsClient:
         self.org_url = org_url.rstrip("/")
         self.project = project
         self.pat_token = pat_token
+        auth_string = base64.b64encode(f":{pat_token}".encode()).decode()
         self.headers = {
-            "Authorization": f'Basic {base64.b64encode(f":{pat_token}".encode()).decode()}',
+            "Authorization": f'Basic {auth_string}',
             "Content-Type": "application/json",
             "Accept": "application/json",
         }
@@ -45,7 +42,9 @@ class AzureDevOpsClient:
                 f"{self.org_url}/_apis/projects/{self.project}?api-version=7.1"
             )
             logger.info(f"Testing connection to: {project_url}")
-            response = requests.get(project_url, headers=self.headers, timeout=30)
+            response = requests.get(
+                project_url, headers=self.headers, timeout=30
+            )
 
             if response.status_code == 401:
                 logger.error("Authentication failed - check your PAT token")
@@ -57,7 +56,9 @@ class AzureDevOpsClient:
                 logger.error(f"Project '{self.project}' not found")
                 return False
             elif response.status_code == 405:
-                logger.error("Method not allowed - possible API endpoint issue")
+                logger.error(
+                    "Method not allowed - possible API endpoint issue"
+                )
                 return False
 
             response.raise_for_status()
@@ -74,7 +75,9 @@ class AzureDevOpsClient:
             logger.error(f"Request error: {e}")
             return False
         except Exception as e:
-            logger.error(f"Unexpected error during connection verification: {e}")
+            logger.error(
+                f"Unexpected error during connection verification: {e}"
+            )
             return False
 
     def get_work_items(
@@ -83,7 +86,7 @@ class AzureDevOpsClient:
         progress_callback: Optional[Callable] = None,
         history_limit: Optional[int] = None,
     ) -> List[Dict]:
-        """Fetch work items from Azure DevOps with enhanced progress tracking"""
+        """Fetch work items from Azure DevOps with enhanced progress tracking."""
         from .error_handler import error_handler
 
         try:
@@ -211,15 +214,17 @@ class AzureDevOpsClient:
             return response_data.get("workItems", [])
         except ValueError as json_error:
             # Log the actual response for debugging
-            logger.error(f"Invalid JSON response from Azure DevOps API")
+            logger.error("Invalid JSON response from Azure DevOps API")
             logger.error(f"Response status: {response.status_code}")
             logger.error(f"Response headers: {dict(response.headers)}")
-            logger.error(f"Response content (first 500 chars): {response.text[:500]}")
+            response_preview = response.text[:500]
+            logger.error(f"Response content (first 500 chars): {response_preview}")
 
             # Check if it's an HTML error page (common with auth issues)
             if response.text.strip().startswith("<"):
                 logger.error(
-                    "Response appears to be HTML, likely an authentication or access error"
+                    "Response appears to be HTML, likely an authentication "
+                    "or access error"
                 )
                 if "conditional access" in response.text.lower():
                     logger.error(

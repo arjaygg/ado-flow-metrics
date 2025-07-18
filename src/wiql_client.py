@@ -34,9 +34,7 @@ class WIQLClient(AzureDevOpsClient):
                 parsed_query = self.wiql_parser.parse_query(wiql_query)
 
             # Execute query
-            return self._execute_parsed_query(
-                parsed_query, progress_callback
-            )
+            return self._execute_parsed_query(parsed_query, progress_callback)
 
         except Exception as e:
             logger.error(f"Failed to execute WIQL query: {e}")

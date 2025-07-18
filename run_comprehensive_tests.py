@@ -11,7 +11,6 @@ Plus performance testing, coverage analysis, and quality gates.
 """
 
 import json
-import os
 import subprocess
 import sys
 import time
@@ -88,7 +87,10 @@ class TestPyramidRunner:
 
             # 3. E2E Tests (10% of test pyramid)
             if include_e2e:
-                print("\n🌐 Phase 3: End-to-End Tests (Target: 10% of test execution)")
+                print(
+                    "\n🌐 Phase 3: End-to-End Tests (Target: 10% of test "
+                    "execution)"
+                )
                 e2e_result = self._run_e2e_tests()
                 self.results.append(e2e_result)
 
@@ -103,7 +105,10 @@ class TestPyramidRunner:
                 self.results.append(perf_result)
 
                 if not self._check_quality_gate(perf_result, "performance"):
-                    print("⚠️ Performance tests failed quality gates (non-blocking)")
+                    print(
+                        "⚠️ Performance tests failed quality gates "
+                        "(non-blocking)"
+                    )
 
             # 5. Coverage Analysis
             if generate_coverage:
@@ -117,8 +122,10 @@ class TestPyramidRunner:
             # Final quality assessment
             overall_success = self._assess_overall_quality()
 
-            print(f"\n{'✅' if overall_success else '❌'} Test Pyramid Complete!")
-            print(f"Total execution time: {time.time() - self.start_time:.2f}s")
+            success_icon = '✅' if overall_success else '❌'
+            execution_time = time.time() - self.start_time
+            print(f"\n{success_icon} Test Pyramid Complete!")
+            print(f"Total execution time: {execution_time:.2f}s")
 
             return overall_success
 
@@ -471,7 +478,6 @@ class TestPyramidRunner:
 
         # Check for reasonable pyramid shape
         unit_percentage = distribution.get("unit", 0)
-        integration_percentage = distribution.get("integration", 0)
 
         if unit_percentage < 50:  # At least 50% should be unit tests
             print(

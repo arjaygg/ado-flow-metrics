@@ -4,7 +4,7 @@ import json
 import os
 import signal
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
@@ -26,7 +26,6 @@ from .calculator import FlowMetricsCalculator
 from .config_manager import get_settings
 from .data_storage import FlowMetricsDatabase
 from .mock_data import generate_mock_azure_devops_data as generate_mock_data
-from .models import FlowMetricsReport
 
 
 # Windows-compatible console setup
@@ -40,12 +39,14 @@ def create_console():
 
                 subprocess.run("chcp 65001", shell=True, capture_output=True)
                 return Console(legacy_windows=False, force_terminal=True)
-            except:
+            except Exception:
                 # Fallback to safe mode for Windows
-                return Console(legacy_windows=True, no_color=True, force_terminal=True)
+                return Console(
+                    legacy_windows=True, no_color=True, force_terminal=True
+                )
         else:
             return Console()
-    except:
+    except Exception:
         # Ultimate fallback
         return Console(no_color=True, force_terminal=True)
 
@@ -686,7 +687,7 @@ def dashboard(port: int, host: str, debug: bool, data_source: str):
         server = create_web_server(data_source=data_source)
         server.run(host=host, port=port, debug=debug)
 
-    except ImportError as e:
+    except ImportError:
         console.print(f"[red]Error: Missing dependencies for dashboard[/red]")
         console.print(f"[yellow]Please install: pip install flask flask-cors[/yellow]")
         sys.exit(1)
@@ -1283,8 +1284,6 @@ def serve(port: int, open_browser: bool, auto_generate: bool, executive: bool):
     import webbrowser
 
     try:
-        settings = get_settings()
-
         # Auto-generate fresh data if requested
         if auto_generate:
             console.print("[cyan]Auto-generating fresh data...[/cyan]")
