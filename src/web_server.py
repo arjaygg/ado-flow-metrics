@@ -61,9 +61,22 @@ class FlowMetricsWebServer:
             from pathlib import Path
 
             dashboard_path = Path(__file__).parent.parent / "dashboard.html"
-            if dashboard_path.exists():
-                with open(dashboard_path, "r", encoding="utf-8") as f:
-                    return f.read()
+            # Validate path to prevent directory traversal
+            try:
+                project_root = Path(__file__).parent.parent.resolve()
+                resolved_path = dashboard_path.resolve()
+                
+                # Ensure the resolved path is within the project directory
+                if not str(resolved_path).startswith(str(project_root)):
+                    logger.warning(f"Path traversal attempt blocked: {dashboard_path}")
+                    return render_template("index.html")
+                    
+                if resolved_path.exists() and resolved_path.is_file():
+                    with open(resolved_path, "r", encoding="utf-8") as f:
+                        return f.read()
+            except (OSError, ValueError) as e:
+                logger.warning(f"File access error: {e}")
+                
             return render_template("index.html")
 
         @self.app.route("/executive-dashboard.html")

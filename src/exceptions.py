@@ -69,6 +69,12 @@ class MetricsCalculationError(ADOFlowException):
     pass
 
 
+class CalculationError(ADOFlowException):
+    """Raised when calculation operations fail."""
+
+    pass
+
+
 class ExportError(ADOFlowException):
     """Raised when data export operations fail."""
 

@@ -144,9 +144,12 @@ class AzureDevOpsClient:
             )
             return False
 
-        # Validate project name to prevent injection (basic sanitization)
-        if not self.project.replace("-", "").replace("_", "").isalnum():
-            raise ConfigurationError(f"Invalid project name: {self.project}")
+        # Validate project name to prevent injection with comprehensive regex whitelist
+        import re
+        project_pattern = r'^[a-zA-Z0-9][a-zA-Z0-9\-_\s\.]{0,63}$'
+        if not re.match(project_pattern, self.project):
+            logger.error(f"Project name validation failed: '{self.project}' contains invalid characters")
+            raise ConfigurationError(f"Invalid project name: {self.project}. Must contain only alphanumeric characters, hyphens, underscores, spaces, and dots.")
 
         return True
 

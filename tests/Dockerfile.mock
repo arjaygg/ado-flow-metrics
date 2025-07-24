@@ -1,0 +1,15 @@
+# Mock Azure DevOps API Server
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy mock server files
+COPY mock-server /app/
+
+# Install dependencies
+RUN npm init -y && \
+    npm install express body-parser cors
+
+EXPOSE 8080
+
+CMD ["node", "server.js"]

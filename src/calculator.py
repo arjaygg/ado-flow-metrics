@@ -130,7 +130,7 @@ class FlowMetricsCalculator:
                     "title": item["title"],
                     "type": item["type"],
                     "priority": item["priority"],
-                    "created_date": datetime.fromisoformat(item["created_date"]),
+                    "created_date": self._safe_parse_datetime(item.get("created_date")),
                     "created_by": item["created_by"],
                     "assigned_to": item["assigned_to"],
                     "current_state": item["current_state"],
@@ -161,7 +161,7 @@ class FlowMetricsCalculator:
                                 [part for part in state_clean.split("_") if part]
                             )
                             state_key = f"{state_clean}_date"
-                            parsed_item[state_key] = datetime.fromisoformat(date_str)
+                            parsed_item[state_key] = self._safe_parse_datetime(date_str)
                     except Exception as e:
                         logger.warning(
                             f"Failed to parse transition date for "
@@ -793,6 +793,27 @@ class FlowMetricsCalculator:
                 f"Could not get cycle time thresholds for {work_item_type}: {e}"
             )
             return {"target_days": 7, "warning_days": 14, "critical_days": 21}
+
+    def _safe_parse_datetime(self, date_str: str) -> Optional[datetime]:
+        """Safely parse datetime string with error handling and null checking."""
+        if not date_str:
+            logger.warning("Null or empty date string provided")
+            return None
+        
+        try:
+            # Handle various datetime formats safely
+            if isinstance(date_str, str):
+                # Remove 'Z' suffix and handle timezone info
+                cleaned_date = date_str.replace('Z', '+00:00')
+                return datetime.fromisoformat(cleaned_date)
+            elif isinstance(date_str, datetime):
+                return date_str
+            else:
+                logger.warning(f"Invalid date type: {type(date_str)}")
+                return None
+        except (ValueError, TypeError, AttributeError) as e:
+            logger.warning(f"Failed to parse datetime '{date_str}': {e}")
+            return None
 
     def _get_configuration_summary(self) -> Dict[str, Any]:
         """Get summary of current configuration for reporting."""

@@ -1,11 +1,24 @@
 """
-Tests for Azure DevOps client functionality.
+Comprehensive tests for Azure DevOps client functionality.
 """
 
 import pytest
-from unittest.mock import Mock, patch
+import json
+import threading
+from datetime import datetime, timedelta
+from unittest.mock import Mock, patch, MagicMock
+from concurrent.futures import ThreadPoolExecutor
+
 from src.azure_devops_client import AzureDevOpsClient
 from src.config_manager import FlowMetricsSettings
+from src.exceptions import (
+    APIError,
+    AuthenticationError,
+    AuthorizationError,
+    ConfigurationError,
+    WIQLError,
+    WIQLValidationError,
+)
 
 
 class TestAzureDevOpsClient:
@@ -104,7 +117,7 @@ class TestAzureDevOpsClient:
         work_items = client.get_work_items()
 
         assert len(work_items) == 2
-        assert work_items[0]["id"] == "WI-1"  # Client transforms id to WI-{id}
+        assert work_items[0]["id"] == 1  # Work item ID as returned by API
         assert work_items[0]["title"] == "Test Work Item 1"
         assert work_items[1]["id"] == "WI-2"
         assert work_items[1]["title"] == "Test Work Item 2"

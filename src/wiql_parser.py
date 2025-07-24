@@ -1,5 +1,6 @@
 """WIQL (Work Item Query Language) parser and validator for Azure DevOps."""
 
+import logging
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -7,6 +8,8 @@ from enum import Enum
 from typing import Any, Dict, List, Optional, Union
 
 from .exceptions import DataValidationError
+
+logger = logging.getLogger(__name__)
 
 
 class WIQLOperator(Enum):
@@ -159,12 +162,12 @@ class WIQLQuery:
 
                 if isinstance(condition.value, list):
                     if condition.operator in [WIQLOperator.IN, WIQLOperator.NOT_IN]:
-                        quoted_values = [f"'{v}'" for v in condition.value]
+                        quoted_values = [f"'{self._escape_wiql_string(str(v))}'" for v in condition.value]
                         value_str = f"({', '.join(quoted_values)})"
                     else:
                         value_str = f"'{condition.value[0]}'"
                 elif isinstance(condition.value, str):
-                    value_str = f"'{condition.value}'"
+                    value_str = f"'{self._escape_wiql_string(condition.value)}'"
                 else:
                     value_str = str(condition.value)
 
@@ -183,6 +186,30 @@ class WIQLQuery:
             query_parts.append(f"ORDER BY {', '.join(order_parts)}")
 
         return "\n".join(query_parts)
+
+    def _escape_wiql_string(self, value: str) -> str:
+        """Escape WIQL string values to prevent injection attacks."""
+        if not isinstance(value, str):
+            return str(value)
+        
+        # Escape single quotes by doubling them (WIQL standard)
+        escaped = value.replace("'", "''")
+        
+        # Remove or escape potentially dangerous characters
+        # Block common SQL injection patterns
+        dangerous_patterns = [
+            '--', '/*', '*/', ';', 'UNION', 'SELECT', 'INSERT', 
+            'UPDATE', 'DELETE', 'DROP', 'CREATE', 'ALTER'
+        ]
+        
+        for pattern in dangerous_patterns:
+            if pattern.upper() in escaped.upper():
+                # Log potential injection attempt
+                logger.warning(f"Potential WIQL injection attempt blocked: {pattern} in '{value}'")
+                # Replace with safe alternative or remove
+                escaped = escaped.replace(pattern, '').replace(pattern.upper(), '').replace(pattern.lower(), '')
+        
+        return escaped
 
 
 class WIQLParser:
