@@ -40,7 +40,7 @@ app.get('/:organization/_apis/wit/wiql', (req, res) => {
 
 app.post('/:organization/_apis/wit/wiql', (req, res) => {
   const { query } = req.body;
-  
+
   // Simulate different responses based on query
   if (query.includes('System.WorkItemType = \'Bug\'')) {
     res.json({
@@ -85,7 +85,7 @@ app.post('/:organization/_apis/wit/workitemsbatch', (req, res) => {
     relations: [],
     url: `https://localhost/workItems/${id}`
   }));
-  
+
   res.json({ count: workItems.length, value: workItems });
 });
 
@@ -123,7 +123,7 @@ app.get('/:organization/_apis/projects', (req, res) => {
         state: "wellFormed"
       },
       {
-        id: "project-2", 
+        id: "project-2",
         name: "Test Project 2",
         description: "Another test project",
         url: "https://localhost/projects/project-2",
@@ -166,7 +166,7 @@ app.get('/error/timeout', (req, res) => {
 
 // Catch-all for unimplemented endpoints
 app.use('*', (req, res) => {
-  res.status(404).json({ 
+  res.status(404).json({
     error: 'Not Found',
     message: `Mock endpoint not implemented: ${req.method} ${req.originalUrl}`
   });

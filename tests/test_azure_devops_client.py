@@ -2,12 +2,13 @@
 Comprehensive tests for Azure DevOps client functionality.
 """
 
-import pytest
 import json
 import threading
-from datetime import datetime, timedelta
-from unittest.mock import Mock, patch, MagicMock
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta
+from unittest.mock import MagicMock, Mock, patch
+
+import pytest
 
 from src.azure_devops_client import AzureDevOpsClient
 from src.config_manager import FlowMetricsSettings

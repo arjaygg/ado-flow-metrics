@@ -28,7 +28,7 @@ class AzureDevOpsClient:
         self.pat_token = pat_token
         auth_string = base64.b64encode(f":{pat_token}".encode()).decode()
         self.headers = {
-            "Authorization": f'Basic {auth_string}',
+            "Authorization": f"Basic {auth_string}",
             "Content-Type": "application/json",
             "Accept": "application/json",
         }
@@ -42,9 +42,7 @@ class AzureDevOpsClient:
                 f"{self.org_url}/_apis/projects/{self.project}?api-version=7.1"
             )
             logger.info(f"Testing connection to: {project_url}")
-            response = requests.get(
-                project_url, headers=self.headers, timeout=30
-            )
+            response = requests.get(project_url, headers=self.headers, timeout=30)
 
             if response.status_code == 401:
                 logger.error("Authentication failed - check your PAT token")
@@ -56,9 +54,7 @@ class AzureDevOpsClient:
                 logger.error(f"Project '{self.project}' not found")
                 return False
             elif response.status_code == 405:
-                logger.error(
-                    "Method not allowed - possible API endpoint issue"
-                )
+                logger.error("Method not allowed - possible API endpoint issue")
                 return False
 
             response.raise_for_status()
@@ -75,9 +71,7 @@ class AzureDevOpsClient:
             logger.error(f"Request error: {e}")
             return False
         except Exception as e:
-            logger.error(
-                f"Unexpected error during connection verification: {e}"
-            )
+            logger.error(f"Unexpected error during connection verification: {e}")
             return False
 
     def get_work_items(
@@ -146,10 +140,15 @@ class AzureDevOpsClient:
 
         # Validate project name to prevent injection with comprehensive regex whitelist
         import re
-        project_pattern = r'^[a-zA-Z0-9][a-zA-Z0-9\-_\s\.]{0,63}$'
+
+        project_pattern = r"^[a-zA-Z0-9][a-zA-Z0-9\-_\s\.]{0,63}$"
         if not re.match(project_pattern, self.project):
-            logger.error(f"Project name validation failed: '{self.project}' contains invalid characters")
-            raise ConfigurationError(f"Invalid project name: {self.project}. Must contain only alphanumeric characters, hyphens, underscores, spaces, and dots.")
+            logger.error(
+                f"Project name validation failed: '{self.project}' contains invalid characters"
+            )
+            raise ConfigurationError(
+                f"Invalid project name: {self.project}. Must contain only alphanumeric characters, hyphens, underscores, spaces, and dots."
+            )
 
         return True
 

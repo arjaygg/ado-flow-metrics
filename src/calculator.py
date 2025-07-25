@@ -799,12 +799,12 @@ class FlowMetricsCalculator:
         if not date_str:
             logger.warning("Null or empty date string provided")
             return None
-        
+
         try:
             # Handle various datetime formats safely
             if isinstance(date_str, str):
                 # Remove 'Z' suffix and handle timezone info
-                cleaned_date = date_str.replace('Z', '+00:00')
+                cleaned_date = date_str.replace("Z", "+00:00")
                 return datetime.fromisoformat(cleaned_date)
             elif isinstance(date_str, datetime):
                 return date_str

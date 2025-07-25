@@ -6,7 +6,7 @@
 **Existing Test Structure:**
 - ✅ Base test pyramid framework exists (`test_pyramid_strategy.py`)
 - ✅ Unit tests for core components (70% coverage goal)
-- ✅ Integration tests for API/DB (20% coverage goal)  
+- ✅ Integration tests for API/DB (20% coverage goal)
 - ✅ E2E tests with Playwright (10% coverage goal)
 - ❌ **GAPS IDENTIFIED:** Missing comprehensive coverage for new components
 
@@ -73,10 +73,10 @@ def test_example():
     # ARRANGE - Setup test data and mocks
     work_item = create_test_work_item()
     calculator = FlowMetricsCalculator()
-    
+
     # ACT - Execute the behavior
     result = calculator.calculate_cycle_time(work_item)
-    
+
     # ASSERT - Verify the outcome
     assert result > 0
     assert isinstance(result, float)
@@ -99,7 +99,7 @@ def test_example():
 
 ### Coverage Thresholds
 - **Unit Test Coverage**: ≥85%
-- **Integration Test Coverage**: ≥75%  
+- **Integration Test Coverage**: ≥75%
 - **E2E Test Coverage**: ≥60%
 - **Overall Code Coverage**: ≥80%
 
@@ -168,7 +168,7 @@ def test_example():
 - Standard Azure DevOps project setup
 - Normal user interactions
 
-### Edge Case Scenarios  
+### Edge Case Scenarios
 - Empty work item lists
 - Malformed Azure DevOps responses
 - Network timeouts and retries

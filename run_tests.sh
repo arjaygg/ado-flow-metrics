@@ -79,9 +79,9 @@ run_test_suite() {
     local test_name="$1"
     local test_path="$2"
     local test_args="${3:-}"
-    
+
     print_status "Running $test_name..."
-    
+
     if $PYTHON_CMD -m pytest "$test_path" $test_args; then
         print_success "$test_name passed!"
         return 0
@@ -159,11 +159,11 @@ fi
 # Test Docker environment if Docker is available
 if command -v docker &> /dev/null; then
     print_status "Testing Docker environment..."
-    
+
     # Build the test image
     if docker build -f tests/Dockerfile -t ado-flow-test . >/dev/null 2>&1; then
         print_success "Docker test image built successfully"
-        
+
         # Run a simple test in Docker
         if docker run --rm -e PYTHONPATH=/app/src ado-flow-test python -c "import src.azure_devops_client; print('Import test successful')"; then
             print_success "Docker environment test passed"
@@ -182,16 +182,16 @@ fi
 # Check if mock server dependencies are available
 if command -v npm &> /dev/null && [ -f "tests/mock-server/package.json" ]; then
     print_status "Testing mock server setup..."
-    
+
     cd tests/mock-server
     if npm install >/dev/null 2>&1; then
         print_success "Mock server dependencies installed"
-        
+
         # Start mock server in background for testing
         npm start &
         MOCK_SERVER_PID=$!
         sleep 3
-        
+
         # Test if mock server is responding
         if curl -f http://localhost:8080/health >/dev/null 2>&1; then
             print_success "Mock server is running correctly"
@@ -200,13 +200,13 @@ if command -v npm &> /dev/null && [ -f "tests/mock-server/package.json" ]; then
             print_error "Mock server failed to start"
             ((TESTS_FAILED++))
         fi
-        
+
         # Clean up mock server
         kill $MOCK_SERVER_PID 2>/dev/null || true
     else
         print_warning "Failed to install mock server dependencies"
     fi
-    
+
     cd - >/dev/null
 else
     print_warning "npm not available or mock server not configured - skipping mock server tests"

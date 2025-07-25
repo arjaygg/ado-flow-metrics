@@ -162,7 +162,10 @@ class WIQLQuery:
 
                 if isinstance(condition.value, list):
                     if condition.operator in [WIQLOperator.IN, WIQLOperator.NOT_IN]:
-                        quoted_values = [f"'{self._escape_wiql_string(str(v))}'" for v in condition.value]
+                        quoted_values = [
+                            f"'{self._escape_wiql_string(str(v))}'"
+                            for v in condition.value
+                        ]
                         value_str = f"({', '.join(quoted_values)})"
                     else:
                         value_str = f"'{condition.value[0]}'"
@@ -191,24 +194,40 @@ class WIQLQuery:
         """Escape WIQL string values to prevent injection attacks."""
         if not isinstance(value, str):
             return str(value)
-        
+
         # Escape single quotes by doubling them (WIQL standard)
         escaped = value.replace("'", "''")
-        
+
         # Remove or escape potentially dangerous characters
         # Block common SQL injection patterns
         dangerous_patterns = [
-            '--', '/*', '*/', ';', 'UNION', 'SELECT', 'INSERT', 
-            'UPDATE', 'DELETE', 'DROP', 'CREATE', 'ALTER'
+            "--",
+            "/*",
+            "*/",
+            ";",
+            "UNION",
+            "SELECT",
+            "INSERT",
+            "UPDATE",
+            "DELETE",
+            "DROP",
+            "CREATE",
+            "ALTER",
         ]
-        
+
         for pattern in dangerous_patterns:
             if pattern.upper() in escaped.upper():
                 # Log potential injection attempt
-                logger.warning(f"Potential WIQL injection attempt blocked: {pattern} in '{value}'")
+                logger.warning(
+                    f"Potential WIQL injection attempt blocked: {pattern} in '{value}'"
+                )
                 # Replace with safe alternative or remove
-                escaped = escaped.replace(pattern, '').replace(pattern.upper(), '').replace(pattern.lower(), '')
-        
+                escaped = (
+                    escaped.replace(pattern, "")
+                    .replace(pattern.upper(), "")
+                    .replace(pattern.lower(), "")
+                )
+
         return escaped
 
 
@@ -275,6 +294,29 @@ class WIQLParser:
                 "Completed Work",
                 "Microsoft.VSTS.Scheduling.CompletedWork",
                 WIQLFieldType.DOUBLE,
+            ),
+            # Additional standard fields that may be missing
+            "System.CreatedBy": WIQLField(
+                "Created By", "System.CreatedBy", WIQLFieldType.IDENTITY
+            ),
+            # Custom fields commonly used in organizations
+            "Custom.QATester": WIQLField(
+                "QA Tester", "Custom.QATester", WIQLFieldType.IDENTITY
+            ),
+            "Custom.HoursSpent": WIQLField(
+                "Hours Spent", "Custom.HoursSpent", WIQLFieldType.DOUBLE
+            ),
+            "Custom.HourEstimate": WIQLField(
+                "Hour Estimate", "Custom.HourEstimate", WIQLFieldType.DOUBLE
+            ),
+            "Custom.QAHourEstimate": WIQLField(
+                "QA Hour Estimate", "Custom.QAHourEstimate", WIQLFieldType.DOUBLE
+            ),
+            "Custom.DevTargetDate": WIQLField(
+                "Dev Target Date", "Custom.DevTargetDate", WIQLFieldType.DATETIME
+            ),
+            "Custom.TimeSpent": WIQLField(
+                "Time Spent", "Custom.TimeSpent", WIQLFieldType.DOUBLE
             ),
         }
 

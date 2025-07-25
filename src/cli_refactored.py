@@ -16,10 +16,10 @@ def main():
     formatter = OutputFormatter()
     parser = CLIParser()
     executor = CommandExecutor(formatter)
-    
+
     # Create CLI group
     cli = parser.create_cli_group()
-    
+
     # Add fetch command
     @cli.command()
     @click.option("--days-back", default=30, help="Number of days to fetch data for")
@@ -72,14 +72,14 @@ def main():
                 wiql_query=wiql_query,
                 wiql_file=wiql_file,
             )
-            
+
             # Execute command
             executor.execute_fetch_command(**options)
-            
+
         except Exception as e:
             formatter.print_error(f"Validation error: {e}")
             sys.exit(1)
-    
+
     # Add calculate command
     @cli.command()
     @click.option(
@@ -115,14 +115,14 @@ def main():
                 to_date=to_date,
                 use_mock_data=use_mock_data,
             )
-            
+
             # Execute command
             executor.execute_calculate_command(**options)
-            
+
         except Exception as e:
             formatter.print_error(f"Validation error: {e}")
             sys.exit(1)
-    
+
     # Add dashboard command
     @cli.command()
     @click.option("--port", default=8050, help="Dashboard port")
@@ -143,14 +143,14 @@ def main():
                 debug=debug,
                 data_source=data_source,
             )
-            
+
             # Execute command
             executor.execute_dashboard_command(**options)
-            
+
         except Exception as e:
             formatter.print_error(f"Validation error: {e}")
             sys.exit(1)
-    
+
     # Add serve command
     @cli.command()
     @click.option("--port", default=8000, help="Port to serve dashboard on")
@@ -173,49 +173,51 @@ def main():
                 auto_generate=auto_generate,
                 executive=executive,
             )
-            
+
             # Execute command
             executor.execute_serve_command(**options)
-            
+
         except Exception as e:
             formatter.print_error(f"Validation error: {e}")
             sys.exit(1)
-    
+
     # Add config group
     @cli.group()
     def config():
         """Manage configuration settings."""
         pass
-    
+
     @config.command("show")
     def config_show():
         """Show current configuration."""
         executor.execute_config_show_command()
-    
+
     @config.command("init")
     def config_init():
         """Initialize configuration from sample."""
         executor.execute_config_init_command()
-    
+
     # Add history command
     @cli.command()
     @click.option("--limit", default=10, help="Number of recent executions to show")
-    @click.option("--detailed", is_flag=True, help="Show detailed execution information")
+    @click.option(
+        "--detailed", is_flag=True, help="Show detailed execution information"
+    )
     def history(limit: int, detailed: bool):
         """Show execution history."""
         executor.execute_history_command(limit, detailed)
-    
+
     # Add data group (simplified for this example)
     @cli.group()
     def data():
         """Data management commands."""
         pass
-    
+
     @data.command("validate")
     def data_validate():
         """Validate Azure DevOps configuration and connection."""
         executor.execute_data_validate_command()
-    
+
     # Run the CLI
     cli()
 

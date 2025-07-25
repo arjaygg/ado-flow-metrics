@@ -1,23 +1,23 @@
 """Output formatting and display logic for Flow Metrics CLI."""
 
-import os
 import json
-from pathlib import Path
-from typing import Dict, List, Any, Optional
+import os
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional
 
+from rich import print as rprint
 from rich.console import Console
 from rich.table import Table
-from rich import print as rprint
 
 
 class OutputFormatter:
     """Handles all output formatting and display operations."""
-    
+
     def __init__(self):
         self.console = self._create_console()
         self.symbols = self._get_platform_symbols()
-    
+
     def _create_console(self) -> Console:
         """Create a Rich console with Windows compatibility."""
         try:
@@ -25,6 +25,7 @@ class OutputFormatter:
                 try:
                     # Try to enable UTF-8 support
                     import subprocess
+
                     subprocess.run("chcp 65001", shell=True, capture_output=True)
                     return Console(legacy_windows=False, force_terminal=True)
                 except Exception:
@@ -37,7 +38,7 @@ class OutputFormatter:
         except Exception:
             # Ultimate fallback
             return Console(no_color=True, force_terminal=True)
-    
+
     def _get_platform_symbols(self) -> Dict[str, str]:
         """Get appropriate symbols for the current platform."""
         if os.name == "nt":  # Windows
@@ -58,7 +59,7 @@ class OutputFormatter:
                 "arrow": "→",
                 "bullet": "•",
             }
-    
+
     def safe_print(self, message: str, style: Optional[str] = None) -> None:
         """Print with Windows-safe encoding."""
         try:
@@ -72,27 +73,27 @@ class OutputFormatter:
             if hasattr(message, "plain"):
                 plain_message = message.plain
             print(str(plain_message).encode("ascii", "replace").decode("ascii"))
-    
+
     def print_success(self, message: str) -> None:
         """Print a success message."""
         self.safe_print(f"[green]{self.symbols['check']} {message}[/green]")
-    
+
     def print_error(self, message: str) -> None:
         """Print an error message."""
         self.safe_print(f"[red]{self.symbols['error']} {message}[/red]")
-    
+
     def print_warning(self, message: str) -> None:
         """Print a warning message."""
         self.safe_print(f"[yellow]{self.symbols['warning']} {message}[/yellow]")
-    
+
     def print_info(self, message: str) -> None:
         """Print an info message."""
         self.safe_print(f"[cyan]{self.symbols['info']} {message}[/cyan]")
-    
+
     def print_arrow(self, message: str) -> None:
         """Print a message with an arrow symbol."""
         self.safe_print(f"[cyan]{self.symbols['arrow']} {message}[/cyan]")
-    
+
     def display_metrics_summary(self, report: Dict[str, Any]) -> None:
         """Display metrics summary in a nice table."""
         # Create summary table
@@ -115,11 +116,17 @@ class OutputFormatter:
         table.add_row("Current WIP", str(wip.get("total_wip", 0)))
 
         if lead_time:
-            table.add_row("Avg Lead Time", f"{lead_time.get('average_days', 0):.1f} days")
-            table.add_row("Median Lead Time", f"{lead_time.get('median_days', 0):.1f} days")
+            table.add_row(
+                "Avg Lead Time", f"{lead_time.get('average_days', 0):.1f} days"
+            )
+            table.add_row(
+                "Median Lead Time", f"{lead_time.get('median_days', 0):.1f} days"
+            )
 
         if cycle_time:
-            table.add_row("Avg Cycle Time", f"{cycle_time.get('average_days', 0):.1f} days")
+            table.add_row(
+                "Avg Cycle Time", f"{cycle_time.get('average_days', 0):.1f} days"
+            )
             table.add_row(
                 "Median Cycle Time", f"{cycle_time.get('median_days', 0):.1f} days"
             )
@@ -136,8 +143,10 @@ class OutputFormatter:
             )
 
         self.console.print(table)
-    
-    def display_execution_history(self, executions: List[Dict[str, Any]], detailed: bool = False) -> None:
+
+    def display_execution_history(
+        self, executions: List[Dict[str, Any]], detailed: bool = False
+    ) -> None:
         """Display execution history in a table."""
         if not executions:
             self.console.print("[yellow]No execution history found[/yellow]")
@@ -181,8 +190,10 @@ class OutputFormatter:
             self.console.print(f"Completed: {latest['completed_items_count']}")
             if latest["error_message"]:
                 self.console.print(f"[red]Error: {latest['error_message']}[/red]")
-    
-    def display_validation_summary(self, validation_errors: List[str], warnings: List[str]) -> None:
+
+    def display_validation_summary(
+        self, validation_errors: List[str], warnings: List[str]
+    ) -> None:
         """Display validation summary with errors and warnings."""
         self.console.print("\n" + "=" * 50)
         self.console.print("[bold]Validation Summary[/bold]")
@@ -215,22 +226,22 @@ class OutputFormatter:
             self.console.print("  python -m src.cli data fresh --days-back 7")
             self.console.print("  python -m src.cli serve --open-browser")
             return True
-    
+
     def display_wiql_query(self, query: str) -> None:
         """Display a WIQL query with formatting."""
         self.console.print(f"\n[bold]WIQL Query:[/bold]")
         self.console.print(f"[dim]{query}[/dim]")
-    
+
     def display_config(self, config_dict: Dict[str, Any]) -> None:
         """Display configuration using Rich printing."""
         rprint(config_dict)
-    
+
     def save_report_json(self, report: Dict[str, Any], output_path: Path) -> None:
         """Save report to JSON file."""
         with open(output_path, "w") as f:
             json.dump(report, f, indent=2, default=str)
         self.print_success(f"Report saved to {output_path}")
-    
+
     def save_dashboard_data(self, report: Dict[str, Any], dashboard_path: Path) -> None:
         """Save dashboard-compatible data."""
         dashboard_data = {
@@ -241,13 +252,13 @@ class OutputFormatter:
         with open(dashboard_path, "w") as f:
             json.dump(dashboard_data, f, indent=2, default=str)
         self.print_success(f"Dashboard data updated: {dashboard_path}")
-    
+
     def save_work_items(self, items: List[Dict[str, Any]], output_path: Path) -> None:
         """Save work items to JSON file."""
         with open(output_path, "w") as f:
             json.dump(items, f, indent=2, default=str)
         self.print_success(f"Saved {len(items)} work items to {output_path}")
-    
+
     def display_validation_item_summary(self, validation_stats: Dict[str, int]) -> None:
         """Display validation summary for work items."""
         total_skipped = (
@@ -255,22 +266,30 @@ class OutputFormatter:
             + validation_stats["empty_fields"]
             + validation_stats["invalid_dates"]
         )
-        
+
         if total_skipped > 0:
             self.console.print(f"[cyan]Validation Summary:[/cyan]")
-            self.console.print(f"  Total items processed: {validation_stats['total_processed']}")
+            self.console.print(
+                f"  Total items processed: {validation_stats['total_processed']}"
+            )
             self.console.print(f"  Skipped items: {total_skipped}")
             if validation_stats["missing_fields"] > 0:
-                self.console.print(f"    - Missing fields: {validation_stats['missing_fields']}")
+                self.console.print(
+                    f"    - Missing fields: {validation_stats['missing_fields']}"
+                )
             if validation_stats["empty_fields"] > 0:
-                self.console.print(f"    - Empty fields: {validation_stats['empty_fields']}")
+                self.console.print(
+                    f"    - Empty fields: {validation_stats['empty_fields']}"
+                )
             if validation_stats["invalid_dates"] > 0:
-                self.console.print(f"    - Invalid dates: {validation_stats['invalid_dates']}")
-    
+                self.console.print(
+                    f"    - Invalid dates: {validation_stats['invalid_dates']}"
+                )
+
     def log_server_info(self, message: str) -> None:
         """Log server information with proper formatting."""
         self.print_info(f"HTTP: {message}")
-    
+
     def log_server_error(self, path: str, error: str) -> None:
         """Log server error with proper formatting."""
         self.print_error(f"Server error for {path}: {error}")

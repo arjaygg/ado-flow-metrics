@@ -1,18 +1,18 @@
 """Command execution logic for Flow Metrics CLI."""
 
+import http.server
 import json
 import os
-import signal
-import sys
 import shutil
-import time
-import threading
-import webbrowser
-import http.server
+import signal
 import socketserver
+import sys
+import threading
+import time
+import webbrowser
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Any, Optional, Callable
+from typing import Any, Callable, Dict, List, Optional
 
 import click
 from rich.progress import (
@@ -28,19 +28,20 @@ from .azure_devops_client import AzureDevOpsClient
 from .calculator import FlowMetricsCalculator
 from .config_manager import get_settings
 from .data_storage import FlowMetricsDatabase
+from .exceptions import ConfigurationError
 from .mock_data import generate_mock_azure_devops_data as generate_mock_data
 from .output_formatter import OutputFormatter
-from .exceptions import ConfigurationError
 
 
 class CommandExecutor:
     """Handles execution of CLI commands."""
-    
+
     def __init__(self, formatter: OutputFormatter):
         self.formatter = formatter
-    
+
     def execute_fetch_command(self, **options) -> None:
         """Execute the fetch command."""
+
         # Set up signal handler for graceful cancellation
         def signal_handler(signum, frame):
             self.formatter.print_warning("Operation cancelled by user. Exiting...")
@@ -55,12 +56,14 @@ class CommandExecutor:
             settings = get_settings()
 
             # Override project if specified
-            project = options.get('project')
+            project = options.get("project")
             if project:
                 settings.azure_devops.default_project = project
 
             if not settings.azure_devops.pat_token:
-                self.formatter.print_error("AZURE_DEVOPS_PAT environment variable not set")
+                self.formatter.print_error(
+                    "AZURE_DEVOPS_PAT environment variable not set"
+                )
                 sys.exit(1)
 
             # Handle WIQL query input
@@ -70,7 +73,7 @@ class CommandExecutor:
             db = FlowMetricsDatabase(settings)
 
             # Start execution tracking
-            if options.get('save_last_run'):
+            if options.get("save_last_run"):
                 execution_id = db.start_execution(
                     settings.azure_devops.org_url, settings.azure_devops.default_project
                 )
@@ -82,20 +85,26 @@ class CommandExecutor:
             )
 
             # Execute fetch with progress tracking
-            items = self._execute_fetch_with_progress(client, options, custom_wiql_query)
+            items = self._execute_fetch_with_progress(
+                client, options, custom_wiql_query
+            )
 
             # Save results
-            self._save_fetch_results(items, options, settings, db, execution_id, execution_start_time)
+            self._save_fetch_results(
+                items, options, settings, db, execution_id, execution_start_time
+            )
 
         except Exception as e:
             # Record failed execution
-            if options.get('save_last_run') and execution_id:
-                execution_duration = (datetime.now() - execution_start_time).total_seconds()
+            if options.get("save_last_run") and execution_id:
+                execution_duration = (
+                    datetime.now() - execution_start_time
+                ).total_seconds()
                 db.complete_execution(execution_id, 0, 0, execution_duration, str(e))
 
             self.formatter.print_error(f"Error: {e}")
             sys.exit(1)
-    
+
     def execute_calculate_command(self, **options) -> None:
         """Execute the calculate command."""
         try:
@@ -123,18 +132,20 @@ class CommandExecutor:
         except Exception as e:
             self.formatter.print_error(f"Error: {e}")
             sys.exit(1)
-    
+
     def execute_dashboard_command(self, **options) -> None:
         """Execute the dashboard command."""
         try:
             from .web_server import create_web_server
 
-            host = options['host']
-            port = options['port']
-            data_source = options['data_source']
-            debug = options['debug']
+            host = options["host"]
+            port = options["port"]
+            data_source = options["data_source"]
+            debug = options["debug"]
 
-            self.formatter.console.print(f"[green]Starting Flow Metrics Dashboard...[/green]")
+            self.formatter.console.print(
+                f"[green]Starting Flow Metrics Dashboard...[/green]"
+            )
             self.formatter.console.print(f"[cyan]Host: {host}[/cyan]")
             self.formatter.console.print(f"[cyan]Port: {port}[/cyan]")
             self.formatter.console.print(f"[cyan]Data source: {data_source}[/cyan]")
@@ -148,23 +159,27 @@ class CommandExecutor:
 
         except ImportError:
             self.formatter.print_error("Missing dependencies for dashboard")
-            self.formatter.console.print(f"[yellow]Please install: pip install flask flask-cors[/yellow]")
+            self.formatter.console.print(
+                f"[yellow]Please install: pip install flask flask-cors[/yellow]"
+            )
             sys.exit(1)
         except Exception as e:
             self.formatter.console.print(f"[red]Error starting dashboard: {e}[/red]")
             sys.exit(1)
-    
+
     def execute_serve_command(self, **options) -> None:
         """Execute the serve command."""
         try:
-            port = options['port']
-            open_browser = options['open_browser']
-            auto_generate = options['auto_generate']
-            executive = options['executive']
+            port = options["port"]
+            open_browser = options["open_browser"]
+            auto_generate = options["auto_generate"]
+            executive = options["executive"]
 
             # Auto-generate fresh data if requested
             if auto_generate:
-                self.formatter.console.print("[cyan]Auto-generating fresh data...[/cyan]")
+                self.formatter.console.print(
+                    "[cyan]Auto-generating fresh data...[/cyan]"
+                )
                 ctx = click.get_current_context()
                 ctx.invoke(self.execute_calculate_command, use_mock_data=True)
 
@@ -174,7 +189,9 @@ class CommandExecutor:
             )
             dashboard_file = Path(__file__).parent.parent / dashboard_filename
             if not dashboard_file.exists():
-                self.formatter.print_error(f"Dashboard file not found: {dashboard_file}")
+                self.formatter.print_error(
+                    f"Dashboard file not found: {dashboard_file}"
+                )
                 sys.exit(1)
 
             # Start server
@@ -183,7 +200,7 @@ class CommandExecutor:
         except Exception as e:
             self.formatter.print_error(f"Error: {e}")
             sys.exit(1)
-    
+
     def execute_config_show_command(self) -> None:
         """Execute the config show command."""
         try:
@@ -196,7 +213,7 @@ class CommandExecutor:
         except Exception as e:
             self.formatter.print_error(f"Error: {e}")
             sys.exit(1)
-    
+
     def execute_config_init_command(self) -> None:
         """Execute the config init command."""
         try:
@@ -222,7 +239,7 @@ class CommandExecutor:
         except Exception as e:
             self.formatter.print_error(f"Error: {e}")
             sys.exit(1)
-    
+
     def execute_history_command(self, limit: int, detailed: bool) -> None:
         """Execute the history command."""
         try:
@@ -235,11 +252,13 @@ class CommandExecutor:
         except Exception as e:
             self.formatter.print_error(f"Error: {e}")
             sys.exit(1)
-    
+
     def execute_data_validate_command(self) -> None:
         """Execute the data validate command."""
         try:
-            self.formatter.console.print("[bold cyan]Flow Metrics - Azure DevOps Validation[/bold cyan]")
+            self.formatter.console.print(
+                "[bold cyan]Flow Metrics - Azure DevOps Validation[/bold cyan]"
+            )
             self.formatter.console.print("=" * 50)
 
             validation_errors = []
@@ -259,21 +278,25 @@ class CommandExecutor:
                 self._test_azure_devops_connection(validation_errors)
 
             # Display results
-            success = self.formatter.display_validation_summary(validation_errors, warnings)
+            success = self.formatter.display_validation_summary(
+                validation_errors, warnings
+            )
             if not success:
                 sys.exit(1)
 
         except Exception as e:
             self.formatter.print_error(f"Validation failed: {e}")
-            self.formatter.console.print("\n[cyan]For immediate testing, use mock data:[/cyan]")
+            self.formatter.console.print(
+                "\n[cyan]For immediate testing, use mock data:[/cyan]"
+            )
             self.formatter.console.print("  python -m src.cli data fresh --use-mock")
             sys.exit(1)
-    
+
     def _handle_wiql_input(self, options: Dict[str, Any]) -> Optional[str]:
         """Handle WIQL query input from options."""
-        wiql_file = options.get('wiql_file')
-        wiql_query = options.get('wiql_query')
-        
+        wiql_file = options.get("wiql_file")
+        wiql_query = options.get("wiql_query")
+
         custom_wiql_query = None
         if wiql_file:
             with open(wiql_file, "r") as f:
@@ -288,7 +311,7 @@ class CommandExecutor:
             self._validate_wiql_query(custom_wiql_query)
 
         return custom_wiql_query
-    
+
     def _validate_wiql_query(self, query: str) -> None:
         """Validate WIQL query."""
         try:
@@ -302,13 +325,15 @@ class CommandExecutor:
                 sys.exit(1)
             self.formatter.print_success("WIQL query validation passed")
         except ImportError:
-            self.formatter.print_warning("WIQL validation not available, proceeding without validation")
-    
+            self.formatter.print_warning(
+                "WIQL validation not available, proceeding without validation"
+            )
+
     def _execute_fetch_with_progress(
-        self, 
-        client: AzureDevOpsClient, 
-        options: Dict[str, Any], 
-        custom_wiql_query: Optional[str]
+        self,
+        client: AzureDevOpsClient,
+        options: Dict[str, Any],
+        custom_wiql_query: Optional[str],
     ) -> List[Dict[str, Any]]:
         """Execute fetch with progress tracking."""
         # Setup enhanced progress tracking
@@ -377,7 +402,7 @@ class CommandExecutor:
                 items = client.get_work_items(
                     days_back=days_back,
                     progress_callback=progress_callback,
-                    history_limit=options.get('history_limit'),
+                    history_limit=options.get("history_limit"),
                 )
 
             # Mark completion
@@ -388,19 +413,21 @@ class CommandExecutor:
                 progress.remove_task(batch_task)
 
         return items
-    
-    def _handle_incremental_sync(self, options: Dict[str, Any], progress_callback: Callable) -> int:
+
+    def _handle_incremental_sync(
+        self, options: Dict[str, Any], progress_callback: Callable
+    ) -> int:
         """Handle incremental sync logic."""
-        days_back = options.get('days_back', 30)
-        incremental = options.get('incremental', False)
-        
+        days_back = options.get("days_back", 30)
+        incremental = options.get("incremental", False)
+
         if incremental:
-            from .data_storage import FlowMetricsDatabase
             from .config_manager import get_settings
-            
+            from .data_storage import FlowMetricsDatabase
+
             settings = get_settings()
             db = FlowMetricsDatabase(settings)
-            
+
             # Get last successful execution timestamp
             recent_executions = db.get_recent_executions(limit=1)
             if recent_executions:
@@ -420,21 +447,21 @@ class CommandExecutor:
                 self.formatter.console.print(
                     "[yellow]No previous runs found, using full sync[/yellow]"
                 )
-        
+
         return days_back
-    
+
     def _save_fetch_results(
-        self, 
-        items: List[Dict[str, Any]], 
-        options: Dict[str, Any], 
+        self,
+        items: List[Dict[str, Any]],
+        options: Dict[str, Any],
         settings: Any,
         db: FlowMetricsDatabase,
         execution_id: Optional[str],
-        execution_start_time: datetime
+        execution_start_time: datetime,
     ) -> None:
         """Save fetch results."""
         # Save to file
-        output = options.get('output')
+        output = options.get("output")
         output_path = (
             Path(output)
             if output
@@ -444,7 +471,7 @@ class CommandExecutor:
         self.formatter.save_work_items(items, output_path)
 
         # Complete execution tracking
-        if options.get('save_last_run') and execution_id:
+        if options.get("save_last_run") and execution_id:
             execution_duration = (datetime.now() - execution_start_time).total_seconds()
             completed_items = len(
                 [
@@ -460,12 +487,14 @@ class CommandExecutor:
             self.formatter.console.print(
                 f"[green]✓ Execution tracking saved (ID: {execution_id})[/green]"
             )
-    
-    def _load_work_items(self, options: Dict[str, Any], settings: Any) -> List[Dict[str, Any]]:
+
+    def _load_work_items(
+        self, options: Dict[str, Any], settings: Any
+    ) -> List[Dict[str, Any]]:
         """Load work items from file or generate mock data."""
-        use_mock_data = options.get('use_mock_data', False)
-        input_file = options.get('input_file')
-        
+        use_mock_data = options.get("use_mock_data", False)
+        input_file = options.get("input_file")
+
         if use_mock_data:
             self.formatter.console.print("[yellow]Using mock data...[/yellow]")
             return generate_mock_data()
@@ -484,8 +513,10 @@ class CommandExecutor:
 
             with open(input_path, "r") as f:
                 return json.load(f)
-    
-    def _validate_work_items(self, work_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+
+    def _validate_work_items(
+        self, work_items: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """Validate and clean work items data."""
         if not work_items:
             raise ValueError("No work items provided")
@@ -546,22 +577,20 @@ class CommandExecutor:
         self.formatter.display_validation_item_summary(validation_stats)
 
         return valid_items
-    
+
     def _save_calculate_results(
-        self, 
-        report: Dict[str, Any], 
-        options: Dict[str, Any], 
-        settings: Any
+        self, report: Dict[str, Any], options: Dict[str, Any], settings: Any
     ) -> None:
         """Save calculation results."""
-        output_format = options.get('output_format', 'json')
-        output = options.get('output')
-        
+        output_format = options.get("output_format", "json")
+        output = options.get("output")
+
         if output_format == "json":
             output_path = (
                 Path(output)
                 if output
-                else settings.data_management.data_directory / "flow_metrics_report.json"
+                else settings.data_management.data_directory
+                / "flow_metrics_report.json"
             )
             self.formatter.save_report_json(report, output_path)
 
@@ -574,15 +603,12 @@ class CommandExecutor:
             self.formatter.console.print(
                 f"[yellow]{output_format} format not yet implemented[/yellow]"
             )
-    
+
     def _start_dashboard_server(
-        self, 
-        dashboard_file: Path, 
-        port: int, 
-        open_browser: bool, 
-        executive: bool
+        self, dashboard_file: Path, port: int, open_browser: bool, executive: bool
     ) -> None:
         """Start the dashboard HTTP server."""
+
         # Create a robust HTTP server to serve the dashboard
         class DashboardHandler(http.server.SimpleHTTPRequestHandler):
             def __init__(self, *args, formatter=None, **kwargs):
@@ -613,7 +639,9 @@ class CommandExecutor:
         # Start server in background thread
         def start_server():
             try:
-                handler = lambda *args, **kwargs: DashboardHandler(*args, formatter=self.formatter, **kwargs)
+                handler = lambda *args, **kwargs: DashboardHandler(
+                    *args, formatter=self.formatter, **kwargs
+                )
                 with socketserver.TCPServer(("", port), handler) as httpd:
                     httpd.allow_reuse_address = True
                     self.formatter.console.print(
@@ -622,11 +650,15 @@ class CommandExecutor:
                     self.formatter.console.print(
                         f"[cyan]Serving files from: {dashboard_file.parent}[/cyan]"
                     )
-                    self.formatter.console.print("[yellow]Press Ctrl+C to stop the server[/yellow]")
+                    self.formatter.console.print(
+                        "[yellow]Press Ctrl+C to stop the server[/yellow]"
+                    )
                     try:
                         httpd.serve_forever()
                     except KeyboardInterrupt:
-                        self.formatter.console.print("[yellow]Dashboard server stopped[/yellow]")
+                        self.formatter.console.print(
+                            "[yellow]Dashboard server stopped[/yellow]"
+                        )
             except OSError as e:
                 self.formatter.console.print(f"[red]Server error: {e}[/red]")
                 self.formatter.console.print(
@@ -639,12 +671,20 @@ class CommandExecutor:
         # Wait a moment for server to start
         time.sleep(1)
 
-        dashboard_filename = "executive-dashboard.html" if executive else "dashboard.html"
+        dashboard_filename = (
+            "executive-dashboard.html" if executive else "dashboard.html"
+        )
         dashboard_url = f"http://localhost:{port}/{dashboard_filename}"
         dashboard_type = "Executive Dashboard" if executive else "Dashboard"
-        self.formatter.console.print(f"[green]{dashboard_type} available at: {dashboard_url}[/green]")
-        self.formatter.print_info("Select 'CLI Data' in the dashboard to load generated metrics")
-        self.formatter.print_info("Enable 'Auto-refresh' to automatically update when data changes")
+        self.formatter.console.print(
+            f"[green]{dashboard_type} available at: {dashboard_url}[/green]"
+        )
+        self.formatter.print_info(
+            "Select 'CLI Data' in the dashboard to load generated metrics"
+        )
+        self.formatter.print_info(
+            "Enable 'Auto-refresh' to automatically update when data changes"
+        )
 
         if open_browser:
             webbrowser.open(dashboard_url)
@@ -656,8 +696,10 @@ class CommandExecutor:
                 time.sleep(1)
         except KeyboardInterrupt:
             self.formatter.console.print("[yellow]Dashboard stopped[/yellow]")
-    
-    def _validate_configuration(self, validation_errors: List[str], warnings: List[str]) -> None:
+
+    def _validate_configuration(
+        self, validation_errors: List[str], warnings: List[str]
+    ) -> None:
         """Validate configuration file."""
         self.formatter.console.print("\n[cyan]1. Checking configuration file...[/cyan]")
         try:
@@ -677,19 +719,25 @@ class CommandExecutor:
                         f"Unusual org_url format: {settings.azure_devops.org_url}"
                     )
                 else:
-                    self.formatter.print_success(f"Organization URL: {settings.azure_devops.org_url}")
+                    self.formatter.print_success(
+                        f"Organization URL: {settings.azure_devops.org_url}"
+                    )
 
                 if not settings.azure_devops.default_project:
                     validation_errors.append(
                         "Missing 'default_project' in azure_devops config"
                     )
                 else:
-                    self.formatter.print_success(f"Project: {settings.azure_devops.default_project}")
+                    self.formatter.print_success(
+                        f"Project: {settings.azure_devops.default_project}"
+                    )
 
         except Exception as config_error:
             validation_errors.append(f"Configuration error: {config_error}")
-    
-    def _validate_pat_token(self, validation_errors: List[str], warnings: List[str]) -> None:
+
+    def _validate_pat_token(
+        self, validation_errors: List[str], warnings: List[str]
+    ) -> None:
         """Validate PAT token."""
         self.formatter.console.print("\n[cyan]2. Checking PAT token...[/cyan]")
         pat_token = os.getenv("AZURE_DEVOPS_PAT")
@@ -697,13 +745,19 @@ class CommandExecutor:
         if not pat_token:
             validation_errors.append("AZURE_DEVOPS_PAT environment variable not set")
             self.formatter.console.print("[yellow]To set PAT token:[/yellow]")
-            self.formatter.console.print("  Windows: set AZURE_DEVOPS_PAT=your_token_here")
-            self.formatter.console.print("  Unix/Mac: export AZURE_DEVOPS_PAT=your_token_here")
+            self.formatter.console.print(
+                "  Windows: set AZURE_DEVOPS_PAT=your_token_here"
+            )
+            self.formatter.console.print(
+                "  Unix/Mac: export AZURE_DEVOPS_PAT=your_token_here"
+            )
         else:
             if len(pat_token) < 20:
                 warnings.append(f"PAT token seems short (length: {len(pat_token)})")
-            self.formatter.print_success(f"PAT Token: {'*' * (len(pat_token) - 4)}{pat_token[-4:]} (length: {len(pat_token)})")
-    
+            self.formatter.print_success(
+                f"PAT Token: {'*' * (len(pat_token) - 4)}{pat_token[-4:]} (length: {len(pat_token)})"
+            )
+
     def _validate_data_directory(self) -> None:
         """Validate data directory."""
         self.formatter.console.print("\n[cyan]3. Checking data directory...[/cyan]")
@@ -713,10 +767,12 @@ class CommandExecutor:
             self.formatter.print_success("Created data directory")
         else:
             self.formatter.print_success("Data directory exists")
-    
+
     def _test_azure_devops_connection(self, validation_errors: List[str]) -> None:
         """Test Azure DevOps connection."""
-        self.formatter.console.print("\n[cyan]4. Testing Azure DevOps connection...[/cyan]")
+        self.formatter.console.print(
+            "\n[cyan]4. Testing Azure DevOps connection...[/cyan]"
+        )
 
         settings = get_settings()
         pat_token = os.getenv("AZURE_DEVOPS_PAT")
